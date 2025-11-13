@@ -1,17 +1,29 @@
+// Importamos React y ReactDOM para renderizar
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+
+// Importamos estilos globales
 import './index.css';
+
+// Importamos BrowserRouter para manejar rutas
+import { BrowserRouter } from 'react-router-dom';
+
+// Importamos el componente principal de la App
 import App from './App';
+
+// Importamos una herramienta de medición de rendimiento
 import reportWebVitals from './reportWebVitals';
 
+// Creamos el punto de entrada de la app y lo renderizamos
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    {/* Envolvemos la App en el Router para poder usar rutas */}
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </React.StrictMode>
 );
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+// Medición opcional de rendimiento
 reportWebVitals();

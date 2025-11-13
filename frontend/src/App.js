@@ -1,23 +1,19 @@
-import { useEffect, useState } from "react";
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import Navbar from './components/Navbar'; // ⬅️ Importamos la barra de navegación
 
 function App() {
-  const [alumnos, setAlumnos] = useState([]);
-
-  useEffect(() => {
-    fetch("http://localhost:3000/alumnos")
-      .then((res) => res.json())
-      .then((data) => setAlumnos(data))
-      .catch((err) => console.error("Error:", err));
-  }, []);
-
   return (
-    <div>
-      <h1>Listado de Alumnos</h1>
-      <ul>
-        {alumnos.map((alumno, index) => (
-          <li key={index}>{alumno.nombre}</li>
-        ))}
-      </ul>
+    <div className="App">
+      {/* Mostramos el Navbar en todas las páginas */}
+      <Navbar />
+
+      {/* Definimos las rutas */}
+      <Routes>
+        <Route path="/" element={<Home />} />
+        {/* Aquí puedes añadir más páginas luego */}
+      </Routes>
     </div>
   );
 }
