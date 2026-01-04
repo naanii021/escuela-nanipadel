@@ -1,0 +1,106 @@
+/* Estilos principales */
+.hero {
+  padding: 1.6rem;
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 1.2rem;
+  align-items: stretch;
+}
+
+.heroLeft {
+  padding: 2rem;
+}
+
+.heroLeft h2 {
+  margin: 0;
+  font-size: 2.1rem;
+  line-height: 1.15;
+  letter-spacing: -0.4px;
+}
+
+.heroLeft p {
+  margin: 0.9rem 0 1.3rem;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.ctaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* KPI del lado derecho */
+.heroRight {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.kpi {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.kpiItem {
+  padding: 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.kpiItem strong {
+  display: block;
+  font-size: 1.1rem;
+}
+
+.kpiItem span {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+/* Mini app del tiempo */
+.weatherBox {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #e7f3ff;
+  border-radius: 10px;
+  font-size: 0.95rem;
+}
+
+/* NUEVA sección: Ventajas */
+.features {
+  margin-top: 2rem;
+  padding: 2rem;
+  background: #f7f7f7;
+  border-radius: 1rem;
+}
+
+.features h3 {
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.featureCard {
+  background: white;
+  border: 1px solid var(--border);
+  padding: 1rem;
+  border-radius: 12px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .heroGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,96 @@
+/* Header tipo “app moderna” */
+.headerWrap {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(10px);
+  background: rgba(246, 248, 251, 0.75);
+  border-bottom: 1px solid var(--border);
+}
+
+.header {
+  padding: 1rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--brand), #22c55e);
+  box-shadow: 0 12px 22px rgba(22, 163, 74, 0.18);
+}
+
+.brandText h1 {
+  margin: 0;
+  font-size: 1.05rem;
+  letter-spacing: 0.2px;
+}
+
+.brandText p {
+  margin: 0.15rem 0 0 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+/* Links estilo “pill” */
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.55);
+}
+
+.nav a {
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  font-weight: 700;
+  color: var(--muted);
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.nav a:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--text);
+}
+
+/* Activo (lo pondremos con NavLink luego si quieres) */
+.nav .active {
+  background: rgba(22, 163, 74, 0.14);
+  color: var(--text);
+  border: 1px solid rgba(22, 163, 74, 0.30);
+}
+
+/* Botones dentro de la navbar */
+.navBtn {
+  border: 1px solid var(--border);
+  background: white;
+  padding: 0.45rem 0.8rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.navBtn:hover {
+  filter: brightness(0.98);
+}
+
+.navBtnDanger {
+  background: #ffecec;
+  border-color: #ffb7b7;
+}
+.navBtnDanger:hover {
+  background: #ffd6d6;
+}

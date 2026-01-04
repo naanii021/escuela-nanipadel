@@ -1,13 +1,102 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* =========================
+   NaniPadel · Estilos globales
+   Objetivo: look claro, limpio, moderno y atractivo
+   ========================= */
+
+/* Variables de diseño: colores, sombras, radios, etc. */
+:root {
+  --bg: #f6f8fb;
+  --surface: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+
+  /* Verde marca (puedes ajustar a tu gusto) */
+  --brand: #16a34a;
+  --brand-600: #15803d;
+
+  --border: rgba(15, 23, 42, 0.10);
+
+  --radius: 16px;
+  --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+
+  --container: 1100px;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* Reset básico para que todo se vea consistente */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+  background: radial-gradient(1200px 600px at 20% -10%, rgba(22, 163, 74, 0.18), transparent 60%),
+              radial-gradient(900px 500px at 95% 0%, rgba(14, 165, 233, 0.10), transparent 55%),
+              var(--bg);
+  color: var(--text);
+}
+
+/* Links limpios */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Contenedor estándar */
+.container {
+  width: min(var(--container), calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+/* Tarjeta / panel */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* Botones */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.8rem 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  background: var(--brand);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--brand-600);
+}
+
+.btn-ghost {
+  background: rgba(255,255,255,0.55);
+  border-color: var(--border);
+}
+
+.btn-ghost:hover {
+  opacity: 0.92;
+}
+
+/* Texto secundario */
+.muted {
+  color: var(--muted);
 }

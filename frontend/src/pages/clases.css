@@ -1,0 +1,44 @@
+.clases {
+  padding: 2rem;
+}
+
+.clases h2 {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.intro {
+  margin-bottom: 1.5rem;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+/* Estilo para la lista de clases */
+.listaClases {
+  display: grid;
+  gap: 1.2rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.claseCard {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  transition: box-shadow 0.3s;
+}
+
+.claseCard h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+}
+
+.claseCard p {
+  margin: 0.3rem 0;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.claseCard:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}

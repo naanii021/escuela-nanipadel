@@ -1,0 +1,71 @@
+/* Página de reservas */
+.reservas {
+  padding: 2rem;
+}
+
+.reservas h2 {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.intro {
+  margin-bottom: 1.5rem;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+/* Cuadrícula de tarjetas de pista/horario */
+.gridReservas {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.reservaCard {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.reservaCard strong {
+  font-size: 1.1rem;
+}
+
+.reservaCard span {
+  font-size: 0.95rem;
+  color: var(--muted);
+  margin: 0.3rem 0 1rem;
+}
+
+.reservaCard button {
+  padding: 0.5rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #4caf50;
+  color: white;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+.reservaCard button:hover {
+  background: #45a047;
+}
+
+.reservaCard button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* Estados */
+.disponible {
+  border-left: 5px solid #4caf50;
+}
+
+.ocupada {
+  border-left: 5px solid #f44336;
+}

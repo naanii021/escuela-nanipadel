@@ -1,0 +1,76 @@
+.torneos {
+  padding: 2rem;
+}
+
+.torneos h2 {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.intro {
+  margin-bottom: 1.5rem;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+/* Grid de torneos */
+.listaTorneos {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+/* Tarjeta de torneo */
+.torneoCard {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.3s;
+}
+
+.torneoCard:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* Imagen del torneo */
+.torneoCard img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+/* Info del torneo */
+.torneoInfo {
+  padding: 1rem;
+}
+
+.torneoInfo h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+}
+
+.torneoInfo p {
+  margin: 0.3rem 0;
+  font-size: 0.95rem;
+}
+
+/* Botón */
+.btnApuntarse {
+  margin-top: 1rem;
+  padding: 0.6rem;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: #2196f3;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btnApuntarse:hover {
+  background: #1976d2;
+}

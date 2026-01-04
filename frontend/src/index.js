@@ -11,8 +11,6 @@ import { BrowserRouter } from 'react-router-dom';
 // Importamos el componente principal de la App
 import App from './App';
 
-// Importamos una herramienta de medición de rendimiento
-import reportWebVitals from './reportWebVitals';
 
 // Creamos el punto de entrada de la app y lo renderizamos
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -24,6 +22,3 @@ root.render(
     </BrowserRouter>
   </React.StrictMode>
 );
-
-// Medición opcional de rendimiento
-reportWebVitals();

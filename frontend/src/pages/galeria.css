@@ -1,0 +1,95 @@
+.galeria {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.galeriaHeader {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.galeriaHeader h2 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.galeriaHeader p {
+  margin: 0.35rem 0 0;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filterBtn {
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.6);
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.filterBtn:active {
+  transform: translateY(1px);
+}
+
+.filterBtn:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.filterBtn.active {
+  background: rgba(22, 163, 74, 0.14);
+  border-color: rgba(22, 163, 74, 0.30);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.tile {
+  overflow: hidden;
+}
+
+.imgWrap {
+  height: 190px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+
+.imgWrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scale(1.02);
+  transition: transform 180ms ease;
+}
+
+.tile:hover .imgWrap img {
+  transform: scale(1.07);
+}
+
+.tileInfo {
+  padding: 0.9rem 1rem 1rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.hint {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
