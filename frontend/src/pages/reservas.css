@@ -1,71 +1,446 @@
-/* Página de reservas */
+:root {
+  --green-soft: rgba(40, 200, 120, 0.18);
+  --green-border: rgba(40, 200, 120, 0.55);
+  --green-strong: #1fbf75;
+
+  --red-soft: rgba(230, 80, 80, 0.18);
+  --red-border: rgba(230, 80, 80, 0.55);
+  --red-strong: #e45454;
+
+  --card-bg: rgba(255, 255, 255, 0.06);
+}
+
+
 .reservas {
-  padding: 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 18px 60px;
+}
+
+.reservasHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
 }
 
 .reservas h2 {
-  font-size: 1.8rem;
-  margin-bottom: 0.5rem;
+  margin: 0;
+  font-size: 28px;
 }
 
 .intro {
-  margin-bottom: 1.5rem;
-  color: var(--muted);
-  font-size: 1.05rem;
+  margin: 8px 0 0;
+  opacity: 0.8;
 }
 
-/* Cuadrícula de tarjetas de pista/horario */
+.summary {
+  display: flex;
+  gap: 10px;
+}
+
+.summaryItem {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  min-width: 110px;
+  text-align: center;
+}
+
+.summaryItem strong {
+  display: block;
+  font-size: 18px;
+}
+
+.summaryItem span {
+  opacity: 0.8;
+  font-size: 12px;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 18px 0 14px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.datePills {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pillBtn {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.pillBtn.active {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.30);
+}
+
+.datePicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.datePicker input {
+  border: none;
+  background: transparent;
+  color: inherit;
+  outline: none;
+}
+
+.filters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filters select,
+.searchHour {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  outline: none;
+}
+
+.searchHour {
+  width: 170px;
+}
+
+.check {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  user-select: none;
+  opacity: 0.9;
+}
+
+.dayTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 16px 0 10px;
+  opacity: 0.95;
+}
+
+.dayTitle span {
+  opacity: 0.75;
+  font-size: 13px;
+}
+
 .gridReservas {
   display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
 .reservaCard {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem;
-  background: white;
+  border-radius: 18px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
   display: flex;
   flex-direction: column;
+  gap: 10px;
+}
+
+.cardTop {
+  display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 10px;
 }
 
-.reservaCard strong {
-  font-size: 1.1rem;
+.status {
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  opacity: 0.9;
+  font-weight: 700;
+  letter-spacing: 0.2px;
 }
 
-.reservaCard span {
-  font-size: 0.95rem;
-  color: var(--muted);
-  margin: 0.3rem 0 1rem;
+.status.disponible {
+  background: var(--green-soft);
+  color: var(--green-strong);
+  border: 1px solid var(--green-border);
 }
 
-.reservaCard button {
-  padding: 0.5rem;
+.status.ocupada {
+  background: var(--red-soft);
+  color: var(--red-strong);
+  border: 1px solid var(--red-border);
+}
+
+.timeRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+}
+
+.time {
+  font-weight: 700;
+}
+
+.dash {
+  opacity: 0.7;
+}
+
+.metaRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  opacity: 0.9;
+}
+
+.reserveBtn {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 14px;
   border: none;
-  border-radius: 8px;
   cursor: pointer;
-  background: #4caf50;
-  color: white;
-  font-weight: bold;
-  transition: background 0.3s;
+  font-weight: 700;
+  border: 3px solid rgba(18, 66, 226, 0.18);
+  background: rgba(255, 255, 255, 0.10);
 }
 
-.reservaCard button:hover {
-  background: #45a047;
+.reservaCard.disponible {
+  background: linear-gradient(
+    180deg,
+    rgba(40, 200, 120, 0.10),
+    var(--card-bg)
+  );
+  border: 3px solid var(--green-border);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.25),
+    inset 0 0 0 1px rgba(40, 200, 120, 0.15);
 }
 
-.reservaCard button:disabled {
-  background: #ccc;
+.reservaCard.disponible:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.35),
+    0 0 0 1px var(--green-border);
+}
+
+.reservaCard.ocupada {
+  background: linear-gradient(
+    180deg,
+    rgba(230, 80, 80, 0.12),
+    var(--card-bg)
+  );
+  border: 4px solid var(--red-border);
+  opacity: 0.65;
+  filter: grayscale(0.2);
+}
+
+
+.reservaCard.ocupada .reserveBtn {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
   cursor: not-allowed;
 }
 
-/* Estados */
-.disponible {
-  border-left: 5px solid #4caf50;
+.toast {
+  position: fixed;
+  right: 16px;
+  bottom: 18px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgb(255, 255, 255);
+  border: 3px solid rgba(3, 3, 3, 0.14);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  max-width: 420px;
+  z-index: 50;
 }
 
-.ocupada {
-  border-left: 5px solid #f44336;
+
+/* hover para cuando reservamos */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 100;
+}
+
+.modal {
+  width: 100%;
+  max-width: 520px;
+  border-radius: 20px;
+  padding: 18px;
+  background: #f9fafb;
+  color: #111;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+}
+
+
+.modalHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 10px;
+}
+
+.modalHead h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #111;
+}
+
+.closeBtn {
+  border: none;
+  background: #f1f5f9;
+  color: #111;
+  cursor: pointer;
+  font-size: 16px;
+  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+}
+
+.closeBtn:hover {
+  background: #e5e7eb;
+}
+
+.modalInfo {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #f1f5f9;
+  border: 1px solid #e5e7eb;
+}
+
+.modalLine {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.modalSub {
+  margin: 6px 0 0;
+  color: #475569;
+  font-size: 13px;
+}
+
+/*formulario de reserva ---------------------*/
+.form {
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.form label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.form input,
+.form textarea {
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #111;
+  outline: none;
+  font-size: 14px;
+}
+
+.form input::placeholder,
+.form textarea::placeholder {
+  color: #94a3b8;
+}
+
+.form input:focus,
+.form textarea:focus {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+}
+
+/*botones ------------*/
+.modalActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.btnGhost {
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btnGhost:hover {
+  background: #e5e7eb;
+}
+
+.btnPrimary {
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(180deg, #22c55e, #16a34a);
+  color: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btnPrimary:hover {
+  filter: brightness(1.05);
+}
+
+/*texto de ayuda final*/
+.modalHint {
+  margin: 10px 0 0;
+  color: #e5e9ee;
+  font-size: 12px;
 }

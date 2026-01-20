@@ -1,3 +1,10 @@
+:root {
+  --border: #dcdcdc;
+  --muted: #666;
+  --text: #111;
+}
+
+
 .App {
   text-align: center;
 }
