@@ -1,64 +1,29 @@
-// Página de reservas de pista (versión mejorada, lista para conectar a backend)
 import "./reservas.css";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { isLogged, getUser, getToken } from "../services/auth";
 
-// Horas base (puedes cambiarlo a lo que use tu club)
+const API_BASE = (
+  process.env.REACT_APP_API_URL || "http://127.0.0.1:4000"
+).replace(/\/$/, "");
+
 const HOURS = [
-  "09:00", "10:30", "12:00", "13:30", "15:00", "16:30",
-   "18:00", "19:30", "21:00", "22:30"
+  "09:00", "10:30", "12:00", "13:30", "15:00",
+  "16:30", "18:00", "19:30", "21:00", "22:30",
 ];
 
-// Pistas disponibles (futuro: vendrá de tu BD)
-const COURTS = [
-  { id: "p1", name: "Pista 1" },
-  { id: "p2", name: "Pista 2" },
-];
-
-// Genera slots de ejemplo (futuro: vendrán del backend)
-function buildMockSlots(dateISO) {
-  // dateISO se usa para que puedas diferenciar días si quieres
-  // De momento, simulamos algunas ocupadas
-  const occupiedSet = new Set([
-    `${dateISO}|p2|18:00`,
-    `${dateISO}|p1|19:30`,
-    `${dateISO}|p1|21:00`,
-  ]);
-
-  const slots = [];
-
-  for (const hour of HOURS) {
-    for (const court of COURTS) {
-      const key = `${dateISO}|${court.id}|${hour}`;
-      const occupied = occupiedSet.has(key);
-
-      slots.push({
-        id: key,
-        dateISO,
-        courtId: court.id,
-        courtName: court.name,
-        start: hour,
-        end: nextHour(hour),
-        status: occupied ? "ocupada" : "disponible",
-        price: 10, // ejemplo fijo, luego lo conectas a configuración
-      });
-    }
-  }
-
-  return slots;
-}
-
-// Calcula la siguiente hora "19:00" -> "20:00"
 function nextHour(hhmm, durationMinutes = 90) {
   const [h, m] = hhmm.split(":").map(Number);
   const d = new Date();
   d.setHours(h, m, 0, 0);
   d.setMinutes(d.getMinutes() + durationMinutes);
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${hh}:${mm}`;
+  return (
+    String(d.getHours()).padStart(2, "0") +
+    ":" +
+    String(d.getMinutes()).padStart(2, "0")
+  );
 }
 
-// Devuelve YYYY-MM-DD
 function toISODate(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -66,7 +31,6 @@ function toISODate(date) {
   return `${y}-${m}-${d}`;
 }
 
-// Formato bonito para mostrar
 function prettyDate(dateISO) {
   const [y, m, d] = dateISO.split("-").map(Number);
   const dt = new Date(y, m - 1, d);
@@ -78,85 +42,202 @@ function prettyDate(dateISO) {
 }
 
 function Reservas() {
-  // Fecha seleccionada
   const todayISO = toISODate(new Date());
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowISO = toISODate(tomorrow);
 
+  const navigate = useNavigate();
+
   const [selectedDateISO, setSelectedDateISO] = useState(todayISO);
+  const [courts, setCourts] = useState([]);
+  const [reservas, setReservas] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Filtros
-  const [courtFilter, setCourtFilter] = useState("all"); // all | p1 | p2
+  const [courtFilter, setCourtFilter] = useState("all");
   const [onlyAvailable, setOnlyAvailable] = useState(false);
-  const [searchHour, setSearchHour] = useState(""); // filtrar por texto "18" etc.
+  const [searchHour, setSearchHour] = useState("");
 
-  // Modal de reserva
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [reserveName, setReserveName] = useState("");
   const [reservePhone, setReservePhone] = useState("");
   const [reserveNote, setReserveNote] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState("");
 
-  // Slots del día (mock)
-  const slots = useMemo(() => buildMockSlots(selectedDateISO), [selectedDateISO]);
+  useEffect(() => {
+    fetch(`${API_BASE}/api/reservas/pistas`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) setCourts(data.pistas);
+      })
+      .catch((e) => console.error("Error cargando pistas:", e));
+  }, []);
 
-  // Slots filtrados
+  const loadReservas = useCallback(() => {
+    setLoading(true);
+    fetch(`${API_BASE}/api/reservas?fecha=${selectedDateISO}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) setReservas(data.reservas);
+      })
+      .catch((e) => console.error("Error cargando reservas:", e))
+      .finally(() => setLoading(false));
+  }, [selectedDateISO]);
+
+  useEffect(() => {
+    loadReservas();
+  }, [loadReservas]);
+
+  const slots = useMemo(() => {
+    if (!courts.length) return [];
+
+    const occupiedSet = new Set(
+      reservas.map((r) => {
+        const hora = r.hora_inicio.slice(0, 5);
+        return `${r.pista_id}|${hora}`;
+      })
+    );
+
+    const result = [];
+
+    for (const hour of HOURS) {
+      for (const court of courts) {
+        const key = `${court.id}|${hour}`;
+        const occupied = occupiedSet.has(key);
+
+        const reservaReal = occupied
+          ? reservas.find(
+              (r) =>
+                r.pista_id === court.id && r.hora_inicio.slice(0, 5) === hour
+            )
+          : null;
+
+        result.push({
+          id: `${selectedDateISO}|${court.id}|${hour}`,
+          dateISO: selectedDateISO,
+          courtId: court.id,
+          courtName: court.nombre,
+          start: hour,
+          end: nextHour(hour),
+          status: occupied ? "ocupada" : "disponible",
+          reservaId: reservaReal ? reservaReal.id : null,
+          reservaUserId: reservaReal ? reservaReal.usuario_id : null,
+          price: 10,
+        });
+      }
+    }
+
+    return result;
+  }, [courts, reservas, selectedDateISO]);
+
   const filteredSlots = useMemo(() => {
     return slots.filter((s) => {
-      if (courtFilter !== "all" && s.courtId !== courtFilter) return false;
+      if (courtFilter !== "all" && String(s.courtId) !== courtFilter)
+        return false;
       if (onlyAvailable && s.status !== "disponible") return false;
-      if (searchHour.trim() && !s.start.includes(searchHour.trim())) return false;
+      if (searchHour.trim() && !s.start.includes(searchHour.trim()))
+        return false;
       return true;
     });
   }, [slots, courtFilter, onlyAvailable, searchHour]);
 
-  // Contadores para mostrar resumen
   const counts = useMemo(() => {
     const total = slots.length;
     const disponibles = slots.filter((s) => s.status === "disponible").length;
-    const ocupadas = total - disponibles;
-    return { total, disponibles, ocupadas };
+    return { total, disponibles, ocupadas: total - disponibles };
   }, [slots]);
 
-  // Reservar (modo demo)
-  const handleReserve = () => {
-    // Validación simple
+  const showToast = (msg) => {
+    setToast(msg);
+    window.clearTimeout(showToast._t);
+    showToast._t = window.setTimeout(() => setToast(""), 3500);
+  };
+
+  const handleReserve = async () => {
     if (!reserveName.trim()) {
-      setToast("Escribe tu nombre para completar la reserva.");
+      showToast("Escribe tu nombre para completar la reserva.");
       return;
     }
     if (!reservePhone.trim()) {
-      setToast("Escribe un teléfono de contacto.");
+      showToast("Escribe un teléfono de contacto.");
       return;
     }
 
-    // Aquí en el futuro llamarías a tu backend:
-    // POST /api/reservas { slotId, name, phone, note }
-    // De momento, simulamos éxito
-    setToast(
-      `✅ Reserva creada: ${selectedSlot.courtName} ${selectedSlot.start}-${selectedSlot.end} (${prettyDate(selectedSlot.dateISO)})`
-    );
+    setSubmitting(true);
 
-    // Cerramos modal y limpiamos
-    setSelectedSlot(null);
-    setReserveName("");
-    setReservePhone("");
-    setReserveNote("");
+    try {
+      const res = await fetch(`${API_BASE}/api/reservas`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({
+          nombre_cliente: reserveName.trim(),
+          telefono_cliente: reservePhone.trim(),
+          pista_id: selectedSlot.courtId,
+          fecha: selectedSlot.dateISO,
+          hora_inicio: selectedSlot.start,
+          duracion_min: 90,
+          notas: reserveNote.trim() || null,
+        }),
+      });
 
-    // Ocultamos toast tras unos segundos
-    window.clearTimeout(handleReserve._t);
-    handleReserve._t = window.setTimeout(() => setToast(""), 3500);
+      const data = await res.json();
+
+      if (!data.ok) {
+        showToast("❌ " + (data.message || "Error al reservar"));
+        return;
+      }
+
+      showToast(
+        `✅ Reserva creada: ${selectedSlot.courtName} ${selectedSlot.start}-${selectedSlot.end} (${prettyDate(selectedSlot.dateISO)})`
+      );
+
+      setSelectedSlot(null);
+      setReserveName("");
+      setReservePhone("");
+      setReserveNote("");
+
+      loadReservas();
+    } catch (e) {
+      showToast("❌ Error de conexión con el servidor");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCancel = async (slot) => {
+    if (!window.confirm("¿Seguro que quieres cancelar esta reserva?")) return;
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/reservas/${slot.reservaId}/cancelar`,
+        {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${getToken()}` },
+        }
+      );
+      const data = await res.json();
+      if (data.ok) {
+        showToast("✅ Reserva cancelada");
+        loadReservas();
+      } else {
+        showToast("❌ " + data.message);
+      }
+    } catch {
+      showToast("❌ Error de conexión");
+    }
   };
 
   return (
     <section className="reservas">
-      {/* Cabecera */}
       <div className="reservasHeader">
         <div>
           <h2>Reservas</h2>
           <p className="intro">
-            Elige día, pista y hora. En breve lo conectamos al servidor para que sea 100% en tiempo real.
+            Elige día, pista y hora para reservar tu pista en tiempo real.
           </p>
         </div>
 
@@ -172,7 +253,6 @@ function Reservas() {
         </div>
       </div>
 
-      {/* Selector de día */}
       <div className="toolbar">
         <div className="datePills">
           <button
@@ -187,7 +267,6 @@ function Reservas() {
           >
             Mañana
           </button>
-
           <label className="datePicker">
             <span>📅</span>
             <input
@@ -199,11 +278,14 @@ function Reservas() {
         </div>
 
         <div className="filters">
-          <select value={courtFilter} onChange={(e) => setCourtFilter(e.target.value)}>
+          <select
+            value={courtFilter}
+            onChange={(e) => setCourtFilter(e.target.value)}
+          >
             <option value="all">Todas las pistas</option>
-            {COURTS.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
+            {courts.map((c) => (
+              <option key={c.id} value={String(c.id)}>
+                {c.nombre}
               </option>
             ))}
           </select>
@@ -226,60 +308,90 @@ function Reservas() {
         </div>
       </div>
 
-      {/* Título del día */}
       <div className="dayTitle">
         <strong>{prettyDate(selectedDateISO)}</strong>
-        <span>Selecciona un hora para reservar</span>
+        <span>Selecciona una hora para reservar</span>
       </div>
 
-      {/* Grid de reservas */}
-      <div className="gridReservas">
-        {filteredSlots.map((slot) => (
-          <div
-            key={slot.id}
-            className={`reservaCard ${slot.status}`}
-            role="group"
-            aria-label={`${slot.courtName} ${slot.start}-${slot.end}`}
-          >
-            <div className="cardTop">
-              <strong>{slot.courtName}</strong>
-              <span className={`status ${slot.status}`}>
-                {slot.status === "disponible" ? "Disponible" : "Ocupada"}
-              </span>
+      {loading ? (
+        <p style={{ textAlign: "center", opacity: 0.7 }}>
+          Cargando reservas...
+        </p>
+      ) : (
+        <div className="courtsColumns">
+          {courts.map((court) => (
+            <div key={court.id} className="courtColumn">
+              <div className="courtHeader">{court.nombre}</div>
+              <div className="courtSlots">
+                {filteredSlots
+                  .filter((s) => s.courtId === court.id)
+                  .map((slot) => (
+                    <div
+                      key={slot.id}
+                      className={`reservaCard ${slot.status}`}
+                      role="group"
+                      aria-label={`${slot.courtName} ${slot.start}-${slot.end}`}
+                    >
+                      <div className="cardTop">
+                        <strong>
+                          {slot.start} → {slot.end}
+                        </strong>
+                        <span className={`status ${slot.status}`}>
+                          {slot.status === "disponible"
+                            ? "Disponible"
+                            : "Ocupada"}
+                        </span>
+                      </div>
+
+                      <div className="metaRow">
+                        <span className="chip">Precio: {slot.price}€</span>
+                        <span className="chip">90 min</span>
+                      </div>
+
+                      {slot.status === "disponible" ? (
+                        <button
+                          className="reserveBtn"
+                          onClick={() => {
+                            if (!isLogged()) {
+                              navigate("/login");
+                              return;
+                            }
+                            setSelectedSlot(slot);
+                          }}
+                        >
+                          Reservar
+                        </button>
+                      ) : slot.reservaUserId === getUser()?.id ? (
+                        <button
+                          className="reserveBtn cancelBtn"
+                          onClick={() => handleCancel(slot)}
+                        >
+                          Cancelar mi reserva
+                        </button>
+                      ) : (
+                        <button className="reserveBtn" disabled>
+                          No disponible
+                        </button>
+                      )}
+                    </div>
+                  ))}
+              </div>
             </div>
+          ))}
+        </div>
+      )}
 
-            <div className="timeRow">
-              <span className="time">{slot.start}</span>
-              <span className="dash">→</span>
-              <span className="time">{slot.end}</span>
-            </div>
-
-            <div className="metaRow">
-              <span className="chip">Precio: {slot.price}€</span>
-              <span className="chip">Duración: 90 min</span>
-            </div>
-
-            <button
-              className="reserveBtn"
-              disabled={slot.status !== "disponible"}
-              onClick={() => setSelectedSlot(slot)}
-            >
-              {slot.status === "disponible" ? "Reservar" : "No disponible"}
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {/* Toast */}
       {toast && <div className="toast">{toast}</div>}
 
-      {/* Modal */}
       {selectedSlot && (
         <div className="modalBackdrop" onClick={() => setSelectedSlot(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modalHead">
               <h3>Confirmar reserva</h3>
-              <button className="closeBtn" onClick={() => setSelectedSlot(null)}>
+              <button
+                className="closeBtn"
+                onClick={() => setSelectedSlot(null)}
+              >
                 ✕
               </button>
             </div>
@@ -326,17 +438,20 @@ function Reservas() {
               </label>
 
               <div className="modalActions">
-                <button className="btnGhost" onClick={() => setSelectedSlot(null)}>
+                <button
+                  className="btnGhost"
+                  onClick={() => setSelectedSlot(null)}
+                >
                   Cancelar
                 </button>
-                <button className="btnPrimary" onClick={handleReserve}>
-                  Confirmar reserva
+                <button
+                  className="btnPrimary"
+                  onClick={handleReserve}
+                  disabled={submitting}
+                >
+                  {submitting ? "Reservando..." : "Confirmar reserva"}
                 </button>
               </div>
-
-              <p className="modalHint">
-                Esto es modo demo. Luego lo conectamos a tu backend para bloquear huecos de verdad.
-              </p>
             </div>
           </div>
         </div>

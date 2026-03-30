@@ -16,14 +16,12 @@ function App() {
     <Layout>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/Reservas" element={<Reservas />} />
-        <Route path="/Clases" element={<Clases />} />
-        <Route path="/Torneos" element={<Torneos />} />
-        <Route path="/Galeria" element={<Galeria />} />
-        <Route path="/Login" element={<Login />} />
-        <Route path="/Panel" element={<PanelProfesor />} />
-       
-        {/* Aquí puedes añadir más páginas luego */}
+        <Route path="/reservas" element={<Reservas />} />
+        <Route path="/clases" element={<Clases />} />
+        <Route path="/torneos" element={<Torneos />} />
+        <Route path="/galeria" element={<Galeria />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/panel" element={<PanelProfesor />} />
       </Routes>
     </Layout>
   );

@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { db } from "./db/connection.js";
+import reservasRouter from "./routes/reservas.js";
+import authRouter from "./routes/auth.js";
 
 dotenv.config();
 
@@ -17,6 +19,13 @@ app.use(
 
 // JSON body
 app.use(express.json());
+
+// Usar el router de reservas
+app.use("/api/reservas", reservasRouter);
+
+// Usar el router de auth
+app.use("/api/auth", authRouter);
+
 
 // Root
 app.get("/", (_req, res) => res.send("Servidor NaniPadel funcionando 🚀"));

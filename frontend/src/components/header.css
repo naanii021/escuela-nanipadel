@@ -94,3 +94,9 @@
 .navBtnDanger:hover {
   background: #ffd6d6;
 }
+
+.navUser {
+  opacity: 0.8;
+  font-size: 13px;
+  font-weight: 600;
+}

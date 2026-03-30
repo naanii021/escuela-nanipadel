@@ -1,6 +1,6 @@
-console.log("🚀 Proxy setup cargado");
-
 const { createProxyMiddleware } = require("http-proxy-middleware");
+
+console.log("🚀 Proxy setup cargado");
 
 module.exports = function (app) {
   app.use(

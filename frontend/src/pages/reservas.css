@@ -444,3 +444,80 @@
   color: #e5e9ee;
   font-size: 12px;
 }
+
+/* Columnas por pista */
+.courtsColumns {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.courtColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.courtHeader {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.courtSlots {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* En móvil, una sola columna */
+@media (max-width: 640px) {
+  .courtsColumns {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Switch login/registro */
+.loginSwitch {
+  text-align: center;
+  margin-top: 1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.switchBtn {
+  background: none;
+  border: none;
+  color: #2196f3;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.switchBtn:hover {
+  text-decoration: underline;
+}
+
+.loginBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Botón cancelar reserva */
+.cancelBtn {
+  background: var(--red-soft) !important;
+  color: var(--red-strong) !important;
+  border-color: var(--red-border) !important;
+  cursor: pointer !important;
+}
+
+.cancelBtn:hover {
+  filter: brightness(0.95);
+}

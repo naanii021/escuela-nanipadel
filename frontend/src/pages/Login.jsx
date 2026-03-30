@@ -1,86 +1,126 @@
-// Página de Login (Acceso)
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { login, registro, saveSession } from "../services/auth";
 import "./login.css";
 
 function Login() {
   const navigate = useNavigate();
 
-  // Guardamos los valores del formulario en estado
+  const [mode, setMode] = useState("login");
+
   const [form, setForm] = useState({
-    usuario: "",
+    nombre: "",
+    email: "",
+    telefono: "",
     password: "",
   });
 
-  // Mensaje de error (si falla el login)
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // Maneja cambios en los inputs
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    // Actualizamos el estado del formulario sin perder el resto de campos
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Maneja el envío del formulario
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Limpiamos cualquier error anterior
     setError("");
 
-    // ✅ LOGIN SIMULADO (por ahora)
-    // Más adelante: aquí haremos fetch al backend para validar usuario/contraseña.
-    // Ejemplo futuro: POST http://localhost:4000/auth/login
-    if (form.usuario.trim() === "" || form.password.trim() === "") {
-      setError("Rellena usuario y contraseña.");
+    if (!form.email.trim() || !form.password.trim()) {
+      setError("Rellena email y contraseña.");
       return;
     }
 
-    // Simulación simple: si el usuario escribe "profesor" o "admin"
-    // le dejamos entrar al panel.
-    const user = form.usuario.toLowerCase();
-
-    if ((user === "profesor" && form.password === "1234") || (user === "admin" && form.password === "1234")) {
-      // Guardamos una "sesión" muy básica en localStorage (temporal)
-      localStorage.setItem("isLogged", "true");
-      localStorage.setItem("role", user);
-
-      // Redirigimos al panel
-      navigate("/panel");
+    if (mode === "registro" && !form.nombre.trim()) {
+      setError("Escribe tu nombre para registrarte.");
       return;
     }
 
-    // Si no coincide, mostramos error
-    setError("Usuario o contraseña incorrectos (prueba profesor/admin y 1234).");
+    setLoading(true);
+
+    try {
+      let data;
+
+      if (mode === "login") {
+        data = await login(form.email, form.password);
+      } else {
+        data = await registro(form.nombre, form.email, form.telefono, form.password);
+      }
+
+      if (!data.ok) {
+        setError(data.message || "Error desconocido");
+        return;
+      }
+
+      saveSession(data.token, data.user);
+      console.log("LOGIN OK:", data.user);
+
+      if (data.user.rol === "profesor" || data.user.rol === "admin") {
+        navigate("/panel");
+      } else {
+        navigate("/reservas");
+      }
+    } catch (e) {
+      setError("Error de conexión con el servidor");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const switchMode = () => {
+    setMode(mode === "login" ? "registro" : "login");
+    setError("");
   };
 
   return (
     <section className="loginPage">
       <div className="loginCard">
-        <h2>Acceso</h2>
+        <h2>{mode === "login" ? "Iniciar sesión" : "Crear cuenta"}</h2>
         <p className="loginInfo">
-          Entra como profesor o administrador para gestionar torneos, clases y alumnos.
+          {mode === "login"
+            ? "Accede a tu cuenta para reservar pistas y gestionar tus reservas."
+            : "Crea tu cuenta para empezar a reservar pistas."}
         </p>
 
-        {/* Mensaje de error */}
         {error && <div className="loginError">{error}</div>}
 
-        {/* Formulario de login */}
         <form onSubmit={handleSubmit} className="loginForm">
+          {mode === "registro" && (
+            <>
+              <label className="field">
+                <span>Nombre</span>
+                <input
+                  type="text"
+                  name="nombre"
+                  placeholder="Ej: Dani"
+                  value={form.nombre}
+                  onChange={handleChange}
+                />
+              </label>
+
+              <label className="field">
+                <span>Teléfono (opcional)</span>
+                <input
+                  type="text"
+                  name="telefono"
+                  placeholder="Ej: 600 123 456"
+                  value={form.telefono}
+                  onChange={handleChange}
+                />
+              </label>
+            </>
+          )}
+
           <label className="field">
-            <span>Usuario</span>
+            <span>Email</span>
             <input
-              type="text"
-              name="usuario"
-              placeholder="Ej: profesor o admin"
-              value={form.usuario}
+              type="email"
+              name="email"
+              placeholder="Ej: dani@email.com"
+              value={form.email}
               onChange={handleChange}
-              autoComplete="username"
+              autoComplete="email"
             />
           </label>
 
@@ -89,21 +129,24 @@ function Login() {
             <input
               type="password"
               name="password"
-              placeholder="Introduce tu contraseña"
+              placeholder="Tu contraseña"
               value={form.password}
               onChange={handleChange}
-              autoComplete="current-password"
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
             />
           </label>
 
-          <button type="submit" className="loginBtn">
-            Entrar
+          <button type="submit" className="loginBtn" disabled={loading}>
+            {loading ? "Cargando..." : mode === "login" ? "Entrar" : "Crear cuenta"}
           </button>
-
-          <p className="loginHint">
-            Demo rápida: usuario <strong>profesor</strong> o <strong>admin</strong> y contraseña <strong>1234</strong>.
-          </p>
         </form>
+
+        <p className="loginSwitch">
+          {mode === "login" ? "¿No tienes cuenta?" : "¿Ya tienes cuenta?"}{" "}
+          <button className="switchBtn" onClick={switchMode}>
+            {mode === "login" ? "Regístrate" : "Inicia sesión"}
+          </button>
+        </p>
       </div>
     </section>
   );

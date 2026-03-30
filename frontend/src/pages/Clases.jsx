@@ -74,7 +74,7 @@ export default function Clases() {
       setLoading(true);
       setErr("");
 
-      const data = await apiGet("../api/grupos");
+      const data = await apiGet("/api/grupos");
 
       // data ya es JSON parseado
       if (!data.ok) {

@@ -1,28 +1,17 @@
-import { NavLink, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { getUser, isLogged, logout as doLogout } from "../services/auth";
 import "./header.css";
 
-// Cabecera principal de la aplicación
 function Header() {
   const navigate = useNavigate();
+  const location = useLocation(); // Esto hace que se re-renderice al navegar
 
-  // ✅ Simulación de sesión (por ahora)
-  // Luego lo cambiaremos por: token JWT en localStorage + rol real desde backend
-  const [isLogged, setIsLogged] = useState(false);
-  const [role, setRole] = useState(""); // "profesor" | "admin" | ""
+  const logged = isLogged();
+  const user = getUser();
 
-  // Simula un login rápido (solo para probar el flujo)
-  const fakeLoginProfesor = () => {
-    setIsLogged(true);
-    setRole("profesor");
-    navigate("/panel"); // Te lleva al panel
-  };
-
-  // Simula cerrar sesión
-  const logout = () => {
-    setIsLogged(false);
-    setRole("");
-    navigate("/"); // Te devuelve al inicio
+  const handleLogout = () => {
+    doLogout();
+    navigate("/");
   };
 
   return (
@@ -59,26 +48,22 @@ function Header() {
             Galería
           </NavLink>
 
-          {/* ✅ Zona de acceso */}
-          {!isLogged ? (
-            <>
-              
-
-              {/* Opción 2: botón temporal para simular login de profesor */}
-              <button className="navBtn" onClick={fakeLoginProfesor}>
-                Entrar (profe)
-              </button>
-            </>
+          {/* Zona de acceso */}
+          {!logged ? (
+            <NavLink to="/login" className="navBtn">
+              Entrar
+            </NavLink>
           ) : (
             <>
-              {/* ✅ Solo mostramos Panel si es profesor o admin */}
-              {(role === "profesor" || role === "admin") && (
+              {(user?.rol === "profesor" || user?.rol === "admin") && (
                 <NavLink to="/panel" className={({ isActive }) => (isActive ? "active" : "")}>
                   Panel
                 </NavLink>
               )}
 
-              <button className="navBtn navBtnDanger" onClick={logout}>
+              <span className="navUser">{user?.nombre}</span>
+
+              <button className="navBtn navBtnDanger" onClick={handleLogout}>
                 Salir
               </button>
             </>
