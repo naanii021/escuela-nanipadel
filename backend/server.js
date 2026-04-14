@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import { db } from "./db/connection.js";
 import reservasRouter from "./routes/reservas.js";
 import authRouter from "./routes/auth.js";
+import clasesRouter from "./routes/Clases.js";
+import torneosRouter from "./routes/torneos.js";
 
 dotenv.config();
 
@@ -25,6 +27,10 @@ app.use("/api/reservas", reservasRouter);
 
 // Usar el router de auth
 app.use("/api/auth", authRouter);
+
+app.use("/api/clases", clasesRouter);
+
+app.use("/api/torneos", torneosRouter);
 
 
 // Root

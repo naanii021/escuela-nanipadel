@@ -1,509 +1,295 @@
-/* =========================
-   HOME · Estilo deportivo / enérgico
-   NaniPadel — Escuela de Pádel
-   ========================= */
-
-/* Contenedor general */
-.home {
-  padding: 0;
-  overflow-x: hidden;
+/* ===== WEATHER BOX CLICKABLE ===== */
+.weatherBoxClickable {
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
 }
 
-/* ===== HERO ===== */
-.hero {
-  padding: 0;
-  position: relative;
+.weatherBoxClickable:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(74, 222, 128, 0.4);
 }
 
-.heroGrid {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: 0;
-  align-items: stretch;
-  border-radius: 0 0 24px 24px;
-  overflow: hidden;
-  min-height: 480px;
-  background: linear-gradient(135deg, #0a1628 0%, #0d2137 40%, #0f2b1e 100%);
-  color: #ffffff;
-}
-
-/* Fondo dinámico con líneas diagonales deportivas */
-.heroGrid::before {
-  content: "";
-  position: absolute;
+/* ===== WEATHER MODAL ===== */
+.weatherModalBackdrop {
+  position: fixed;
   inset: 0;
-  background:
-    linear-gradient(125deg, rgba(22, 163, 74, 0.25) 0%, transparent 50%),
-    linear-gradient(235deg, rgba(14, 165, 233, 0.15) 0%, transparent 40%),
-    repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 80px,
-      rgba(255, 255, 255, 0.015) 80px,
-      rgba(255, 255, 255, 0.015) 82px
-    );
-  pointer-events: none;
-  z-index: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 200;
+  backdrop-filter: blur(4px);
 }
 
-/* Acento diagonal verde */
-.heroGrid::after {
-  content: "";
-  position: absolute;
-  top: -60%;
-  right: -10%;
-  width: 500px;
-  height: 200%;
-  background: linear-gradient(180deg, rgba(22, 163, 74, 0.12), transparent);
-  transform: rotate(-15deg);
-  pointer-events: none;
-  z-index: 0;
+.weatherModal {
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 24px;
+  padding: 1.8rem;
+  background: linear-gradient(160deg, #0a1628, #0d2137 50%, #0f2b1e);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
 }
 
-.heroLeft,
-.heroRight {
-  position: relative;
-  z-index: 1;
-}
-
-.heroLeft {
-  padding: 3rem 2.5rem;
+.weatherModalHead {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-/* Pill / badge superior */
-.pill {
-  display: inline-flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.85rem;
-  border: 1px solid rgba(22, 163, 74, 0.4);
-  border-radius: 999px;
-  background: rgba(22, 163, 74, 0.12);
-  font-size: 0.85rem;
-  color: #4ade80;
   margin-bottom: 1.2rem;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  width: fit-content;
-  backdrop-filter: blur(8px);
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: #22c55e;
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
-  animation: pulse-dot 2s ease-in-out infinite;
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(34, 197, 94, 0.6); }
-  50% { opacity: 0.6; box-shadow: 0 0 16px rgba(34, 197, 94, 0.9); }
-}
-
-/* Título hero */
-.heroLeft h2 {
+.weatherModalHead h3 {
   margin: 0;
-  font-size: 2.8rem;
-  line-height: 1.08;
-  letter-spacing: -1.2px;
+  font-size: 1.3rem;
   font-weight: 900;
-  text-transform: none;
-  background: linear-gradient(135deg, #ffffff 60%, #4ade80 100%);
+  letter-spacing: -0.3px;
+}
+
+.weatherCloseBtn {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+}
+
+.weatherCloseBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Tiempo actual grande */
+.weatherCurrentBig {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 1.4rem;
+  margin-bottom: 1.2rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.weatherCurrentIcon {
+  font-size: 4rem;
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.4));
+}
+
+.weatherCurrentTemp {
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 900;
+  line-height: 1;
+  background: linear-gradient(135deg, #ffffff, #4ade80);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-.heroLeft p {
-  margin: 1rem 0 1.8rem;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1.1rem;
-  line-height: 1.55;
-  max-width: 460px;
+.weatherCurrentDesc {
+  margin: 0.3rem 0 0;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
 }
 
-/* Botones CTA */
-.ctaRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+.weatherCurrentFeel {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
 }
 
-.ctaRow .btn-primary {
-  background: linear-gradient(135deg, #16a34a, #22c55e);
-  color: #fff;
-  font-weight: 800;
-  padding: 0.85rem 1.5rem;
-  border-radius: 12px;
-  border: none;
-  font-size: 0.95rem;
-  box-shadow: 0 4px 20px rgba(22, 163, 74, 0.35);
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.ctaRow .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(22, 163, 74, 0.45);
-}
-
-.ctaRow .btn-ghost {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.9);
-  padding: 0.85rem 1.5rem;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 0.95rem;
-  backdrop-filter: blur(4px);
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.ctaRow .btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.35);
-}
-
-/* KPI columna derecha */
-.heroRight {
-  padding: 2.5rem 2rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 1rem;
-}
-
-.kpi {
+/* Grid de detalles */
+.weatherDetailGrid {
   display: grid;
-  gap: 0.65rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.7rem;
+  margin-bottom: 1.2rem;
 }
 
-.kpiItem {
-  padding: 1rem 1.1rem;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
-  transition: transform 0.15s, background 0.15s;
-}
-
-.kpiItem:hover {
-  transform: translateX(-4px);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.kpiItem strong {
-  display: block;
-  font-size: 1.05rem;
-  color: #ffffff;
-  font-weight: 800;
-}
-
-.kpiItem span {
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 0.9rem;
-}
-
-/* ===== WEATHER BOX ===== */
-.weatherBox {
-  margin-top: 0.5rem;
-  padding: 1.1rem;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(12px);
-}
-
-.weatherTop {
+.weatherDetailItem {
+  padding: 0.9rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.8rem;
 }
 
-.weatherTop h4 {
-  margin: 0;
-  font-size: 1rem;
-  color: #ffffff;
-  font-weight: 700;
-}
-
-.weatherBadge {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.6rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
+.wdLabel {
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
   font-weight: 600;
 }
 
-.weatherMain {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-}
-
-.weatherIcon {
-  font-size: 2rem;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
-}
-
-.weatherTemp {
-  margin: 0;
-  font-weight: 900;
-  font-size: 1.8rem;
-  color: #ffffff;
-  letter-spacing: -0.5px;
-}
-
-.weatherDesc {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.9rem;
-}
-
-.weatherChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.8rem;
-}
-
-/* Override chip dentro del hero */
-.weatherChips .chip {
-  font-size: 0.78rem;
-  padding: 0.3rem 0.6rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 600;
-}
-
-.chipOk {
-  border-color: rgba(74, 222, 128, 0.3) !important;
-  background: rgba(74, 222, 128, 0.1) !important;
-  color: #4ade80 !important;
-}
-
-.chipRisk {
-  border-color: rgba(248, 113, 113, 0.3) !important;
-  background: rgba(248, 113, 113, 0.1) !important;
-  color: #f87171 !important;
-}
-
-.weatherHint {
-  margin: 0.6rem 0 0;
-  color: rgba(255, 255, 255, 0.35);
-  font-size: 0.8rem;
-}
-
-/* ===== FEATURES ===== */
-.features {
-  margin: 2.5rem 1.6rem 0;
-  padding: 2.5rem;
-  background: #ffffff;
-  border-radius: 20px;
-  border: 1px solid var(--border);
-  box-shadow: 0 8px 40px rgba(15, 23, 42, 0.06);
-  position: relative;
-  overflow: hidden;
-}
-
-/* Acento decorativo sutil */
-.features::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #16a34a, #22c55e, #0ea5e9);
-  border-radius: 20px 20px 0 0;
-}
-
-.featuresHead h3 {
-  font-size: 1.6rem;
-  margin: 0;
-  font-weight: 900;
-  letter-spacing: -0.5px;
-  color: var(--text);
-}
-
-.featuresHead p {
-  margin: 0.5rem 0 1.5rem;
-  color: var(--muted);
+.wdValue {
   font-size: 1rem;
-  line-height: 1.5;
+  font-weight: 800;
+  color: #ffffff;
 }
 
-.featuresGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+/* Caja de recomendación */
+.recomendacionBox {
+  display: flex;
   gap: 1rem;
-}
-
-.featureCard {
-  background: linear-gradient(135deg, #f8faf9, #f0fdf4);
-  border: 1px solid rgba(22, 163, 74, 0.1);
-  padding: 1.3rem;
+  align-items: center;
+  padding: 1.1rem 1.2rem;
   border-radius: 14px;
-  transition: transform 0.2s, box-shadow 0.2s;
-  position: relative;
+  margin-bottom: 1.2rem;
 }
 
-.featureCard:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(22, 163, 74, 0.1);
+.rec-excelente {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(22, 163, 74, 0.08));
+  border: 1px solid rgba(34, 197, 94, 0.35);
 }
 
-.featureCard strong {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: var(--text);
+.rec-bueno {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(14, 165, 233, 0.08));
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.rec-regular {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.08));
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.rec-malo {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.08));
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.recIcon {
+  font-size: 2.2rem;
+  flex-shrink: 0;
+}
+
+.recText strong {
   display: block;
-}
-
-.featureCard p {
-  margin: 0.5rem 0 0;
-  color: var(--muted);
-  font-size: 0.95rem;
-  line-height: 1.45;
-}
-
-/* ===== QUICK ACCESS ===== */
-.quick {
-  margin: 2rem 1.6rem 2.5rem;
-}
-
-.quickCard {
-  padding: 2.5rem;
-  border-radius: 20px;
-  border: none;
-  background: linear-gradient(135deg, #0a1628, #0d2137);
+  font-size: 1rem;
+  font-weight: 800;
   color: #ffffff;
-  position: relative;
-  overflow: hidden;
+  margin-bottom: 0.2rem;
 }
 
-/* Patrón diagonal deportivo */
-.quickCard::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 60px,
-      rgba(255, 255, 255, 0.02) 60px,
-      rgba(255, 255, 255, 0.02) 62px
-    );
-  pointer-events: none;
-}
-
-.quickCard h3 {
+.recText p {
   margin: 0;
-  font-size: 1.6rem;
-  font-weight: 900;
-  letter-spacing: -0.5px;
-  position: relative;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
 }
 
-.quickCard > p {
-  margin: 0.5rem 0 1.5rem;
-  color: rgba(255, 255, 255, 0.6);
-  position: relative;
+/* Previsión semanal */
+.forecastSection h4 {
+  margin: 0 0 0.8rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.85);
 }
 
-.quickGrid {
+.forecastList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.forecastDay {
   display: grid;
-  gap: 0.9rem;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  position: relative;
-}
-
-.quickItem {
-  display: block;
-  padding: 1.2rem;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  text-decoration: none;
+  grid-template-columns: 60px 35px 1fr auto auto;
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(4px);
-  transition: transform 0.15s, background 0.15s, border-color 0.15s;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.85rem;
 }
 
-.quickItem:hover {
-  transform: translateY(-3px);
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(22, 163, 74, 0.4);
+.forecastDay:hover {
+  background: rgba(255, 255, 255, 0.07);
 }
 
-.qiTitle {
-  display: block;
+.fDayName {
   font-weight: 800;
   color: #ffffff;
-  font-size: 1.05rem;
+  text-transform: capitalize;
 }
 
-.qiDesc {
-  display: block;
-  color: rgba(255, 255, 255, 0.5);
-  margin-top: 0.3rem;
-  font-size: 0.9rem;
+.fDayIcon {
+  font-size: 1.4rem;
+  text-align: center;
 }
 
-/* ===== RESPONSIVE ===== */
-@media (max-width: 900px) {
-  .heroGrid {
-    grid-template-columns: 1fr;
-    min-height: auto;
-  }
-
-  .heroLeft {
-    padding: 2rem 1.5rem;
-  }
-
-  .heroLeft h2 {
-    font-size: 2rem;
-  }
-
-  .heroRight {
-    padding: 0 1.5rem 2rem;
-  }
-
-  .features,
-  .quick {
-    margin-left: 1rem;
-    margin-right: 1rem;
-  }
-
-  .features,
-  .quickCard {
-    padding: 1.5rem;
-  }
+.fDayDesc {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.82rem;
 }
 
+.fDayTemps {
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.fDayMin {
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+}
+
+.fDayRain {
+  font-size: 0.78rem;
+  color: rgba(147, 197, 253, 0.85);
+  white-space: nowrap;
+}
+
+.weatherUpdated {
+  margin: 1rem 0 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* Responsive modal */
 @media (max-width: 480px) {
-  .heroLeft h2 {
-    font-size: 1.7rem;
+  .weatherModal {
+    padding: 1.2rem;
   }
 
-  .ctaRow {
+  .weatherCurrentBig {
     flex-direction: column;
+    text-align: center;
+    gap: 0.6rem;
   }
 
-  .ctaRow .btn-primary,
-  .ctaRow .btn-ghost {
-    width: 100%;
-    justify-content: center;
+  .weatherCurrentIcon {
+    font-size: 3.5rem;
+  }
+
+  .weatherCurrentTemp {
+    font-size: 2.5rem;
+  }
+
+  .weatherDetailGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .forecastDay {
+    grid-template-columns: 50px 30px 1fr auto;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+  }
+
+  .fDayDesc {
+    display: none;
   }
 }

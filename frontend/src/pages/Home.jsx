@@ -1,86 +1,71 @@
-// Importamos Link para navegación interna, el CSS y hooks
 import { Link } from "react-router-dom";
 import "./home.css";
-import { useEffect, useState } from "react"; 
+import { useEffect, useState } from "react";
 import { getWeatherForClub } from "../services/weatherService";
 
-// URL base del backend (vacía en local, IP/dominio en producción)
-const API_BASE = process.env.REACT_APP_API_URL || "";
-
-
-// Página principal del proyecto (Home)
 function Home() {
-  // Estado con los datos del tiempo
   const [weather, setWeather] = useState(null);
-
-  // Estados auxiliares para UX
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState("");
+  const [showWeatherModal, setShowWeatherModal] = useState(false);
 
+  const CLUB_LAT = 39.483017;
+  const CLUB_LON = -6.364445;
 
+  useEffect(() => {
+    const loadWeather = async () => {
+      try {
+        setWeatherLoading(true);
+        setWeatherError("");
+        const data = await getWeatherForClub(CLUB_LAT, CLUB_LON);
+        if (!data.ok) throw new Error("No se pudo obtener el tiempo");
+        setWeather(data);
+      } catch (err) {
+        setWeatherError(err.message || "Error obteniendo el tiempo");
+      } finally {
+        setWeatherLoading(false);
+      }
+    };
+    loadWeather();
+  }, []);
 
-// Coordenadas fijas del club
-const CLUB_LAT = 39.483017;
-const CLUB_LON = -6.364445;
+  const formatDay = (dateStr) => {
+    const d = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-useEffect(() => {
-  const loadWeather = async () => {
-    try {
-      setWeatherLoading(true);
-      setWeatherError("");
-
-      const data = await getWeatherForClub(CLUB_LAT, CLUB_LON);
-
-      if (!data.ok) throw new Error("No se pudo obtener el tiempo");
-
-      setWeather(data);
-    } catch (err) {
-      setWeatherError(err.message || "Error obteniendo el tiempo");
-    } finally {
-      setWeatherLoading(false);
-    }
+    if (d.toDateString() === today.toDateString()) return "Hoy";
+    if (d.toDateString() === tomorrow.toDateString()) return "Mañana";
+    return d.toLocaleDateString("es-ES", { weekday: "short", day: "2-digit" });
   };
-
-  loadWeather();
-}, []);
-
 
   return (
     <section className="home">
       {/* HERO */}
       <section className="hero">
         <div className="card heroGrid">
-          {/* Columna izquierda: mensaje principal */}
           <div className="heroLeft">
             <div className="pill">
               <span className="dot" aria-hidden="true" />
               Escuela Norba Pádel | Gestión y reservas
             </div>
 
-            <h2>
-              Tu escuela de pádel, mas fácil que nunca.
-            </h2>
+            <h2>Tu escuela de pádel, mas fácil que nunca.</h2>
 
             <p>
               La mejor escuela de pádel en <strong>Cáceres</strong>, con gestión online de
               reservas, clases y torneos. ¡Únete y mejora tu juego hoy!
             </p>
 
-            {/* Botones de llamada a la acción */}
             <div className="ctaRow">
-              <Link className="btn btn-primary" to="/reservas">
-                Reservar pista
-              </Link>
-              <Link className="btn btn-ghost" to="/clases">
-                Ver clases
-              </Link>
-              <Link className="btn btn-ghost" to="/torneos">
-                Ver torneos
-              </Link>
+              <Link className="btn btn-primary" to="/reservas">Reservar pista</Link>
+              <Link className="btn btn-ghost" to="/clases">Ver clases</Link>
+              <Link className="btn btn-ghost" to="/torneos">Ver torneos</Link>
             </div>
           </div>
 
-          {/* Columna derecha: indicadores clave (KPI) */}
           <div className="heroRight">
             <div className="kpi">
               <div className="kpiItem">
@@ -97,16 +82,19 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* Caja del tiempo */}
-            <div className="weatherBox">
+            {/* Caja del tiempo (clickable) */}
+            <div
+              className="weatherBox weatherBoxClickable"
+              onClick={() => weather && setShowWeatherModal(true)}
+              role="button"
+              tabIndex={0}
+            >
               <div className="weatherTop">
                 <h4>Tiempo en la pista</h4>
-                <span className="weatherBadge">Club descubierto</span>
+                <span className="weatherBadge">Ver más</span>
               </div>
 
-              {weatherLoading && (
-                <p className="weatherHint">Cargando tiempo...</p>
-              )}
+              {weatherLoading && <p className="weatherHint">Cargando tiempo...</p>}
 
               {!weatherLoading && weatherError && (
                 <p className="weatherHint">❌ {weatherError}</p>
@@ -115,10 +103,7 @@ useEffect(() => {
               {!weatherLoading && !weatherError && weather && (
                 <>
                   <div className="weatherMain">
-                    <div className="weatherIcon" aria-hidden="true">
-                      {weather.emoji}
-                    </div>
-
+                    <div className="weatherIcon" aria-hidden="true">{weather.emoji}</div>
                     <div>
                       <p className="weatherTemp">{weather.temperature}ºC</p>
                       <p className="weatherDesc">{weather.description}</p>
@@ -127,22 +112,14 @@ useEffect(() => {
 
                   <div className="weatherChips">
                     <span className="chip">Viento: {weather.windSpeed} km/h</span>
-                    <span className="chip">
-                      Lluvia: {weather.precipitationProbability}%
-                    </span>
-
-                    <span
-                      className={`chip ${
-                        weather.pista === "RIESGO" ? "chipRisk" : "chipOk"
-                      }`}
-                    >
+                    <span className="chip">Lluvia: {weather.precipitationProbability}%</span>
+                    <span className={`chip ${weather.pista === "RIESGO" ? "chipRisk" : "chipOk"}`}>
                       Pista: {weather.pista}
                     </span>
                   </div>
 
                   <p className="weatherHint">
-                    Actualizado en:{" "}
-                    {new Date(weather.updatedAt).toLocaleString()}
+                    Pulsa para ver previsión semanal y recomendaciones
                   </p>
                 </>
               )}
@@ -150,6 +127,86 @@ useEffect(() => {
           </div>
         </div>
       </section>
+
+      {/* Modal del tiempo */}
+      {showWeatherModal && weather && (
+        <div className="weatherModalBackdrop" onClick={() => setShowWeatherModal(false)}>
+          <div className="weatherModal" onClick={(e) => e.stopPropagation()}>
+            <div className="weatherModalHead">
+              <h3>Tiempo en Norba Pádel</h3>
+              <button className="weatherCloseBtn" onClick={() => setShowWeatherModal(false)}>✕</button>
+            </div>
+
+            {/* Datos actuales detallados */}
+            <div className="weatherCurrentBig">
+              <div className="weatherCurrentIcon">{weather.emoji}</div>
+              <div className="weatherCurrentInfo">
+                <p className="weatherCurrentTemp">{Math.round(weather.temperature)}°C</p>
+                <p className="weatherCurrentDesc">{weather.description}</p>
+                <p className="weatherCurrentFeel">
+                  Sensación térmica: {Math.round(weather.apparentTemperature)}°C
+                </p>
+              </div>
+            </div>
+
+            {/* Datos detallados en grid */}
+            <div className="weatherDetailGrid">
+              <div className="weatherDetailItem">
+                <span className="wdLabel">💧 Humedad</span>
+                <span className="wdValue">{weather.humidity}%</span>
+              </div>
+              <div className="weatherDetailItem">
+                <span className="wdLabel">💨 Viento</span>
+                <span className="wdValue">{weather.windSpeed} km/h</span>
+              </div>
+              <div className="weatherDetailItem">
+                <span className="wdLabel">🌧️ Lluvia</span>
+                <span className="wdValue">{weather.precipitationProbability}%</span>
+              </div>
+              <div className="weatherDetailItem">
+                <span className="wdLabel">☀️ Índice UV</span>
+                <span className="wdValue">{weather.uvIndex ?? "—"}</span>
+              </div>
+            </div>
+
+            {/* Recomendación de juego */}
+            {weather.recomendacion && (
+              <div className={`recomendacionBox rec-${weather.recomendacion.nivel}`}>
+                <div className="recIcon">{weather.recomendacion.icono}</div>
+                <div className="recText">
+                  <strong>{weather.recomendacion.titulo}</strong>
+                  <p>{weather.recomendacion.mensaje}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Previsión semanal */}
+            {weather.forecast && weather.forecast.length > 0 && (
+              <div className="forecastSection">
+                <h4>Previsión de los próximos 7 días</h4>
+                <div className="forecastList">
+                  {weather.forecast.map((day) => (
+                    <div className="forecastDay" key={day.date}>
+                      <span className="fDayName">{formatDay(day.date)}</span>
+                      <span className="fDayIcon">{day.emoji}</span>
+                      <span className="fDayDesc">{day.description}</span>
+                      <span className="fDayTemps">
+                        <strong>{Math.round(day.tempMax)}°</strong>
+                        <span className="fDayMin"> / {Math.round(day.tempMin)}°</span>
+                      </span>
+                      <span className="fDayRain">💧 {day.precipitationProbability}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p className="weatherUpdated">
+              Actualizado: {new Date(weather.updatedAt).toLocaleString()}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Ventajas */}
       <section className="features">
@@ -167,19 +224,14 @@ useEffect(() => {
             <strong>Gestión fácil</strong>
             <p>Te buscamos hueco a tu nivel y horarios.</p>
           </div>
-
           <div className="featureCard">
             <strong>Para todos</strong>
-            <p>Clases para niños, adultos y profesionales. <br /> Todos los niveles.
-
-            </p>
+            <p>Clases para niños, adultos y profesionales. <br /> Todos los niveles.</p>
           </div>
-
           <div className="featureCard">
             <strong>Automatización</strong>
             <p>Recordatorios, avisos y control rápido de tus clases y torneos.</p>
           </div>
-
           <div className="featureCard">
             <strong>100% personalizado</strong>
             <p>Clases individuales para mejorar todos los aspectos.</p>
@@ -198,17 +250,14 @@ useEffect(() => {
               <span className="qiTitle">Reservar pista</span>
               <span className="qiDesc">Elige pista y horario</span>
             </Link>
-
             <Link className="quickItem" to="/clases">
               <span className="qiTitle">Clases por niveles</span>
               <span className="qiDesc">Iniciación, medio, avanzado</span>
             </Link>
-
             <Link className="quickItem" to="/torneos">
               <span className="qiTitle">Torneos</span>
               <span className="qiDesc">Menores y adultos</span>
             </Link>
-
             <Link className="quickItem" to="/galeria">
               <span className="qiTitle">Galería</span>
               <span className="qiDesc">Fotos de alumnos y competiciones</span>

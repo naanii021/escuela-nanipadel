@@ -1,16 +1,14 @@
 import "./clases.css";
 import { useEffect, useMemo, useState } from "react";
 import { apiGet } from "../services/api";
+import { isLogged, getToken } from "../services/auth";
+
+const API_BASE = (process.env.REACT_APP_API_URL || "http://127.0.0.1:4000").replace(/\/$/, "");
 
 function formatDias(d1, d2) {
   const map = {
-    L: "Lunes",
-    M: "Martes",
-    X: "Miércoles",
-    J: "Jueves",
-    V: "Viernes",
-    S: "Sábado",
-    D: "Domingo",
+    L: "Lunes", M: "Martes", X: "Miércoles",
+    J: "Jueves", V: "Viernes", S: "Sábado", D: "Domingo",
   };
   if (!d2) return map[d1] || d1;
   return `${map[d1] || d1} y ${map[d2] || d2}`;
@@ -18,120 +16,101 @@ function formatDias(d1, d2) {
 
 function formatHora(horaInicio, duracionMin) {
   if (!horaInicio) return "—";
-
   const [hh, mm] = String(horaInicio).split(":");
   const start = new Date();
   start.setHours(Number(hh), Number(mm), 0, 0);
-
   const end = new Date(start.getTime() + Number(duracionMin || 60) * 60000);
-
   const pad = (n) => String(n).padStart(2, "0");
-  const s = `${pad(start.getHours())}:${pad(start.getMinutes())}`;
-  const e = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
-  return `${s} - ${e}`;
+  return `${pad(start.getHours())}:${pad(start.getMinutes())} - ${pad(end.getHours())}:${pad(end.getMinutes())}`;
 }
 
 function nivelLabel(nivel) {
   const map = {
-    ninos: "Niños",
-    iniciacion: "Iniciación",
-    avanzado: "Avanzado",
-    competicion: "Competición",
-    avanzado_plus: "Avanzado +",
+    ninos: "Niños", iniciacion: "Iniciación", avanzado: "Avanzado",
+    competicion: "Competición", avanzado_plus: "Avanzado +",
   };
   return map[nivel] || nivel || "—";
 }
 
 function nivelBadgeClass(nivel) {
   const map = {
-    ninos: "badgeKids",
-    iniciacion: "badgeInit",
-    avanzado: "badgeAdv",
-    competicion: "badgeComp",
-    avanzado_plus: "badgePlus",
+    ninos: "badgeKids", iniciacion: "badgeInit", avanzado: "badgeAdv",
+    competicion: "badgeComp", avanzado_plus: "badgePlus",
   };
   return map[nivel] || "badgeDefault";
 }
 
 export default function Clases() {
   const [grupos, setGrupos] = useState([]);
+  const [misClases, setMisClases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  // filtros UI
   const [q, setQ] = useState("");
   const [nivel, setNivel] = useState("");
   const [dia, setDia] = useState("");
   const [profesor, setProfesor] = useState("");
 
-
-
-  // USEEFECT ---------------------------------------------------------
-  // ✅ solo carga datos
   useEffect(() => {
-  const load = async () => {
-    try {
-      setLoading(true);
-      setErr("");
+    const load = async () => {
+      try {
+        setLoading(true);
+        setErr("");
 
-      const data = await apiGet("/api/grupos");
+        const data = await apiGet("/api/grupos");
+        if (!data.ok) throw new Error(data.message || "No se pudieron cargar las clases");
+        setGrupos(data.grupos || []);
 
-      // data ya es JSON parseado
-      if (!data.ok) {
-        throw new Error(data.message || "No se pudieron cargar las clases");
+        // Si está logueado, cargar sus clases
+        if (isLogged()) {
+          try {
+            const res = await fetch(`${API_BASE}/api/clases/mis-clases`, {
+              headers: { Authorization: `Bearer ${getToken()}` },
+            });
+            const misData = await res.json();
+            if (misData.ok) setMisClases(misData.clases || []);
+          } catch {
+            // Si falla, no pasa nada, simplemente no muestra "mis clases"
+          }
+        }
+      } catch (e) {
+        setErr(e.message || "Error desconocido");
+      } finally {
+        setLoading(false);
       }
-
-      setGrupos(data.grupos || []);
-    } catch (e) {
-      setErr(e.message || "Error desconocido");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+    };
     load();
   }, []);
 
-  // ✅ derivado de datos
   const profesores = useMemo(() => {
     const map = new Map();
-    grupos.forEach((g) => {
-      map.set(String(g.profesor_id), g.profesor);
-    });
-
+    grupos.forEach((g) => map.set(String(g.profesor_id), g.profesor));
     return Array.from(map.entries())
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   }, [grupos]);
 
-  // ✅ filtros en memoria
   const filtered = useMemo(() => {
     const text = q.trim().toLowerCase();
-
     return grupos.filter((g) => {
-      const matchText =
-        !text ||
-        `${g.nombre} ${g.codigo} ${g.profesor} ${g.pista_habitual || ""}`
-          .toLowerCase()
-          .includes(text);
-
+      const matchText = !text ||
+        `${g.nombre} ${g.codigo} ${g.profesor} ${g.pista_habitual || ""}`.toLowerCase().includes(text);
       const matchNivel = !nivel || g.nivel === nivel;
       const matchDia = !dia || g.dia1 === dia || g.dia2 === dia;
       const matchProfesor = !profesor || String(g.profesor_id) === String(profesor);
-
       return matchText && matchNivel && matchDia && matchProfesor;
     });
   }, [grupos, q, nivel, dia, profesor]);
 
-
-  // RENDER ---------------------------------------------------------
   return (
     <section className="clases">
       <div className="clasesHeader">
         <div>
-          <h2>Clases disponibles</h2>
+          <h2>Clases</h2>
           <p className="intro">
-            Filtra por nivel, día o profesor y revisa horarios reales del club.
+            {isLogged()
+              ? "Consulta tus clases y explora todos los grupos disponibles."
+              : "Descubre los grupos y horarios de nuestra escuela de pádel."}
           </p>
         </div>
 
@@ -146,6 +125,43 @@ export default function Clases() {
           </div>
         </div>
       </div>
+
+      {/* Mis clases (solo si logueado y tiene clases) */}
+      {isLogged() && misClases.length > 0 && (
+        <div className="misClasesSection">
+          <h3 className="misClasesTitle">Mis clases</h3>
+          <div className="misClasesGrid">
+            {misClases.map((c) => (
+              <div className="miClaseCard" key={c.id}>
+                <div className="miClaseTop">
+                  <span className={`badge ${nivelBadgeClass(c.nivel)}`}>
+                    {nivelLabel(c.nivel)}
+                  </span>
+                  <span className="codeTag">{c.codigo}</span>
+                </div>
+                <h4 className="miClaseNombre">{c.nombre}</h4>
+                <div className="miClaseInfo">
+                  <span>{formatDias(c.dia1, c.dia2)}</span>
+                  <span>{formatHora(c.hora_inicio, c.duracion_min)}</span>
+                </div>
+                <div className="miClaseInfo">
+                  <span>Pista: {c.pista_habitual || "—"}</span>
+                  <span>Profe: {c.profesor}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isLogged() && misClases.length === 0 && !loading && (
+        <div className="misClasesEmpty">
+          No tienes clases asignadas todavía. Contacta con la escuela para apuntarte a un grupo.
+        </div>
+      )}
+
+      {/* Separador */}
+      <h3 className="seccionTitulo">Todos los grupos</h3>
 
       {/* Filtros */}
       <div className="filtersBar">
@@ -188,12 +204,7 @@ export default function Clases() {
 
         <button
           className="btnClear"
-          onClick={() => {
-            setQ("");
-            setNivel("");
-            setDia("");
-            setProfesor("");
-          }}
+          onClick={() => { setQ(""); setNivel(""); setDia(""); setProfesor(""); }}
         >
           Limpiar
         </button>
@@ -213,7 +224,7 @@ export default function Clases() {
       {!loading && !err && filtered.length === 0 && (
         <div className="emptyBox">
           <strong>No hay resultados</strong>
-          <p>Prueba a quitar filtros o buscar por “pista 1”, “Juanjo”, “competición”…</p>
+          <p>Prueba a quitar filtros o buscar por "pista 1", "Juanjo", "competición"…</p>
         </div>
       )}
 
@@ -241,17 +252,14 @@ export default function Clases() {
                     <span className="metaLabel">Días</span>
                     <span className="metaValue">{formatDias(g.dia1, g.dia2)}</span>
                   </div>
-
                   <div className="metaItem">
                     <span className="metaLabel">Hora</span>
                     <span className="metaValue">{formatHora(g.hora_inicio, g.duracion_min)}</span>
                   </div>
-
                   <div className="metaItem">
                     <span className="metaLabel">Pista</span>
                     <span className="metaValue">{g.pista_habitual || "—"}</span>
                   </div>
-
                   <div className="metaItem">
                     <span className="metaLabel">Profesor</span>
                     <span className="metaValue">{g.profesor || "—"}</span>
@@ -268,10 +276,6 @@ export default function Clases() {
                       <span style={{ width: `${Math.min(100, ocupacion)}%` }} />
                     </div>
                   </div>
-
-                  <button className="btnAction" type="button">
-                    Ver alumnos
-                  </button>
                 </div>
               </article>
             );
