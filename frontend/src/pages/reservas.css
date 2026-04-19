@@ -1,523 +1,1061 @@
+/* ============================================================
+   RESERVAS — Dark Sports Theme
+   Base: #0a1628 → #0d1f35  |  Accent: #22c55e
+   ============================================================ */
+
 :root {
-  --green-soft: rgba(40, 200, 120, 0.18);
-  --green-border: rgba(40, 200, 120, 0.55);
-  --green-strong: #1fbf75;
+  --res-bg:      #0a1628;
+  --res-surface: rgba(255,255,255,0.04);
+  --res-border:  rgba(255,255,255,0.09);
+  --res-text:    #e2e8f0;
+  --res-muted:   rgba(226,232,240,0.52);
 
-  --red-soft: rgba(230, 80, 80, 0.18);
-  --red-border: rgba(230, 80, 80, 0.55);
-  --red-strong: #e45454;
+  --green-glow:   rgba(34,197,94,0.22);
+  --green-border: rgba(34,197,94,0.50);
+  --green-strong: #22c55e;
+  --green-dark:   #16a34a;
+  --green-light:  #4ade80;
 
-  --card-bg: rgba(255, 255, 255, 0.06);
+  --red-glow:   rgba(239,68,68,0.18);
+  --red-border: rgba(239,68,68,0.40);
+  --red-strong: #ef4444;
+
+  --morning-c:   #f59e0b;
+  --afternoon-c: #22c55e;
+  --evening-c:   #818cf8;
 }
 
-
+/* ── Page wrapper ── */
 .reservas {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 28px 18px 60px;
+  position: relative;
+  min-height: 100vh;
+  padding: 0 0 5rem;
+  background:
+    radial-gradient(ellipse 55% 38% at 8%   0%,   rgba(34,197,94,0.08),  transparent),
+    radial-gradient(ellipse 45% 32% at 92% 100%,  rgba(99,102,241,0.07), transparent),
+    #0a1628;
+  color: var(--res-text);
+  overflow: hidden;
 }
 
+/* Diagonal stripe texture */
+.reservas::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 60px,
+    rgba(255,255,255,0.013) 60px,
+    rgba(255,255,255,0.013) 62px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Animated green accent bar at top */
+.reservas::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg,
+    #16a34a, #22c55e, #4ade80,
+    #22c55e, #16a34a, #22c55e, #4ade80
+  );
+  background-size: 400% 100%;
+  animation: accentFlow 7s linear infinite;
+  z-index: 2;
+}
+
+@keyframes accentFlow {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 400% 0; }
+}
+
+/* All direct children above the pseudo-elements */
+.reservasHeader,
+.toolbar,
+.dayTitle,
+.courtsColumns,
+.loadingSlots {
+  position: relative;
+  z-index: 1;
+  max-width: 1160px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
 .reservasHeader {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
+  gap: 1.5rem;
+  padding: 2.8rem 1.4rem 0;
+  flex-wrap: wrap;
 }
 
-.reservas h2 {
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.reservasEyebrow {
+  font-size: 0.73rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--green-strong);
+  animation: slideLeft 0.5s ease both;
+}
+
+.reservasTitle {
   margin: 0;
-  font-size: 28px;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 900;
+  letter-spacing: -1.2px;
+  line-height: 1;
+  background: linear-gradient(135deg, #ffffff 18%, var(--green-light) 65%, var(--green-strong) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: slideLeft 0.5s 0.08s ease both;
 }
 
-.intro {
-  margin: 8px 0 0;
-  opacity: 0.8;
+.reservasIntro {
+  margin: 0;
+  color: var(--res-muted);
+  font-size: 0.93rem;
+  animation: slideLeft 0.5s 0.16s ease both;
 }
 
+@keyframes slideLeft {
+  from { opacity: 0; transform: translateX(-14px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Summary stat cards ── */
 .summary {
   display: flex;
-  gap: 10px;
+  gap: 0.7rem;
+  animation: slideRight 0.5s 0.1s ease both;
+}
+
+@keyframes slideRight {
+  from { opacity: 0; transform: translateX(14px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 .summaryItem {
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  min-width: 110px;
+  padding: 0.85rem 1.1rem;
+  border-radius: 18px;
+  border: 1px solid var(--res-border);
+  background: var(--res-surface);
+  backdrop-filter: blur(12px);
+  min-width: 86px;
   text-align: center;
+  transition: transform 0.2s ease;
 }
+
+.summaryItem:hover { transform: translateY(-3px); }
 
 .summaryItem strong {
   display: block;
-  font-size: 18px;
+  font-size: 1.7rem;
+  font-weight: 900;
+  line-height: 1.05;
 }
 
 .summaryItem span {
-  opacity: 0.8;
-  font-size: 12px;
+  display: block;
+  font-size: 0.69rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--res-muted);
+  margin-top: 0.18rem;
 }
 
+.summaryGreen strong { color: var(--green-strong); text-shadow: 0 0 18px rgba(34,197,94,0.5); }
+.summaryRed   strong { color: #f87171;             text-shadow: 0 0 18px rgba(239,68,68,0.4); }
+.summaryBlue  strong { color: #93c5fd;             text-shadow: 0 0 18px rgba(147,197,253,0.35); }
+
+/* ============================================================
+   TOOLBAR
+   ============================================================ */
 .toolbar {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 0.9rem;
   flex-wrap: wrap;
-  margin: 18px 0 14px;
-  padding: 14px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  margin: 1.4rem 1.4rem 0;
+  padding: 0.95rem 1.1rem;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(14px);
+  animation: fadeUp 0.4s 0.22s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .datePills {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.55rem;
   flex-wrap: wrap;
 }
 
 .pillBtn {
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.06);
-  color: inherit;
-  padding: 8px 12px;
+  padding: 0.52rem 1.05rem;
   border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  color: var(--res-text);
+  font-size: 0.84rem;
+  font-weight: 700;
   cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.pillBtn:hover {
+  background: rgba(255,255,255,0.09);
+  border-color: rgba(255,255,255,0.22);
 }
 
 .pillBtn.active {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.30);
+  background: rgba(34,197,94,0.14);
+  border-color: rgba(34,197,94,0.48);
+  color: var(--green-light);
 }
 
 .datePicker {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+  gap: 0.5rem;
+  padding: 0.48rem 0.9rem;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  cursor: text;
+}
+
+.datePickerIcon {
+  font-size: 0.88rem;
+  color: var(--res-muted);
+  font-style: normal;
 }
 
 .datePicker input {
   border: none;
   background: transparent;
-  color: inherit;
+  color: var(--res-text);
   outline: none;
+  font-size: 0.83rem;
+  font-weight: 700;
+  cursor: pointer;
 }
+
+.datePicker input::-webkit-calendar-picker-indicator { filter: invert(0.75); cursor: pointer; }
 
 .filters {
   display: flex;
-  gap: 10px;
+  gap: 0.65rem;
   align-items: center;
   flex-wrap: wrap;
 }
 
 .filters select,
 .searchHour {
-  padding: 10px 12px;
+  padding: 0.52rem 0.85rem;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  color: inherit;
+  border: 1px solid rgba(255,255,255,0.13);
+  background: rgba(255,255,255,0.05);
+  color: var(--res-text);
   outline: none;
+  font-size: 0.83rem;
+  font-weight: 600;
+  transition: border-color 0.18s ease;
 }
 
-.searchHour {
-  width: 170px;
+.filters select:focus,
+.searchHour:focus {
+  border-color: rgba(34,197,94,0.48);
+  box-shadow: 0 0 0 2px rgba(34,197,94,0.1);
 }
+
+.filters select option { background: #0d1f35; }
+
+.searchHour { width: 145px; }
+.searchHour::placeholder { color: rgba(255,255,255,0.28); }
 
 .check {
   display: flex;
-  gap: 8px;
+  gap: 0.48rem;
   align-items: center;
+  cursor: pointer;
+  color: var(--res-muted);
+  font-size: 0.83rem;
+  font-weight: 600;
   user-select: none;
-  opacity: 0.9;
 }
 
+.check input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--green-strong);
+  cursor: pointer;
+}
+
+/* ============================================================
+   DAY TITLE
+   ============================================================ */
 .dayTitle {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin: 16px 0 10px;
-  opacity: 0.95;
+  gap: 1rem;
+  margin: 1.4rem 1.4rem 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  position: relative;
+  z-index: 1;
+}
+
+.dayTitle strong {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--res-text);
+  text-transform: capitalize;
 }
 
 .dayTitle span {
-  opacity: 0.75;
-  font-size: 13px;
+  font-size: 0.78rem;
+  color: var(--res-muted);
 }
 
-.gridReservas {
+/* ============================================================
+   SKELETON LOADING
+   ============================================================ */
+.loadingSlots {
   display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.9rem;
+  padding: 0 1.4rem;
 }
 
-.reservaCard {
-  border-radius: 18px;
-  padding: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.cardTop {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-}
-
-.status {
-  font-size: 12px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  opacity: 0.9;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-}
-
-.status.disponible {
-  background: var(--green-soft);
-  color: var(--green-strong);
-  border: 1px solid var(--green-border);
-}
-
-.status.ocupada {
-  background: var(--red-soft);
-  color: var(--red-strong);
-  border: 1px solid var(--red-border);
-}
-
-.timeRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 18px;
-}
-
-.time {
-  font-weight: 700;
-}
-
-.dash {
-  opacity: 0.7;
-}
-
-.metaRow {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.chip {
-  font-size: 12px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  opacity: 0.9;
-}
-
-.reserveBtn {
-  margin-top: 6px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: none;
-  cursor: pointer;
-  font-weight: 700;
-  border: 3px solid rgba(18, 66, 226, 0.18);
-  background: rgba(255, 255, 255, 0.10);
-}
-
-.reservaCard.disponible {
-  background: linear-gradient(
-    180deg,
-    rgba(40, 200, 120, 0.10),
-    var(--card-bg)
-  );
-  border: 3px solid var(--green-border);
-  box-shadow:
-    0 10px 28px rgba(0, 0, 0, 0.25),
-    inset 0 0 0 1px rgba(40, 200, 120, 0.15);
-}
-
-.reservaCard.disponible:hover {
-  transform: translateY(-3px);
-  box-shadow:
-    0 16px 36px rgba(0, 0, 0, 0.35),
-    0 0 0 1px var(--green-border);
-}
-
-.reservaCard.ocupada {
-  background: linear-gradient(
-    180deg,
-    rgba(230, 80, 80, 0.12),
-    var(--card-bg)
-  );
-  border: 4px solid var(--red-border);
-  opacity: 0.65;
-  filter: grayscale(0.2);
-}
-
-
-.reservaCard.ocupada .reserveBtn {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.8);
-  cursor: not-allowed;
-}
-
-.toast {
-  position: fixed;
-  right: 16px;
-  bottom: 18px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: rgb(255, 255, 255);
-  border: 3px solid rgba(3, 3, 3, 0.14);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-  max-width: 420px;
-  z-index: 50;
-}
-
-
-/* hover para cuando reservamos */
-.modalBackdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  z-index: 100;
-}
-
-.modal {
-  width: 100%;
-  max-width: 520px;
+.slotSkeleton {
+  height: 210px;
   border-radius: 20px;
-  padding: 18px;
-  background: #f9fafb;
-  color: #111;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 0%,
+    rgba(255,255,255,0.08) 40%,
+    rgba(255,255,255,0.04) 80%
+  );
+  background-size: 300% 100%;
+  animation: slotShimmer 1.5s infinite linear;
+  animation-delay: calc(var(--i, 0) * 0.1s);
+  border: 1px solid rgba(255,255,255,0.06);
 }
 
-
-.modalHead {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  border-bottom: 1px solid #e5e7eb;
-  padding-bottom: 10px;
+@keyframes slotShimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 
-.modalHead h3 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 800;
-  color: #111;
-}
-
-.closeBtn {
-  border: none;
-  background: #f1f5f9;
-  color: #111;
-  cursor: pointer;
-  font-size: 16px;
-  border-radius: 999px;
-  width: 32px;
-  height: 32px;
-}
-
-.closeBtn:hover {
-  background: #e5e7eb;
-}
-
-.modalInfo {
-  margin-top: 14px;
-  padding: 14px;
-  border-radius: 14px;
-  background: #f1f5f9;
-  border: 1px solid #e5e7eb;
-}
-
-.modalLine {
-  display: flex;
-  justify-content: space-between;
-  margin: 0;
-  font-weight: 700;
-  font-size: 15px;
-}
-
-.modalSub {
-  margin: 6px 0 0;
-  color: #475569;
-  font-size: 13px;
-}
-
-/*formulario de reserva ---------------------*/
-.form {
-  margin-top: 14px;
-  display: grid;
-  gap: 12px;
-}
-
-.form label {
-  display: grid;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #334155;
-}
-
-.form input,
-.form textarea {
-  padding: 11px 12px;
-  border-radius: 12px;
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  color: #111;
-  outline: none;
-  font-size: 14px;
-}
-
-.form input::placeholder,
-.form textarea::placeholder {
-  color: #94a3b8;
-}
-
-.form input:focus,
-.form textarea:focus {
-  border-color: #22c55e;
-  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
-}
-
-/*botones ------------*/
-.modalActions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 10px;
-}
-
-.btnGhost {
-  padding: 10px 14px;
-  border-radius: 14px;
-  border: 1px solid #cbd5e1;
-  background: #f1f5f9;
-  color: #334155;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.btnGhost:hover {
-  background: #e5e7eb;
-}
-
-.btnPrimary {
-  padding: 10px 16px;
-  border-radius: 14px;
-  border: none;
-  background: linear-gradient(180deg, #22c55e, #16a34a);
-  color: #ffffff;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.btnPrimary:hover {
-  filter: brightness(1.05);
-}
-
-/*texto de ayuda final*/
-.modalHint {
-  margin: 10px 0 0;
-  color: #e5e9ee;
-  font-size: 12px;
-}
-
-/* Columnas por pista */
+/* ============================================================
+   COURTS GRID
+   ============================================================ */
 .courtsColumns {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  gap: 1.4rem;
+  padding: 0 1.4rem;
 }
 
 .courtColumn {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.85rem;
 }
 
+/* Sticky court header */
 .courtHeader {
-  text-align: center;
-  font-size: 18px;
-  font-weight: 800;
-  padding: 12px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.82rem 1.05rem;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(34,197,94,0.13), rgba(34,197,94,0.04));
+  border: 1px solid rgba(34,197,94,0.22);
+  backdrop-filter: blur(10px);
   position: sticky;
   top: 0;
   z-index: 5;
 }
 
+.courtName {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.28px;
+}
+
+.courtCount {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--green-strong);
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(34,197,94,0.12);
+  border: 1px solid rgba(34,197,94,0.22);
+}
+
 .courtSlots {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.82rem;
 }
 
-/* En móvil, una sola columna */
-@media (max-width: 640px) {
-  .courtsColumns {
-    grid-template-columns: 1fr;
-  }
+/* ============================================================
+   RESERVATION CARD — base
+   ============================================================ */
+.reservaCard {
+  position: relative;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.95rem 1.05rem 1.05rem;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, opacity 0.22s ease;
+  animation: cardIn 0.45s ease both;
+  animation-delay: calc(var(--i, 0) * 0.05s + 0.06s);
 }
 
-/* Switch login/registro */
-.loginSwitch {
-  text-align: center;
-  margin-top: 1rem;
-  color: var(--muted);
-  font-size: 0.9rem;
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
 
-.switchBtn {
-  background: none;
-  border: none;
-  color: #2196f3;
+/* ── DISPONIBLE ── bright green glow */
+.reservaCard.disponible {
+  border-color: rgba(34,197,94,0.38);
+  background: linear-gradient(
+    155deg,
+    rgba(34,197,94,0.10) 0%,
+    rgba(13,31,53,0.88) 50%,
+    rgba(10,22,40,0.96) 100%
+  );
+  box-shadow:
+    0 0 0 1px rgba(34,197,94,0.16),
+    0 10px 32px rgba(0,0,0,0.38);
+}
+
+.reservaCard.disponible:hover {
+  transform: translateY(-6px) scale(1.01);
+  border-color: rgba(34,197,94,0.68);
+  box-shadow:
+    0 0 0 1px rgba(34,197,94,0.52),
+    0 24px 56px rgba(0,0,0,0.52),
+    0 0 48px rgba(34,197,94,0.13);
+}
+
+/* ── OCUPADA ── red-tinted, dim */
+.reservaCard.ocupada {
+  border-color: rgba(239,68,68,0.25);
+  background: linear-gradient(
+    155deg,
+    rgba(239,68,68,0.08) 0%,
+    rgba(13,31,53,0.92) 50%,
+    rgba(10,22,40,0.98) 100%
+  );
+  opacity: 0.68;
+  filter: saturate(0.75);
+}
+
+.reservaCard.ocupada:hover {
+  opacity: 0.80;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ============================================================
+   TIME-OF-DAY TOP STRIPE
+   ============================================================ */
+.cardStripe {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 20px 20px 0 0;
+}
+
+.stripeMorning   { background: linear-gradient(90deg, #92400e, #f59e0b, #fbbf24); }
+.stripeAfternoon { background: linear-gradient(90deg, #14532d, #22c55e, #4ade80); }
+.stripeEvening   { background: linear-gradient(90deg, #312e81, #6366f1, #818cf8); }
+
+/* ============================================================
+   CARD TOP ROW — time tag + status badge
+   ============================================================ */
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 5px;
+}
+
+/* Time of day pill */
+.timeTag {
+  font-size: 0.67rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 0.26rem 0.62rem;
+  border-radius: 999px;
+}
+
+.tagMorning   { background: rgba(245,158,11,0.14);  color: #fbbf24;  border: 1px solid rgba(245,158,11,0.26); }
+.tagAfternoon { background: rgba(34,197,94,0.12);   color: #4ade80;  border: 1px solid rgba(34,197,94,0.26); }
+.tagEvening   { background: rgba(129,140,248,0.13); color: #a5b4fc;  border: 1px solid rgba(129,140,248,0.26); }
+
+/* Status badge */
+.statusBadge {
+  font-size: 0.69rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  padding: 0.28rem 0.68rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.badgeDisponible {
+  background: rgba(34,197,94,0.14);
+  border-color: rgba(34,197,94,0.34);
+  color: #4ade80;
+}
+
+/* Live dot */
+.badgeDisponible::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green-strong);
+  display: block;
+  flex-shrink: 0;
+  animation: liveDot 1.8s ease-in-out infinite;
+}
+
+@keyframes liveDot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0   rgba(34,197,94,0.6); }
+  55%       { opacity: 0.7; box-shadow: 0 0 0 5px rgba(34,197,94,0); }
+}
+
+.badgeOcupada {
+  background: rgba(239,68,68,0.13);
+  border-color: rgba(239,68,68,0.28);
+  color: #fca5a5;
+}
+
+/* ============================================================
+   BIG TIME DISPLAY
+   ============================================================ */
+.timeDisplay {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.timeVal {
+  font-size: 1.65rem;
+  font-weight: 900;
+  letter-spacing: -1.2px;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.reservaCard.ocupada .timeVal {
+  color: rgba(255,255,255,0.42);
+}
+
+.timeDash {
+  font-size: 1rem;
   font-weight: 700;
+  color: rgba(255,255,255,0.25);
+}
+
+/* ============================================================
+   META CHIPS
+   ============================================================ */
+.metaRow {
+  display: flex;
+  gap: 0.48rem;
+  flex-wrap: wrap;
+}
+
+.chip {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.3rem 0.72rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.09);
+  color: rgba(255,255,255,0.72);
+}
+
+/* ============================================================
+   PLAYER SLOTS — avatar row + info
+   ============================================================ */
+.playerSlots {
+  display: flex;
+  flex-direction: column;
+  gap: 0.52rem;
+  padding: 0.78rem 0.88rem;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+
+.reservaCard.disponible .playerSlots {
+  border-color: rgba(34,197,94,0.1);
+  background: rgba(34,197,94,0.04);
+}
+
+.playerAvatars {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+/* Base avatar */
+.playerAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+.playerAvatar:hover { transform: scale(1.12); }
+
+/* Filled — the booker */
+.playerFilled {
+  background: var(--avatar-bg, #16a34a);
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  border: 2px solid rgba(255,255,255,0.22);
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,0.06),
+    0 4px 12px rgba(0,0,0,0.4);
+  cursor: default;
+}
+
+/* Empty — ghost slot */
+.playerEmpty {
+  background: rgba(255,255,255,0.04);
+  border: 2px dashed rgba(255,255,255,0.13);
+  color: rgba(255,255,255,0.18);
+}
+
+.playerEmpty svg {
+  width: 15px;
+  height: 15px;
+  color: rgba(255,255,255,0.18);
+}
+
+.reservaCard.disponible .playerEmpty {
+  border-color: rgba(34,197,94,0.2);
+}
+
+/* Player info row */
+.playerInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.48rem;
+  flex-wrap: wrap;
+}
+
+.playerName {
+  font-size: 0.79rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.82);
+}
+
+.playerOpenBadge {
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.2rem 0.58rem;
+  border-radius: 999px;
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.22);
+  color: #fca5a5;
+}
+
+.playerOpenAvailable {
+  background: rgba(34,197,94,0.11);
+  border-color: rgba(34,197,94,0.22);
+  color: #4ade80;
+}
+
+/* ============================================================
+   ACTION BUTTONS
+   ============================================================ */
+.reserveBtn {
+  width: 100%;
+  padding: 0.76rem 1rem;
+  border-radius: 14px;
+  border: none;
+  font-size: 0.87rem;
+  font-weight: 800;
+  letter-spacing: 0.15px;
   cursor: pointer;
-  padding: 0;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
 }
 
-.switchBtn:hover {
-  text-decoration: underline;
+.reserveBtn:focus-visible {
+  outline: 2px solid var(--green-strong);
+  outline-offset: 3px;
 }
 
-.loginBtn:disabled {
-  opacity: 0.6;
+/* Available — main CTA */
+.btnDisponible {
+  background: linear-gradient(135deg, #15803d, #22c55e);
+  color: #ffffff;
+  box-shadow:
+    0 4px 18px rgba(34,197,94,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.16);
+}
+
+.btnDisponible:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 8px 30px rgba(34,197,94,0.48);
+}
+
+/* Cancel — owner's reservation */
+.btnCancel {
+  background: rgba(239,68,68,0.13);
+  color: #fca5a5;
+  border: 1px solid rgba(239,68,68,0.28);
+}
+
+.btnCancel:hover {
+  background: rgba(239,68,68,0.22);
+  transform: translateY(-1px);
+}
+
+/* Occupied by others */
+.btnOcupada {
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.26);
   cursor: not-allowed;
+  border: 1px solid rgba(255,255,255,0.06);
 }
 
-/* Botón cancelar reserva */
-.cancelBtn {
-  background: var(--red-soft) !important;
-  color: var(--red-strong) !important;
-  border-color: var(--red-border) !important;
-  cursor: pointer !important;
+/* ============================================================
+   TOAST NOTIFICATION
+   ============================================================ */
+.toast {
+  position: fixed;
+  right: 1.2rem;
+  bottom: 1.5rem;
+  padding: 0.88rem 1.25rem;
+  border-radius: 18px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  max-width: 400px;
+  z-index: 200;
+  backdrop-filter: blur(18px);
+  animation: toastIn 0.35s cubic-bezier(0.22,1,0.36,1) both;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6);
 }
 
-.cancelBtn:hover {
-  filter: brightness(0.95);
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(22px) scale(0.94); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.toastSuccess {
+  background: rgba(20,83,45,0.96);
+  border: 1px solid rgba(74,222,128,0.4);
+  color: #dcfce7;
+}
+
+.toastError {
+  background: rgba(127,29,29,0.96);
+  border: 1px solid rgba(252,165,165,0.32);
+  color: #fee2e2;
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(5px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  z-index: 100;
+  animation: backdropIn 0.22s ease both;
+}
+
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal {
+  width: 100%;
+  max-width: 500px;
+  border-radius: 24px;
+  padding: 1.6rem;
+  background: rgba(10,22,40,0.97);
+  color: var(--res-text);
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow:
+    0 40px 80px rgba(0,0,0,0.72),
+    0 0 0 1px rgba(34,197,94,0.1);
+  animation: modalIn 0.35s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.91) translateY(26px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+.modalHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 1.1rem;
+}
+
+.modalHead h3 {
+  margin: 0 0 0.22rem;
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.3px;
+}
+
+.modalSubtitle {
+  margin: 0;
+  font-size: 0.83rem;
+  color: var(--res-muted);
+  font-weight: 600;
+}
+
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: var(--res-muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.closeBtn:hover {
+  background: rgba(255,255,255,0.12);
+  color: #ffffff;
+}
+
+/* Info block inside modal */
+.modalInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.95rem 1.05rem;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 1.15rem;
+}
+
+.modalInfoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modalInfoLabel {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--res-muted);
+  font-weight: 600;
+}
+
+.modalInfoRow strong {
+  font-weight: 800;
+  font-size: 0.93rem;
+  color: #ffffff;
+}
+
+.modalPrice { color: #fbbf24 !important; font-size: 1.05rem !important; }
+
+/* Form */
+.form {
+  display: grid;
+  gap: 0.88rem;
+}
+
+.form label {
+  display: grid;
+  gap: 0.42rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.65px;
+  color: var(--res-muted);
+}
+
+.form input,
+.form textarea {
+  padding: 0.72rem 0.88rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: var(--res-text);
+  outline: none;
+  font-size: 0.92rem;
+  font-weight: 600;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.form input::placeholder,
+.form textarea::placeholder { color: rgba(255,255,255,0.22); }
+
+.form input:focus,
+.form textarea:focus {
+  border-color: rgba(34,197,94,0.5);
+  box-shadow: 0 0 0 3px rgba(34,197,94,0.11);
+}
+
+.form textarea { resize: vertical; min-height: 78px; }
+
+/* Modal action buttons */
+.modalActions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 0.4rem;
+}
+
+.btnGhost {
+  padding: 0.7rem 1.15rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.13);
+  background: rgba(255,255,255,0.05);
+  color: var(--res-muted);
+  font-weight: 700;
+  font-size: 0.86rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnGhost:hover {
+  background: rgba(255,255,255,0.09);
+  color: var(--res-text);
+}
+
+.btnPrimary {
+  padding: 0.7rem 1.4rem;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #15803d, #22c55e);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.86rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(34,197,94,0.32);
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  filter: brightness(1.09);
+  transform: translateY(-1px);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 800px) {
+  .courtsColumns   { grid-template-columns: 1fr; padding: 0 1rem; }
+  .reservasHeader  { padding: 2rem 1rem 0; }
+  .toolbar         { margin: 1.2rem 1rem 0; }
+  .dayTitle        { margin: 1.2rem 1rem 0.8rem; }
+  .loadingSlots    { padding: 0 1rem; }
+}
+
+@media (max-width: 560px) {
+  .reservasHeader  { flex-direction: column; align-items: flex-start; }
+  .reservasTitle   { font-size: 1.8rem; }
+  .summary         { align-self: stretch; }
+  .summaryItem     { flex: 1; min-width: 0; padding: 0.7rem 0.6rem; }
+  .summaryItem strong { font-size: 1.4rem; }
+  .toolbar         { flex-direction: column; gap: 0.75rem; }
+  .searchHour      { width: 120px; }
+  .timeVal         { font-size: 1.4rem; }
+  .modal           { border-radius: 18px; padding: 1.2rem; }
+}
+
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .reservas::after,
+  .reservasTitle,
+  .reservasEyebrow,
+  .reservasIntro,
+  .summary,
+  .toolbar,
+  .reservaCard,
+  .slotSkeleton,
+  .toast,
+  .modal,
+  .modalBackdrop   { animation: none !important; }
+  .badgeDisponible::before { animation: none; }
+  .reservaCard.disponible:hover { transform: none; }
 }

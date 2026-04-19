@@ -1,13 +1,497 @@
-/* ===== WEATHER BOX CLICKABLE ===== */
+/* ================================================
+   HOME PAGE — Estilos completos
+   Paleta verde oscuro (hero) + verde marca (CTAs)
+   ================================================ */
+
+/* === Variables del hero (extienden index.css) === */
+:root {
+  --brand-400:      #4ade80;
+  --brand-500:      #22c55e;
+  --hero-bg-from:   #061911;
+  --hero-bg-mid:    #0a2e18;
+  --hero-bg-to:     #0d3b20;
+  --hero-border:    rgba(74, 222, 128, 0.18);
+  --hero-glass:     rgba(255, 255, 255, 0.06);
+  --hero-glass-b:   rgba(255, 255, 255, 0.1);
+  --hero-text:      #ffffff;
+  --hero-muted:     rgba(255, 255, 255, 0.65);
+}
+
+/* === ANIMACIONES === */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.8); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroCard, .heroLeft, .heroRight, .features, .quick {
+    animation: none !important;
+  }
+}
+
+/* === HERO SECTION === */
+.hero {
+  margin-bottom: 2.4rem;
+}
+
+.heroCard {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  padding: 2.8rem;
+  border: 1px solid var(--hero-border);
+  background:
+    radial-gradient(ellipse at 78% 18%, rgba(74, 222, 128, 0.13) 0%, transparent 52%),
+    radial-gradient(ellipse at 12% 88%, rgba(22, 163, 74, 0.09) 0%, transparent 42%),
+    linear-gradient(138deg, var(--hero-bg-from) 0%, var(--hero-bg-mid) 52%, var(--hero-bg-to) 100%);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.38),
+    inset 0 0 0 1px rgba(74, 222, 128, 0.06);
+  animation: fadeIn 0.4s ease both;
+}
+
+/* Líneas decorativas estilo pista de pádel */
+.heroCard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(90deg,
+      transparent 49.6%,
+      rgba(74, 222, 128, 0.05) 49.6%,
+      rgba(74, 222, 128, 0.05) 50.4%,
+      transparent 50.4%),
+    linear-gradient(0deg,
+      transparent 33%,
+      rgba(74, 222, 128, 0.03) 33%,
+      rgba(74, 222, 128, 0.03) 33.5%,
+      transparent 33.5%),
+    linear-gradient(0deg,
+      transparent 66%,
+      rgba(74, 222, 128, 0.03) 66%,
+      rgba(74, 222, 128, 0.03) 66.5%,
+      transparent 66.5%);
+  pointer-events: none;
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.2rem;
+  align-items: start;
+  position: relative;
+  z-index: 1;
+}
+
+/* === HERO LEFT === */
+.heroLeft {
+  animation: fadeSlideUp 0.5s ease 0.08s both;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 1rem;
+  border-radius: 999px;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.22);
+  color: var(--brand-400);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 1.2rem;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand-400);
+  flex-shrink: 0;
+  animation: pulseDot 2s ease infinite;
+}
+
+.heroLeft h2 {
+  margin: 0 0 0.85rem;
+  font-size: clamp(1.8rem, 3.5vw, 2.65rem);
+  font-weight: 900;
+  line-height: 1.14;
+  letter-spacing: -0.5px;
+  color: var(--hero-text);
+}
+
+.heroLeft p {
+  margin: 0 0 1.65rem;
+  color: var(--hero-muted);
+  font-size: 1.02rem;
+  line-height: 1.68;
+}
+
+.heroLeft strong {
+  color: var(--brand-400);
+  font-weight: 700;
+}
+
+.ctaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+/* Botones adaptados al fondo oscuro */
+.heroLeft .btn-primary {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  border-color: transparent;
+  box-shadow: 0 8px 20px rgba(22, 163, 74, 0.4);
+}
+
+.heroLeft .btn-primary:hover {
+  background: linear-gradient(135deg, #22c55e, #4ade80);
+  box-shadow: 0 12px 30px rgba(22, 163, 74, 0.55);
+  transform: translateY(-1px);
+}
+
+.heroLeft .btn-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: var(--hero-text);
+}
+
+.heroLeft .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.26);
+}
+
+/* === HERO RIGHT === */
+.heroRight {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  animation: fadeSlideUp 0.5s ease 0.2s both;
+}
+
+/* KPIs */
+.kpi {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.kpiItem {
+  padding: 0.95rem 0.7rem;
+  border-radius: 12px;
+  background: var(--hero-glass);
+  border: 1px solid var(--hero-glass-b);
+  text-align: center;
+}
+
+.kpiItem strong {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--hero-text);
+  margin-bottom: 0.28rem;
+}
+
+.kpiItem span {
+  display: block;
+  font-size: 0.71rem;
+  color: var(--hero-muted);
+  line-height: 1.4;
+}
+
+/* === WEATHER BOX === */
+.weatherBox {
+  border-radius: 16px;
+  padding: 1.3rem 1.5rem;
+  background: var(--hero-glass);
+  border: 1px solid var(--hero-glass-b);
+  backdrop-filter: blur(14px);
+}
+
+.weatherTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.9rem;
+}
+
+.weatherTop h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.weatherBadge {
+  padding: 0.22rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.22);
+  color: var(--brand-400);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.weatherMain {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.weatherIcon {
+  font-size: 2.7rem;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
+  flex-shrink: 0;
+}
+
+.weatherTemp {
+  margin: 0;
+  font-size: 2.1rem;
+  font-weight: 900;
+  line-height: 1;
+  background: linear-gradient(135deg, #ffffff 35%, var(--brand-400));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.weatherDesc {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--hero-muted);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.weatherChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.chip {
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.73rem;
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chipRisk {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.28);
+  color: #fca5a5;
+}
+
+.chipOk {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.28);
+  color: #86efac;
+}
+
+.weatherHint {
+  margin: 0;
+  font-size: 0.73rem;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+/* === WEATHER BOX CLICKABLE === */
 .weatherBoxClickable {
   cursor: pointer;
-  transition: transform 0.15s, border-color 0.15s, background 0.15s;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 
 .weatherBoxClickable:hover {
   transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(74, 222, 128, 0.4);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(74, 222, 128, 0.35);
+}
+
+/* === FEATURES SECTION === */
+.features {
+  margin-bottom: 2rem;
+  animation: fadeSlideUp 0.55s ease 0.3s both;
+}
+
+.featuresHead {
+  text-align: center;
+  margin-bottom: 1.6rem;
+}
+
+.featuresHead h3 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.3rem, 2.5vw, 1.75rem);
+  font-weight: 900;
+  letter-spacing: -0.3px;
+  color: var(--text);
+}
+
+.featuresHead p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.featureCard {
+  padding: 1.6rem 1.3rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.featureCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.12);
+  border-color: rgba(22, 163, 74, 0.28);
+}
+
+.featureIcon {
+  font-size: 2.2rem;
+  display: block;
+  margin-bottom: 0.75rem;
+  line-height: 1;
+}
+
+.featureCard strong {
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 0.4rem;
+}
+
+.featureCard p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+/* === QUICK ACCESS === */
+.quick {
+  animation: fadeSlideUp 0.55s ease 0.4s both;
+}
+
+.quickCard {
+  padding: 2rem 2rem 1.8rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.quickCard h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.quickCard > p {
+  margin: 0 0 1.2rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.quickGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.85rem;
+}
+
+.quickItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 1.2rem 1rem;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.04), rgba(34, 197, 94, 0.08));
+  border: 1px solid rgba(22, 163, 74, 0.14);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.quickItem:hover {
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.09), rgba(34, 197, 94, 0.16));
+  border-color: rgba(22, 163, 74, 0.34);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(22, 163, 74, 0.15);
+}
+
+.qiIcon {
+  font-size: 1.7rem;
+  margin-bottom: 0.25rem;
+  line-height: 1;
+}
+
+.qiTitle {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.qiDesc {
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 900px) {
+  .heroGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .featuresGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .quickGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 540px) {
+  .heroCard {
+    padding: 1.6rem 1.2rem;
+  }
+
+  .kpi {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .featuresGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .quickGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* ===== WEATHER MODAL ===== */
@@ -68,7 +552,6 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
-/* Tiempo actual grande */
 .weatherCurrentBig {
   display: flex;
   align-items: center;
@@ -109,7 +592,6 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
-/* Grid de detalles */
 .weatherDetailGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -139,7 +621,6 @@
   color: #ffffff;
 }
 
-/* Caja de recomendación */
 .recomendacionBox {
   display: flex;
   gap: 1rem;
@@ -189,7 +670,6 @@
   line-height: 1.4;
 }
 
-/* Previsión semanal */
 .forecastSection h4 {
   margin: 0 0 0.8rem;
   font-size: 1rem;
@@ -259,7 +739,7 @@
   color: rgba(255, 255, 255, 0.35);
 }
 
-/* Responsive modal */
+/* Modal responsive */
 @media (max-width: 480px) {
   .weatherModal {
     padding: 1.2rem;

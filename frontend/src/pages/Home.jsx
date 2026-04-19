@@ -45,14 +45,14 @@ function Home() {
     <section className="home">
       {/* HERO */}
       <section className="hero">
-        <div className="card heroGrid">
+        <div className="heroCard heroGrid">
           <div className="heroLeft">
             <div className="pill">
               <span className="dot" aria-hidden="true" />
               Escuela Norba Pádel | Gestión y reservas
             </div>
 
-            <h2>Tu escuela de pádel, mas fácil que nunca.</h2>
+            <h2>Tu escuela de pádel,<br />más fácil que nunca.</h2>
 
             <p>
               La mejor escuela de pádel en <strong>Cáceres</strong>, con gestión online de
@@ -82,7 +82,7 @@ function Home() {
               </div>
             </div>
 
-            {/* Caja del tiempo (clickable) */}
+            {/* Panel del tiempo */}
             <div
               className="weatherBox weatherBoxClickable"
               onClick={() => weather && setShowWeatherModal(true)}
@@ -137,7 +137,6 @@ function Home() {
               <button className="weatherCloseBtn" onClick={() => setShowWeatherModal(false)}>✕</button>
             </div>
 
-            {/* Datos actuales detallados */}
             <div className="weatherCurrentBig">
               <div className="weatherCurrentIcon">{weather.emoji}</div>
               <div className="weatherCurrentInfo">
@@ -149,7 +148,6 @@ function Home() {
               </div>
             </div>
 
-            {/* Datos detallados en grid */}
             <div className="weatherDetailGrid">
               <div className="weatherDetailItem">
                 <span className="wdLabel">💧 Humedad</span>
@@ -169,7 +167,6 @@ function Home() {
               </div>
             </div>
 
-            {/* Recomendación de juego */}
             {weather.recomendacion && (
               <div className={`recomendacionBox rec-${weather.recomendacion.nivel}`}>
                 <div className="recIcon">{weather.recomendacion.icono}</div>
@@ -180,7 +177,6 @@ function Home() {
               </div>
             )}
 
-            {/* Previsión semanal */}
             {weather.forecast && weather.forecast.length > 0 && (
               <div className="forecastSection">
                 <h4>Previsión de los próximos 7 días</h4>
@@ -213,7 +209,7 @@ function Home() {
         <div className="featuresHead">
           <h3>¿Por qué usar nuestra plataforma?</h3>
           <p>
-            La manera mas rapida de jugar al pádel en Norba Pádel, sin complicaciones.
+            La manera más rápida de jugar al pádel en Norba Pádel, sin complicaciones.
             <br />
             Busca tu hora, avisa a tus amigos, reserva y disfruta.
           </p>
@@ -221,18 +217,22 @@ function Home() {
 
         <div className="featuresGrid">
           <div className="featureCard">
+            <span className="featureIcon">📅</span>
             <strong>Gestión fácil</strong>
             <p>Te buscamos hueco a tu nivel y horarios.</p>
           </div>
           <div className="featureCard">
+            <span className="featureIcon">👥</span>
             <strong>Para todos</strong>
-            <p>Clases para niños, adultos y profesionales. <br /> Todos los niveles.</p>
+            <p>Clases para niños, adultos y profesionales. Todos los niveles.</p>
           </div>
           <div className="featureCard">
+            <span className="featureIcon">⚡</span>
             <strong>Automatización</strong>
             <p>Recordatorios, avisos y control rápido de tus clases y torneos.</p>
           </div>
           <div className="featureCard">
+            <span className="featureIcon">🎯</span>
             <strong>100% personalizado</strong>
             <p>Clases individuales para mejorar todos los aspectos.</p>
           </div>
@@ -247,18 +247,22 @@ function Home() {
 
           <div className="quickGrid">
             <Link className="quickItem" to="/reservas">
+              <span className="qiIcon">🎾</span>
               <span className="qiTitle">Reservar pista</span>
               <span className="qiDesc">Elige pista y horario</span>
             </Link>
             <Link className="quickItem" to="/clases">
+              <span className="qiIcon">📚</span>
               <span className="qiTitle">Clases por niveles</span>
               <span className="qiDesc">Iniciación, medio, avanzado</span>
             </Link>
             <Link className="quickItem" to="/torneos">
+              <span className="qiIcon">🏆</span>
               <span className="qiTitle">Torneos</span>
               <span className="qiDesc">Menores y adultos</span>
             </Link>
             <Link className="quickItem" to="/galeria">
+              <span className="qiIcon">📸</span>
               <span className="qiTitle">Galería</span>
               <span className="qiDesc">Fotos de alumnos y competiciones</span>
             </Link>

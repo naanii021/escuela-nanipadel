@@ -1,72 +1,201 @@
+/* ============================================================
+   TORNEOS PAGE — Modern · Animated · Accessible
+   ============================================================ */
+
+/* ── Page background ── */
 .torneos {
   position: relative;
   min-height: 100%;
-  padding: 0 0 3.5rem;
+  padding: 0 0 4rem;
   background:
-    radial-gradient(circle at top left, rgba(34, 197, 94, 0.12), transparent 26%),
-    radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 24%),
-    linear-gradient(180deg, #fbfdff 0%, #f3f6fb 48%, #ecf1f7 100%);
+    radial-gradient(circle at 14% 18%, rgba(34, 197, 94, 0.11), transparent 28%),
+    radial-gradient(circle at 86% 14%, rgba(245, 158, 11, 0.10), transparent 26%),
+    radial-gradient(circle at 50% 82%, rgba(99, 102, 241, 0.06), transparent 34%),
+    linear-gradient(180deg, #f8fafc 0%, #f0f4fb 100%);
   overflow: hidden;
 }
 
+/* Diagonal texture */
 .torneos::before {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.28) 0%, transparent 42%),
-    linear-gradient(225deg, rgba(59, 130, 246, 0.05) 0%, transparent 38%),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.3) 0%, transparent 44%),
     repeating-linear-gradient(
       -45deg,
       transparent,
       transparent 74px,
-      rgba(15, 23, 42, 0.03) 74px,
-      rgba(15, 23, 42, 0.03) 76px
+      rgba(15, 23, 42, 0.025) 74px,
+      rgba(15, 23, 42, 0.025) 76px
     );
   pointer-events: none;
+  z-index: 0;
 }
 
+/* Animated rainbow accent bar at top */
+.torneos::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    #16a34a, #22c55e, #f59e0b, #ea580c,
+    #9333ea, #22c55e, #16a34a
+  );
+  background-size: 400% 100%;
+  animation: torneosAccentBar 7s linear infinite;
+  z-index: 2;
+}
+
+@keyframes torneosAccentBar {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 400% 50%; }
+}
+
+/* ── Shell ── */
 .torneosShell {
   position: relative;
   z-index: 1;
   max-width: 1180px;
   margin: 0 auto;
-  padding: 2.2rem 1.2rem 0;
+  padding: 2.5rem 1.2rem 0;
 }
 
+/* ============================================================
+   HERO
+   ============================================================ */
 .torneosHero {
   display: grid;
-  grid-template-columns: 1.02fr 0.98fr;
-  gap: 1.3rem;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 1.4rem;
   align-items: stretch;
-  margin-bottom: 1.6rem;
-  padding: 1.4rem;
+  margin-bottom: 1.4rem;
+  padding: 1.6rem;
   border-radius: 28px;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.08);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  box-shadow:
+    0 20px 48px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: heroFadeIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes heroFadeIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .torneosHeroText {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 0.6rem 0.2rem 0.6rem 0.4rem;
+  padding: 0.6rem 0.4rem 0.6rem 0.5rem;
 }
 
 .torneosHeroVisual {
   display: grid;
-  grid-template-rows: minmax(240px, 1fr) auto;
-  gap: 0.9rem;
+  grid-template-rows: minmax(220px, 1fr) auto;
+  gap: 1rem;
 }
 
+/* ── Eyebrow badge with glow dot ── */
+.torneosEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.44rem 1rem 0.44rem 0.72rem;
+  margin-bottom: 1.05rem;
+  border-radius: 999px;
+  border: 1px solid rgba(22, 163, 74, 0.24);
+  background: rgba(22, 163, 74, 0.07);
+  color: #15803d;
+  font-size: 0.81rem;
+  font-weight: 700;
+  letter-spacing: 0.35px;
+  width: fit-content;
+  animation: eyebrowSlideIn 0.5s 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes eyebrowSlideIn {
+  from { opacity: 0; transform: translateX(-14px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.eyebrowDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+  animation: dotRipple 2.4s ease-in-out infinite;
+}
+
+@keyframes dotRipple {
+  0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
+  65%  { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+/* ── H1 gradient text ── */
+.torneosTitle {
+  margin: 0 0 0.55rem;
+  font-size: 3.4rem;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -1.4px;
+  background: linear-gradient(
+    135deg,
+    #0f172a 8%,
+    #16a34a 42%,
+    #ea580c 72%,
+    #f59e0b 100%
+  );
+  background-size: 220% 220%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation:
+    titleIn 0.55s 0.24s cubic-bezier(0.22, 1, 0.36, 1) both,
+    titleGradientShift 9s ease infinite;
+}
+
+@keyframes titleIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes titleGradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.intro {
+  margin: 0;
+  max-width: 520px;
+  color: #475569;
+  font-size: 1.02rem;
+  line-height: 1.66;
+  animation: introFadeIn 0.5s 0.34s ease both;
+}
+
+@keyframes introFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Hero photo card ── */
 .heroPhotoCard {
   position: relative;
-  min-height: 260px;
-  border-radius: 22px;
+  height: 100%;
+  min-height: 220px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.16);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.18);
 }
 
 .heroPhotoCard img {
@@ -74,181 +203,374 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform 0.65s ease;
+}
+
+.heroPhotoCard:hover img {
+  transform: scale(1.05);
 }
 
 .heroPhotoOverlay {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.05) 0%, rgba(15, 23, 42, 0.28) 100%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 48%);
+    linear-gradient(180deg, rgba(15, 23, 42, 0.04) 0%, rgba(15, 23, 42, 0.34) 100%),
+    linear-gradient(135deg, rgba(22, 163, 74, 0.08), transparent 50%);
 }
 
-.torneosEyebrow {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.45rem 0.9rem;
-  margin-bottom: 1rem;
+.heroFloatingBadge {
+  position: absolute;
+  bottom: 0.85rem;
+  left: 0.85rem;
+  padding: 0.38rem 0.88rem;
   border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.1);
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.16);
+}
+
+.heroFloatingBadge span {
+  font-size: 0.77rem;
+  font-weight: 800;
   color: #0f172a;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  letter-spacing: 0.25px;
 }
 
-.torneos h2 {
-  margin: 0 0 0.45rem;
-  font-size: 3rem;
-  line-height: 1;
-  font-weight: 900;
-  letter-spacing: -1.2px;
-  background: linear-gradient(135deg, #0f172a 5%, #ea580c 55%, #f59e0b 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.torneos .intro {
-  margin: 0;
-  max-width: 720px;
-  color: #334155;
-  font-size: 1.05rem;
-  line-height: 1.6;
-}
-
+/* ============================================================
+   STATS — 4 cards alternating colors, hover-lift, pulse numbers
+   ============================================================ */
 .torneosStats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(110px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.8rem;
 }
 
 .torneoStat {
-  padding: 0.9rem 1rem;
+  padding: 1rem 0.75rem;
   border-radius: 18px;
-  background: linear-gradient(180deg, #182437, #0f172a);
-  border: 1px solid rgba(15, 23, 42, 0.08);
   text-align: center;
   backdrop-filter: blur(10px);
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.16);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  animation: statSlideUp 0.5s ease both;
+  cursor: default;
 }
+
+.torneoStat:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.26);
+}
+
+.torneoStat:nth-child(1) { animation-delay: 0.32s; }
+.torneoStat:nth-child(2) { animation-delay: 0.42s; }
+.torneoStat:nth-child(3) { animation-delay: 0.52s; }
+.torneoStat:nth-child(4) { animation-delay: 0.62s; }
+
+@keyframes statSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Alternating accent colors */
+.statBlue   { background: linear-gradient(145deg, #1d4ed8, #0c1a5e); }
+.statGreen  { background: linear-gradient(145deg, #15803d, #052e16); }
+.statOrange { background: linear-gradient(145deg, #c2410c, #1e0800); }
+.statPurple { background: linear-gradient(145deg, #7e22ce, #1e053a); }
 
 .torneoStat strong {
   display: block;
   color: #ffffff;
-  font-size: 1.35rem;
+  font-size: 1.6rem;
   font-weight: 900;
+  line-height: 1.1;
+  animation: statPulse 3.2s ease-in-out infinite;
+}
+
+.torneoStat:nth-child(2) strong { animation-delay: 0.3s; }
+.torneoStat:nth-child(3) strong { animation-delay: 0.6s; }
+.torneoStat:nth-child(4) strong { animation-delay: 0.9s; }
+
+@keyframes statPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.8; transform: scale(0.96); }
 }
 
 .torneoStat span {
-  font-size: 0.78rem;
+  display: block;
+  margin-top: 0.22rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: rgba(255, 255, 255, 0.58);
+  letter-spacing: 0.9px;
+  color: rgba(255, 255, 255, 0.55);
 }
 
+/* ============================================================
+   FILTER TABS — underline-animate
+   ============================================================ */
+.torneosFilters {
+  display: flex;
+  gap: 0.3rem;
+  margin-bottom: 1.5rem;
+  padding: 0.42rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  animation: filtersIn 0.45s 0.45s ease both;
+}
+
+.torneosFilters::-webkit-scrollbar { display: none; }
+
+@keyframes filtersIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.filterTab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.58rem 1.05rem;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.filterTab:hover {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.filterTab:focus-visible {
+  outline: 2px solid #16a34a;
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+/* Underline indicator */
+.filterTab::after {
+  content: "";
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  right: 50%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #16a34a, #22c55e);
+  transition:
+    left  0.27s cubic-bezier(0.4, 0, 0.2, 1),
+    right 0.27s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.filterTabActive::after {
+  left: 10px;
+  right: 10px;
+}
+
+.filterTabActive {
+  color: #15803d;
+  background: rgba(22, 163, 74, 0.08);
+  font-weight: 700;
+}
+
+.filterTabBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.32rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  color: #64748b;
+  font-size: 0.71rem;
+  font-weight: 700;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.filterTabActive .filterTabBadge {
+  background: rgba(22, 163, 74, 0.16);
+  color: #15803d;
+}
+
+/* ============================================================
+   FEEDBACK / MESSAGES
+   ============================================================ */
 .torneosFeedback,
 .torneosMessage {
-  padding: 1rem 1.1rem;
+  padding: 1rem 1.2rem;
   margin-bottom: 1.2rem;
   border-radius: 16px;
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: msgIn 0.3s ease both;
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .torneosFeedback {
-  background: rgba(34, 197, 94, 0.12);
-  border: 1px solid rgba(34, 197, 94, 0.22);
-  color: #a7f3d0;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.26);
+  color: #15803d;
+  font-weight: 600;
 }
 
 .torneosMessage {
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(15, 23, 42, 0.08);
-  color: #334155;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  color: #475569;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
 .torneosError {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.22);
-  color: #fecaca;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.26);
+  color: #dc2626;
+  font-weight: 600;
 }
 
+/* ============================================================
+   GRID
+   ============================================================ */
 .torneosGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.2rem;
+  gap: 1.25rem;
 }
 
+/* ── Skeleton ── */
 .torneoSkeleton {
   height: 470px;
   border-radius: 24px;
-  background: linear-gradient(90deg, rgba(15, 23, 42, 0.06), rgba(15, 23, 42, 0.1), rgba(15, 23, 42, 0.06));
-  background-size: 220% 100%;
-  animation: torneoShimmer 1.2s infinite linear;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(
+    90deg,
+    rgba(15, 23, 42, 0.06) 0%,
+    rgba(15, 23, 42, 0.11) 40%,
+    rgba(15, 23, 42, 0.06) 80%
+  );
+  background-size: 300% 100%;
+  animation: shimmerSweep 1.5s infinite linear;
+  border: 1px solid rgba(15, 23, 42, 0.07);
 }
 
-@keyframes torneoShimmer {
-  from {
-    background-position: 0% 0;
-  }
-  to {
-    background-position: 220% 0;
-  }
+@keyframes shimmerSweep {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 
+/* ============================================================
+   TOURNAMENT CARD
+   ============================================================ */
 .torneoCard {
   position: relative;
   overflow: hidden;
   border-radius: 24px;
-  background:
-    linear-gradient(180deg, rgba(106, 183, 103, 0.651), rgba(15, 23, 42, 0.98));
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  box-shadow: 0 20px 42px rgba(15, 23, 42, 0.22);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  background: linear-gradient(
+    175deg,
+    rgba(15, 23, 42, 0.92) 0%,
+    rgba(2, 6, 23, 0.98) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.22);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  animation: cardSlideUp 0.55s ease both;
+  animation-delay: calc(var(--i, 0) * 0.07s + 0.12s);
+}
+
+@keyframes cardSlideUp {
+  from { opacity: 0; transform: translateY(28px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .torneoCard:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 28px 54px rgba(15, 23, 42, 0.28);
+  transform: translateY(-8px);
+  box-shadow:
+    0 32px 64px rgba(15, 23, 42, 0.32),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.09);
 }
 
+/* Category glow overlay (::before) */
+.torneoCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 0%,
+    var(--category-glow, rgba(59, 130, 246, 0.12)),
+    transparent 62%
+  );
+  transition: opacity 0.3s ease;
+  z-index: 0;
+}
+
+.torneoCard:hover::before {
+  opacity: 1;
+}
+
+/* Category accent bar (::after) */
 .torneoCard::after {
   content: "";
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 5px;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
   background: var(--category-gradient, linear-gradient(180deg, #3b82f6, #60a5fa));
+  z-index: 2;
 }
 
+/* Category CSS variables */
 .catAdultos {
   --category-gradient: linear-gradient(180deg, #2563eb, #38bdf8);
+  --category-glow: rgba(37, 99, 235, 0.14);
 }
 
 .catMenores {
   --category-gradient: linear-gradient(180deg, #16a34a, #4ade80);
+  --category-glow: rgba(22, 163, 74, 0.14);
 }
 
 .catMixto {
   --category-gradient: linear-gradient(180deg, #9333ea, #c084fc);
+  --category-glow: rgba(147, 51, 234, 0.14);
 }
 
 .catCompeticion {
   --category-gradient: linear-gradient(180deg, #dc2626, #fb7185);
+  --category-glow: rgba(220, 38, 38, 0.14);
 }
 
 .catLiga {
   --category-gradient: linear-gradient(180deg, #ea580c, #f59e0b);
+  --category-glow: rgba(234, 88, 12, 0.14);
 }
 
+/* ── Card media ── */
 .torneoMedia {
   position: relative;
-  height: 210px;
+  height: 204px;
+  overflow: hidden;
+  z-index: 1;
 }
 
 .torneoMedia img {
@@ -256,14 +578,19 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform 0.55s ease;
+}
+
+.torneoCard:hover .torneoMedia img {
+  transform: scale(1.07);
 }
 
 .torneoMediaOverlay {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(2, 6, 23, 0.02) 0%, rgba(2, 6, 23, 0.72) 100%),
-    linear-gradient(135deg, transparent 45%, rgba(255, 255, 255, 0.08) 100%);
+    linear-gradient(180deg, rgba(2, 6, 23, 0.02) 0%, rgba(2, 6, 23, 0.76) 100%),
+    linear-gradient(135deg, transparent 44%, rgba(255, 255, 255, 0.06) 100%);
 }
 
 .torneoBadges {
@@ -273,46 +600,48 @@
   top: 1rem;
   display: flex;
   justify-content: space-between;
-  gap: 0.6rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .torneoBadge {
   display: inline-flex;
   align-items: center;
-  padding: 0.45rem 0.75rem;
+  padding: 0.4rem 0.78rem;
   border-radius: 999px;
-  font-size: 0.76rem;
+  font-size: 0.73rem;
   font-weight: 800;
-  letter-spacing: 0.25px;
+  letter-spacing: 0.28px;
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .torneoCategoria {
   color: #ffffff;
-  background: var(--category-gradient, linear-gradient(180deg, #2563eb, #38bdf8));
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.22);
+  background: var(--category-gradient, linear-gradient(135deg, #2563eb, #38bdf8));
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.24);
 }
 
 .torneoEstado {
   border: 1px solid transparent;
 }
 
+/* ── Status badge colors ── */
 .statusAbierto {
   background: rgba(34, 197, 94, 0.18);
-  border-color: rgba(34, 197, 94, 0.32);
+  border-color: rgba(34, 197, 94, 0.36);
   color: #86efac;
 }
 
 .statusProximo {
   background: rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.34);
+  border-color: rgba(59, 130, 246, 0.38);
   color: #93c5fd;
 }
 
 .statusCurso {
   background: rgba(234, 179, 8, 0.18);
-  border-color: rgba(234, 179, 8, 0.3);
+  border-color: rgba(234, 179, 8, 0.32);
   color: #fde68a;
 }
 
@@ -320,24 +649,27 @@
 .statusCerrado,
 .statusFinalizado {
   background: rgba(148, 163, 184, 0.18);
-  border-color: rgba(148, 163, 184, 0.32);
+  border-color: rgba(148, 163, 184, 0.34);
   color: #cbd5e1;
 }
 
 .statusCancelado {
   background: rgba(239, 68, 68, 0.18);
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.32);
   color: #fca5a5;
 }
 
 .statusDefault {
   background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.18);
   color: #e2e8f0;
 }
 
+/* ── Card body ── */
 .torneoBody {
-  padding: 1.2rem 1.2rem 1.25rem;
+  position: relative;
+  z-index: 1;
+  padding: 1.2rem 1.25rem 1.3rem;
 }
 
 .torneoTitleRow {
@@ -345,80 +677,83 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 0.8rem;
-  margin-bottom: 0.7rem;
+  margin-bottom: 0.65rem;
 }
 
 .torneoTitleRow h3 {
   margin: 0;
   color: #ffffff;
-  font-size: 1.28rem;
-  line-height: 1.15;
+  font-size: 1.2rem;
+  line-height: 1.2;
   font-weight: 850;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.28px;
 }
 
 .torneoPrice {
   white-space: nowrap;
-  padding: 0.38rem 0.65rem;
+  padding: 0.34rem 0.65rem;
   border-radius: 10px;
   background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.22);
   color: #fcd34d;
   font-weight: 800;
-  font-size: 0.82rem;
+  font-size: 0.81rem;
 }
 
 .torneoDescripcion {
-  margin: 0 0 0.95rem;
-  color: rgba(255, 255, 255, 0.68);
-  line-height: 1.55;
-  font-size: 0.94rem;
+  margin: 0 0 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.56;
+  font-size: 0.92rem;
 }
 
 .torneoMeta {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  padding: 0.9rem;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.055);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  gap: 0.72rem;
+  padding: 0.88rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 0.85rem;
 }
 
 .metaBlock {
   display: grid;
-  gap: 0.22rem;
+  gap: 0.18rem;
 }
 
 .metaLabel {
-  font-size: 0.72rem;
+  font-size: 0.69rem;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: rgba(255, 255, 255, 0.38);
+  letter-spacing: 0.95px;
+  color: rgba(255, 255, 255, 0.35);
 }
 
 .metaBlock strong {
   color: #ffffff;
-  font-size: 0.94rem;
+  font-size: 0.91rem;
   font-weight: 800;
 }
 
 .torneoDetails {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0.9rem 0;
+  gap: 0.44rem;
+  margin-bottom: 0.88rem;
 }
 
 .detailChip {
-  padding: 0.42rem 0.7rem;
+  padding: 0.36rem 0.68rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.84);
-  font-size: 0.8rem;
-  font-weight: 650;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
+/* ── Capacity bar ── */
 .torneoCapacity {
   margin-bottom: 1rem;
 }
@@ -427,22 +762,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.84rem;
   margin-bottom: 0.45rem;
 }
 
 .capacityRow strong {
   color: #ffffff;
-  font-weight: 850;
+  font-weight: 800;
 }
 
 .capacityBar {
-  height: 10px;
+  height: 9px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.1);
   overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.28);
 }
 
 .capacityBar span {
@@ -450,72 +785,102 @@
   height: 100%;
   width: 0;
   border-radius: 999px;
-  transition: width 0.55s ease;
+  transition: width 0.65s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .occLow span,
-.occOpen span {
-  background: linear-gradient(90deg, #22c55e, #86efac);
-}
+.occOpen span { background: linear-gradient(90deg, #16a34a, #4ade80); }
+.occMid span  { background: linear-gradient(90deg, #ea580c, #fcd34d); }
+.occHigh span { background: linear-gradient(90deg, #dc2626, #fb7185); }
 
-.occMid span {
-  background: linear-gradient(90deg, #f59e0b, #fcd34d);
-}
-
-.occHigh span {
-  background: linear-gradient(90deg, #ef4444, #fb7185);
-}
-
+/* ── Action button ── */
 .btnTorneo {
   width: 100%;
   border: none;
   border-radius: 14px;
-  padding: 0.9rem 1rem;
+  padding: 0.88rem 1rem;
   cursor: pointer;
   color: #ffffff;
-  font-size: 0.94rem;
-  font-weight: 850;
+  font-size: 0.92rem;
+  font-weight: 800;
   background: linear-gradient(135deg, #f59e0b, #f97316);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-  transition: transform 0.15s ease, filter 0.15s ease;
+  box-shadow:
+    0 4px 14px rgba(245, 158, 11, 0.32),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btnTorneo:hover:not(:disabled) {
   transform: translateY(-2px);
   filter: brightness(1.08);
+  box-shadow:
+    0 8px 24px rgba(245, 158, 11, 0.42),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.btnTorneo:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 3px;
 }
 
 .btnTorneo.isSubscribed {
   background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  box-shadow:
+    0 4px 14px rgba(37, 99, 235, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.btnTorneo.isSubscribed:hover:not(:disabled) {
+  box-shadow:
+    0 8px 24px rgba(37, 99, 235, 0.4),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16);
 }
 
 .btnTorneo:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.48;
+  filter: grayscale(0.25);
+  transform: none;
 }
 
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+/* Tablet */
 @media (max-width: 980px) {
   .torneosHero {
     grid-template-columns: 1fr;
   }
 
   .torneosStats {
-    width: 100%;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .torneosGrid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
+/* Mobile */
 @media (max-width: 640px) {
   .torneosShell {
-    padding: 1.3rem 1rem 0;
+    padding: 1.6rem 0.9rem 0;
   }
 
   .torneosHero {
-    padding: 1rem;
+    padding: 1.2rem;
+    gap: 1rem;
   }
 
-  .torneos h2 {
-    font-size: 2.25rem;
+  .torneosTitle {
+    font-size: 2.6rem;
+    letter-spacing: -1px;
+  }
+
+  .torneosStats {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .torneosGrid {
@@ -528,5 +893,44 @@
 
   .torneoTitleRow {
     flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .heroPhotoCard {
+    min-height: 190px;
+  }
+}
+
+/* ============================================================
+   ACCESSIBILITY — prefers-reduced-motion
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .torneosHero,
+  .torneosTitle,
+  .torneosEyebrow,
+  .intro,
+  .torneosFilters,
+  .torneoStat,
+  .torneoCard,
+  .torneosFeedback,
+  .torneosMessage {
+    animation: none !important;
+  }
+
+  .torneos::after {
+    animation: none;
+    background: linear-gradient(90deg, #16a34a, #22c55e, #f59e0b);
+  }
+
+  .eyebrowDot {
+    animation: none;
+  }
+
+  .torneoStat strong {
+    animation: none !important;
+  }
+
+  .capacityBar span {
+    transition: none;
   }
 }

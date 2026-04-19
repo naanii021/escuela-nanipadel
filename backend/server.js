@@ -126,6 +126,82 @@ app.get("/api/grupos", async (req, res) => {
   }
 });
 
+// Guardar datos meteorológicos de la XIAO
+app.post("/api/meteo-xiao", async (req, res) => {
+  try {
+    const {
+      temperatura,
+      humedad,
+      presion,
+      altitud,
+      bateria_voltaje,
+      bateria_porcentaje,
+      estado,
+    } = req.body;
+
+    // Validación básica
+    if (
+      temperatura == null ||
+      humedad == null ||
+      presion == null ||
+      bateria_voltaje == null ||
+      bateria_porcentaje == null
+    ) {
+      return res.status(400).json({
+        ok: false,
+        message: "Faltan datos obligatorios",
+      });
+    }
+
+    const sql = `
+      INSERT INTO meteo_xiao
+      (temperatura, humedad, presion, altitud, bateria_voltaje, bateria_porcentaje, estado)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    const values = [
+      temperatura,
+      humedad,
+      presion,
+      altitud ?? null,
+      bateria_voltaje,
+      bateria_porcentaje,
+      estado ?? null,
+    ];
+
+    const [result] = await db.promise().query(sql, values);
+
+    res.json({
+      ok: true,
+      message: "Datos meteorológicos guardados correctamente",
+      id: result.insertId,
+    });
+  } catch (e) {
+    console.error("❌ Error /api/meteo-xiao POST:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+// Obtener la última lectura meteorológica de la XIAO
+app.get("/api/meteo-xiao", async (_req, res) => {
+  try {
+    const [rows] = await db.promise().query(`
+      SELECT *
+      FROM meteo_xiao
+      ORDER BY creado_en DESC
+      LIMIT 1
+    `);
+
+    res.json({
+      ok: true,
+      meteo: rows[0] || null,
+    });
+  } catch (e) {
+    console.error("❌ Error /api/meteo-xiao GET:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
 // Arranque del servidor
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Backend activo en http://localhost:${PORT}`);
