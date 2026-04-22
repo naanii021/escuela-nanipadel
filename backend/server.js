@@ -6,6 +6,8 @@ import reservasRouter from "./routes/reservas.js";
 import authRouter from "./routes/auth.js";
 import clasesRouter from "./routes/Clases.js";
 import torneosRouter from "./routes/torneos.js";
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 
@@ -15,7 +17,7 @@ const PORT = process.env.PORT || 4000;
 // CORS para React
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    //origin: "http://localhost:3000",
   })
 );
 
@@ -200,6 +202,14 @@ app.get("/api/meteo-xiao", async (_req, res) => {
     console.error("❌ Error /api/meteo-xiao GET:", e);
     res.status(500).json({ ok: false, message: e.message });
   }
+});
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const buildPath = path.join(__dirname, "..", "frontend","build");
+app.use(express.static(buildPath));
+app.get("*", (_req, res) => {
+	res.sendFile(path.join(buildPath, "index.html"));
 });
 
 // Arranque del servidor

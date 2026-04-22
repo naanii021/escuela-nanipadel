@@ -3,9 +3,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { isLogged, getUser, getToken } from "../services/auth";
 
-const API_BASE = (
-  process.env.REACT_APP_API_URL || "http://127.0.0.1:4000"
-).replace(/\/$/, "");
+const API_BASE = (process.env.REACT_APP_API_URL || "").replace(/\/$/, "");
 
 const HOURS = [
   "09:00", "10:30", "12:00", "13:30", "15:00",

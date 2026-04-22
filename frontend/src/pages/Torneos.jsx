@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getToken, isLogged } from "../services/auth";
 
-const API_BASE = (process.env.REACT_APP_API_URL || "http://127.0.0.1:4000").replace(/\/$/, "");
+const API_BASE = (process.env.REACT_APP_API_URL || "").replace(/\/$/, "");
 
 const CATEGORY_META = {
   adultos: {
