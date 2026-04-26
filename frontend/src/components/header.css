@@ -184,7 +184,6 @@
   overflow: hidden;
   display: inline-flex;
   align-items: center;
-<<<<<<< HEAD
   gap: 0.45rem;
   padding: 0.6rem 1.15rem;
   border-radius: 12px;
@@ -209,55 +208,6 @@
     0 8px 28px rgba(22, 163, 74, 0.38),
     inset 0 1px 0 rgba(255, 255, 255, 0.22);
   filter: brightness(1.06);
-=======
-  justify-content: center;
-  border: 1px solid var(--border);
-  background: white;
-  padding: 0.72rem 1.25rem;
-  min-width: 110px;
-  min-height: 46px;
-  border-radius: 999px;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 0.95rem;
-  line-height: 1;
-  white-space: nowrap;
-  text-align: center;
-  text-decoration: none;
-  overflow: hidden;
-  color: var(--text);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-  transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease, border-color 140ms ease, color 140ms ease;
-}
-
-.navBtn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
-}
-
-.navBtnPrimary {
-  background: linear-gradient(135deg, #0f172a, #1e293b 55%, #166534);
-  border-color: rgba(15, 23, 42, 0.08);
-  color: #ffffff;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16);
-  letter-spacing: 0.01em;
-}
-
-.navBtnPrimary:hover {
-  background: linear-gradient(135deg, #111827, #1f2937 55%, #15803d);
-  border-color: rgba(21, 128, 61, 0.28);
-  color: #f8fafc;
-}
-
-.navBtnPrimary::before {
-  content: "";
-  width: 0.45rem;
-  height: 0.45rem;
-  margin-right: 0.55rem;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #86efac, #22c55e);
-  box-shadow: 0 0 0 4px rgba(134, 239, 172, 0.16);
->>>>>>> 3b70c54 (añade .env prodcution para vercel)
 }
 
 .loginBtn:active {
