@@ -1,0 +1,104 @@
+{
+  "generatedAt": "2026-04-26T14:47:20.373Z",
+  "photos": [
+    {
+      "id": 1,
+      "title": "Clases",
+      "category": "Clases",
+      "src": "/fotos/clases.jpeg",
+      "highlight": "Entrenamiento en la escuela",
+      "desc": "Imagen de clases durante una sesion de entrenamiento en pista.",
+      "year": "2026"
+    },
+    {
+      "id": 2,
+      "title": "Equipofem",
+      "category": "Equipo",
+      "src": "/fotos/equipofem.jpeg",
+      "highlight": "Momentos de equipo",
+      "desc": "Foto de equipofem relacionada con la preparacion y el ambiente de equipo.",
+      "year": "2026"
+    },
+    {
+      "id": 3,
+      "title": "Ligafem",
+      "category": "Liga",
+      "src": "/fotos/ligafem.jpeg",
+      "highlight": "Jornada de liga",
+      "desc": "Instantanea de ligafem durante una jornada de liga del club.",
+      "year": "2026"
+    },
+    {
+      "id": 4,
+      "title": "Ligafem2",
+      "category": "Liga",
+      "src": "/fotos/ligafem2.jpeg",
+      "highlight": "Jornada de liga",
+      "desc": "Instantanea de ligafem2 durante una jornada de liga del club.",
+      "year": "2026"
+    },
+    {
+      "id": 5,
+      "title": "Ligafem3",
+      "category": "Liga",
+      "src": "/fotos/ligafem3.jpeg",
+      "highlight": "Jornada de liga",
+      "desc": "Instantanea de ligafem3 durante una jornada de liga del club.",
+      "year": "2026"
+    },
+    {
+      "id": 6,
+      "title": "Nani",
+      "category": "Club",
+      "src": "/fotos/nani.jpeg",
+      "highlight": "Vida de club",
+      "desc": "Imagen de nani dentro de la vida diaria del club.",
+      "year": "2026"
+    },
+    {
+      "id": 7,
+      "title": "Nanivsperu",
+      "category": "Competiciones",
+      "src": "/fotos/nanivsperu.jpeg",
+      "highlight": "Partido de competicion",
+      "desc": "Momento de nanivsperu capturado en una jornada de competicion.",
+      "year": "2026"
+    },
+    {
+      "id": 8,
+      "title": "Porequipos",
+      "category": "Equipo",
+      "src": "/fotos/porequipos.jpeg",
+      "highlight": "Momentos de equipo",
+      "desc": "Foto de porequipos relacionada con la preparacion y el ambiente de equipo.",
+      "year": "2026"
+    },
+    {
+      "id": 9,
+      "title": "Premiodanipau",
+      "category": "Premios",
+      "src": "/fotos/premiodanipau.jpeg",
+      "highlight": "Entrega de premios",
+      "desc": "Foto de premiodanipau en una entrega de premios o celebracion del club.",
+      "year": "2026"
+    },
+    {
+      "id": 10,
+      "title": "Premiopauricis",
+      "category": "Premios",
+      "src": "/fotos/premiopauricis.jpeg",
+      "highlight": "Entrega de premios",
+      "desc": "Foto de premiopauricis en una entrega de premios o celebracion del club.",
+      "year": "2026"
+    },
+    {
+      "id": 11,
+      "title": "Torneopablodani",
+      "category": "Competiciones",
+      "src": "/fotos/torneopablodani.jpeg",
+      "highlight": "Partido de competicion",
+      "desc": "Momento de torneopablodani capturado en una jornada de competicion.",
+      "year": "2026"
+    }
+  ]
+}
