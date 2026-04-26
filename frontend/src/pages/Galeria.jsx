@@ -1,53 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import GalleryFilters from "../components/GalleryFilters";
+import GalleryLightbox from "../components/GalleryLightbox";
 import "./galeria.css";
 
-const AUTOPLAY_MS = 4200;
-const NEWS_MS = 5500;
-
-const FALLBACK_PHOTOS = [];
-
-const NEWS = [
-  {
-    id: 1,
-    tag: "Torneo",
-    tagColor: "amber",
-    title: "Torneo de Primavera - inscripciones abiertas",
-    body: "El 3 de mayo arranca el torneo social de primavera. Plazas limitadas para todas las categorias, apuntate cuanto antes.",
-    date: "17 abr 2026",
-  },
-  {
-    id: 2,
-    tag: "Clases",
-    tagColor: "blue",
-    title: "Nuevo horario de clases para mayo",
-    body: "Anadimos sesiones de manana los martes y jueves desde el 1 de mayo para nivel iniciacion y perfeccionamiento.",
-    date: "15 abr 2026",
-  },
-  {
-    id: 3,
-    tag: "Pistas",
-    tagColor: "green",
-    title: "Pista 3 renovada con cristal panoramico",
-    body: "Ya disponible la pista 3 tras su renovacion con nueva iluminacion LED y cristal de alta calidad panoramico.",
-    date: "10 abr 2026",
-  },
-  {
-    id: 4,
-    tag: "Evento",
-    tagColor: "purple",
-    title: "Puertas abiertas - domingo 27 de abril",
-    body: "Invita a tus amigos a probar el padel gratis. Sesiones guiadas de 10h a 14h sin necesidad de reserva previa.",
-    date: "5 abr 2026",
-  },
-  {
-    id: 5,
-    tag: "Liga",
-    tagColor: "rose",
-    title: "Clasificacion actualizada tras la ronda 4",
-    body: "El equipo B lidera la tabla con 3 victorias consecutivas. Consulta la clasificacion completa en el panel.",
-    date: "14 abr 2026",
-  },
-];
+const FILTERS = ["Todas", "Alumnos", "Clases", "Liga"];
 
 function withPublicUrl(path) {
   if (!path) return "";
@@ -57,21 +13,17 @@ function withPublicUrl(path) {
 }
 
 function Galeria() {
-  const [photos, setPhotos] = useState(FALLBACK_PHOTOS);
+  const [photos, setPhotos] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("Todas");
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [autoplay, setAutoplay] = useState(true);
-  const [imgKey, setImgKey] = useState(0);
-  const [newsIndex, setNewsIndex] = useState(0);
-  const [newsVisible, setNewsVisible] = useState(true);
-  const [newsReset, setNewsReset] = useState(0);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [manifestLoaded, setManifestLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
-    const loadPhotos = async () => {
+    async function loadManifest() {
       try {
-        const res = await fetch(withPublicUrl("/fotos/gallery-manifest.json"), {
+        const res = await fetch(withPublicUrl("/gallery-manifest.json"), {
           headers: { Accept: "application/json" },
           cache: "no-store",
         });
@@ -82,277 +34,190 @@ function Galeria() {
         const nextPhotos = Array.isArray(data.photos) ? data.photos : [];
 
         if (!cancelled) {
-          setPhotos(nextPhotos.length ? nextPhotos : FALLBACK_PHOTOS);
+          setPhotos(nextPhotos);
         }
       } catch {
         if (!cancelled) {
-          setPhotos(FALLBACK_PHOTOS);
+          setPhotos([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setManifestLoaded(true);
         }
       }
-    };
+    }
 
-    loadPhotos();
+    loadManifest();
 
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const categories = useMemo(
-    () => ["Todas", ...new Set(photos.map((photo) => photo.category || "Club"))],
-    [photos]
-  );
-
   const filteredPhotos = useMemo(() => {
-    return selectedCategory === "Todas"
-      ? photos
-      : photos.filter((photo) => photo.category === selectedCategory);
+    if (selectedCategory === "Todas") return photos;
+    return photos.filter((photo) => photo.category === selectedCategory);
   }, [photos, selectedCategory]);
 
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [selectedCategory, photos]);
+  const coverPhoto = filteredPhotos[0] || photos[0] || null;
+  const featuredStrip = filteredPhotos.slice(0, 3);
 
-  useEffect(() => {
-    if (activeIndex >= filteredPhotos.length) {
-      setActiveIndex(0);
-    }
-  }, [activeIndex, filteredPhotos.length]);
+  const stats = useMemo(() => {
+    return {
+      total: photos.length,
+      alumnos: photos.filter((photo) => photo.category === "Alumnos").length,
+      clases: photos.filter((photo) => photo.category === "Clases").length,
+      liga: photos.filter((photo) => photo.category === "Liga").length,
+    };
+  }, [photos]);
 
-  useEffect(() => {
-    setImgKey((key) => key + 1);
-  }, [activeIndex]);
-
-  useEffect(() => {
-    if (!autoplay || filteredPhotos.length <= 1) return undefined;
-    const id = window.setInterval(() => {
-      setActiveIndex((index) => (index + 1) % filteredPhotos.length);
-    }, AUTOPLAY_MS);
-    return () => window.clearInterval(id);
-  }, [autoplay, filteredPhotos]);
-
-  useEffect(() => {
-    const id = window.setInterval(() => setNewsVisible(false), NEWS_MS);
-    return () => window.clearInterval(id);
-  }, [newsReset]);
-
-  useEffect(() => {
-    if (newsVisible) return undefined;
-    const id = window.setTimeout(() => {
-      setNewsIndex((index) => (index + 1) % NEWS.length);
-      setNewsVisible(true);
-    }, 320);
-    return () => window.clearTimeout(id);
-  }, [newsVisible]);
-
-  const activePhoto = filteredPhotos[activeIndex] || filteredPhotos[0] || null;
-  const activeNews = NEWS[newsIndex];
-
-  const goPrev = () => {
-    if (!filteredPhotos.length) return;
-    setAutoplay(false);
-    setActiveIndex((index) => (index - 1 + filteredPhotos.length) % filteredPhotos.length);
+  const openLightbox = (index) => {
+    setLightboxIndex(index);
   };
 
-  const goNext = () => {
-    if (!filteredPhotos.length) return;
-    setAutoplay(false);
-    setActiveIndex((index) => (index + 1) % filteredPhotos.length);
+  const closeLightbox = () => {
+    setLightboxIndex(null);
   };
 
-  const selectNews = (index) => {
-    setNewsVisible(false);
-    window.setTimeout(() => {
-      setNewsIndex(index);
-      setNewsVisible(true);
-      setNewsReset((reset) => reset + 1);
-    }, 160);
+  const showPrev = () => {
+    setLightboxIndex((current) => {
+      if (current === null || !filteredPhotos.length) return current;
+      return (current - 1 + filteredPhotos.length) % filteredPhotos.length;
+    });
+  };
+
+  const showNext = () => {
+    setLightboxIndex((current) => {
+      if (current === null || !filteredPhotos.length) return current;
+      return (current + 1) % filteredPhotos.length;
+    });
   };
 
   return (
     <section className="galeria">
-      <div className="galeriaHero">
-        <div className="galeriaHeroText">
-          <div className="galeriaPill">
-            <span className="galeriaPillDot" />
-            Momentos del club
-          </div>
-          <h2>Galeria</h2>
-          <p className="galeriaIntro">
-            Torneos, entrenamientos y vida de club en un formato visual, dinamico y facil de explorar.
+      <header className="galeriaHero">
+        <div className="galeriaHeroCopy">
+          <span className="galeriaEyebrow">Escuela de padel</span>
+          <h1>Galeria</h1>
+          <p className="galeriaLead">
+            Partidos, clases y momentos del club reunidos en una galeria mas visual, rapida y preparada para crecer automaticamente.
           </p>
 
           <div className="galeriaStats">
-            <div className="galeriaStat">
-              <strong>{photos.length}</strong>
-              <span>Fotos</span>
-            </div>
-            <div className="galeriaStat">
-              <strong>{categories.length - 1}</strong>
-              <span>Categorias</span>
-            </div>
-            <div className="galeriaStat">
-              <strong>2026</strong>
-              <span>Temporada</span>
-            </div>
-          </div>
-
-          <div className="galeriaNewsBlock">
-            <div className="galeriaNewsHeader">
-              <span className="galeriaNewsLive">
-                <span className="liveIndicator" />
-                En vivo
-              </span>
-              <span className="galeriaNewsLabel">Ultimas noticias</span>
-            </div>
-
-            <div className={`galeriaNewsBody ${newsVisible ? "newsIn" : "newsOut"}`}>
-              <span className={`galeriaNewsTag tag-${activeNews.tagColor}`}>
-                {activeNews.tag}
-              </span>
-              <strong className="galeriaNewsTitle">{activeNews.title}</strong>
-              <p className="galeriaNewsDesc">{activeNews.body}</p>
-              <span className="galeriaNewsDate">{activeNews.date}</span>
-            </div>
-
-            <div className="galeriaNewsDots">
-              {NEWS.map((_, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  className={`newsDot ${index === newsIndex ? "active" : ""}`}
-                  onClick={() => selectNews(index)}
-                  aria-label={`Noticia ${index + 1}`}
-                />
-              ))}
-            </div>
+            <article className="statCard">
+              <strong>{stats.total}</strong>
+              <span>Imagenes</span>
+            </article>
+            <article className="statCard">
+              <strong>{stats.clases}</strong>
+              <span>Clases</span>
+            </article>
+            <article className="statCard">
+              <strong>{stats.liga}</strong>
+              <span>Liga</span>
+            </article>
+            <article className="statCard">
+              <strong>{stats.alumnos}</strong>
+              <span>Alumnos</span>
+            </article>
           </div>
         </div>
 
-        <div
-          className="showcaseCard"
-          onMouseEnter={() => setAutoplay(false)}
-          onMouseLeave={() => setAutoplay(true)}
-        >
-          <div className="showcaseImageWrap">
-            {activePhoto ? (
-              <>
-                <img
-                  key={imgKey}
-                  src={withPublicUrl(activePhoto.src)}
-                  alt={activePhoto.title}
-                  loading="eager"
-                  className="showcaseImg"
-                />
-                <div className="showcaseOverlay" />
-
-                <div className="showcaseTop">
-                  <span className="showcaseTag">{activePhoto.category}</span>
-                  <button
-                    type="button"
-                    className={`autoBtn ${autoplay ? "active" : ""}`}
-                    onClick={() => setAutoplay((value) => !value)}
-                  >
-                    {autoplay ? "▶ Auto" : "⏸ Pausa"}
-                  </button>
-                </div>
-
-                <div className="showcaseContent">
-                  <span className="showcaseKicker">{activePhoto.highlight}</span>
-                  <h3>{activePhoto.title}</h3>
-                  <p>{activePhoto.desc}</p>
-                </div>
-
-                <div className="showcaseNav">
-                  <button type="button" className="navBtn" onClick={goPrev} aria-label="Foto anterior">
-                    ‹
-                  </button>
-                  <span className="navCounter">
-                    {activeIndex + 1} <em>/</em> {filteredPhotos.length}
-                  </span>
-                  <button type="button" className="navBtn" onClick={goNext} aria-label="Foto siguiente">
-                    ›
-                  </button>
-                </div>
-
-                {autoplay && filteredPhotos.length > 1 && (
-                  <div className="progressBar">
-                    <div
-                      key={`prog-${activeIndex}`}
-                      className="progressFill"
-                      style={{ animationDuration: `${AUTOPLAY_MS}ms` }}
-                    />
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="showcaseOverlay" />
-            )}
-          </div>
-
-          <div className="thumbRail">
-            {filteredPhotos.map((photo, index) => (
-              <button
-                key={photo.id}
-                type="button"
-                className={`thumbItem ${index === activeIndex ? "active" : ""}`}
-                onClick={() => {
-                  setAutoplay(false);
-                  setActiveIndex(index);
-                }}
-              >
-                <img src={withPublicUrl(photo.src)} alt={photo.title} loading="lazy" />
-                <span>{photo.title}</span>
-              </button>
-            ))}
-          </div>
+        <div className="galeriaHeroPanel">
+          {coverPhoto ? (
+            <>
+              <img
+                className="heroPanelImage"
+                src={withPublicUrl(coverPhoto.src)}
+                alt={coverPhoto.title}
+              />
+              <div className="heroPanelOverlay" />
+              <div className="heroPanelContent">
+                <span className="heroPanelTag">{coverPhoto.category}</span>
+                <strong>{coverPhoto.title}</strong>
+                <p>{coverPhoto.desc}</p>
+              </div>
+            </>
+          ) : (
+            <div className="heroPanelEmpty">
+              {manifestLoaded ? "No hay imagenes disponibles todavia." : "Cargando galeria..."}
+            </div>
+          )}
         </div>
-      </div>
+      </header>
 
-      <div className="galleryToolbar">
-        <div className="filters">
-          {categories.map((category) => (
+      <section className="galeriaControls">
+        <GalleryFilters
+          filters={FILTERS}
+          selectedCategory={selectedCategory}
+          onChange={setSelectedCategory}
+        />
+        <p className="galleryToolbarNote">
+          {filteredPhotos.length} foto{filteredPhotos.length === 1 ? "" : "s"} en esta vista
+        </p>
+      </section>
+
+      {featuredStrip.length > 0 && (
+        <section className="featuredStrip" aria-label="Resumen visual">
+          {featuredStrip.map((photo, index) => (
             <button
-              key={category}
-              className={`filterBtn ${selectedCategory === category ? "active" : ""}`}
-              onClick={() => {
-                setAutoplay(true);
-                setSelectedCategory(category);
-              }}
+              key={photo.id}
+              type="button"
+              className="featuredCard"
+              onClick={() => openLightbox(index)}
             >
-              {category}
+              <img src={withPublicUrl(photo.src)} alt={photo.title} />
+              <span>{photo.category}</span>
+              <strong>{photo.title}</strong>
             </button>
           ))}
-        </div>
-        <div className="toolbarNote">
-          {filteredPhotos.length} foto{filteredPhotos.length !== 1 ? "s" : ""} · Navega con las miniaturas o activa el carrusel
-        </div>
-      </div>
+        </section>
+      )}
 
-      <div className="galleryGrid">
+      <section className="galleryGrid" aria-live="polite">
         {filteredPhotos.map((photo, index) => (
           <article
-            className={`galleryCard ${index === activeIndex ? "isActive" : ""}`}
             key={photo.id}
-            onClick={() => {
-              setAutoplay(false);
-              setActiveIndex(index);
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
+            className={`galleryCard ${index === 0 ? "galleryCardLarge" : ""}`}
           >
-            <div className="galleryImageWrap">
-              <img src={withPublicUrl(photo.src)} alt={photo.title} loading="lazy" />
-              <span className="galleryCategory">{photo.category}</span>
-              {index === activeIndex && <span className="galleryActiveBadge">Vista actual</span>}
-            </div>
-            <div className="galleryInfo">
-              <strong>{photo.title}</strong>
-              <p>{photo.desc}</p>
-              <span className="galleryYear">{photo.year}</span>
-            </div>
+            <button
+              type="button"
+              className="galleryCardButton"
+              onClick={() => openLightbox(index)}
+            >
+              <div className="galleryImageWrap">
+                <img src={withPublicUrl(photo.src)} alt={photo.title} loading="lazy" />
+                <div className="galleryImageShade" />
+                <span className="galleryCategory">{photo.category}</span>
+              </div>
+              <div className="galleryInfo">
+                <span className="galleryMeta">{photo.highlight}</span>
+                <strong>{photo.title}</strong>
+                <p>{photo.desc}</p>
+              </div>
+            </button>
           </article>
         ))}
-      </div>
+      </section>
+
+      {manifestLoaded && filteredPhotos.length === 0 && (
+        <section className="galleryEmpty">
+          <strong>No hay imagenes en esta categoria.</strong>
+          <p>
+            Anade archivos en `frontend/public/fotosAlumnos`, `frontend/public/fotosClase` o
+            `frontend/public/fotosLiga` y la galeria los recogera automaticamente en la siguiente build.
+          </p>
+        </section>
+      )}
+
+      <GalleryLightbox
+        photos={filteredPhotos}
+        activeIndex={lightboxIndex}
+        onClose={closeLightbox}
+        onPrev={showPrev}
+        onNext={showNext}
+        resolveSrc={withPublicUrl}
+      />
     </section>
   );
 }

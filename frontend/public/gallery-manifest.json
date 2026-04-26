@@ -1,0 +1,164 @@
+{
+  "generatedAt": "2026-04-26T15:31:50.329Z",
+  "categories": [
+    "Todas",
+    "Alumnos",
+    "Clases",
+    "Liga"
+  ],
+  "photos": [
+    {
+      "id": 1,
+      "title": "Nanitorneo",
+      "category": "Alumnos",
+      "src": "/fotosAlumnos/nanitorneo.jpeg",
+      "highlight": "Vida del club",
+      "desc": "Momento destacado de alumnos, premios, partidos y ambiente de la escuela.",
+      "year": "2026"
+    },
+    {
+      "id": 2,
+      "title": "Pretorneo",
+      "category": "Alumnos",
+      "src": "/fotosAlumnos/pretorneo.jpeg",
+      "highlight": "Vida del club",
+      "desc": "Momento destacado de alumnos, premios, partidos y ambiente de la escuela.",
+      "year": "2026"
+    },
+    {
+      "id": 3,
+      "title": "Premionaniricis",
+      "category": "Alumnos",
+      "src": "/fotosAlumnos/premionaniricis.jpeg",
+      "highlight": "Vida del club",
+      "desc": "Momento destacado de alumnos, premios, partidos y ambiente de la escuela.",
+      "year": "2026"
+    },
+    {
+      "id": 4,
+      "title": "Ricisypautorneo",
+      "category": "Alumnos",
+      "src": "/fotosAlumnos/ricisypautorneo.jpeg",
+      "highlight": "Vida del club",
+      "desc": "Momento destacado de alumnos, premios, partidos y ambiente de la escuela.",
+      "year": "2026"
+    },
+    {
+      "id": 5,
+      "title": "Ricisynanipremio",
+      "category": "Alumnos",
+      "src": "/fotosAlumnos/ricisynanipremio.jpeg",
+      "highlight": "Vida del club",
+      "desc": "Momento destacado de alumnos, premios, partidos y ambiente de la escuela.",
+      "year": "2026"
+    },
+    {
+      "id": 6,
+      "title": "Pauyricispremio",
+      "category": "Alumnos",
+      "src": "/fotosAlumnos/pauyricispremio.jpeg",
+      "highlight": "Vida del club",
+      "desc": "Momento destacado de alumnos, premios, partidos y ambiente de la escuela.",
+      "year": "2026"
+    },
+    {
+      "id": 7,
+      "title": "Equipofem",
+      "category": "Liga",
+      "src": "/fotosLiga/equipofem.jpeg",
+      "highlight": "Competicion por equipos",
+      "desc": "Imagen de una jornada de liga con ritmo competitivo y ambiente de club.",
+      "year": "2026"
+    },
+    {
+      "id": 8,
+      "title": "Ligafem3",
+      "category": "Liga",
+      "src": "/fotosLiga/ligafem3.jpeg",
+      "highlight": "Competicion por equipos",
+      "desc": "Imagen de una jornada de liga con ritmo competitivo y ambiente de club.",
+      "year": "2026"
+    },
+    {
+      "id": 9,
+      "title": "Ligafem2",
+      "category": "Liga",
+      "src": "/fotosLiga/ligafem2.jpeg",
+      "highlight": "Competicion por equipos",
+      "desc": "Imagen de una jornada de liga con ritmo competitivo y ambiente de club.",
+      "year": "2026"
+    },
+    {
+      "id": 10,
+      "title": "Ligafem",
+      "category": "Liga",
+      "src": "/fotosLiga/ligafem.jpeg",
+      "highlight": "Competicion por equipos",
+      "desc": "Imagen de una jornada de liga con ritmo competitivo y ambiente de club.",
+      "year": "2026"
+    },
+    {
+      "id": 11,
+      "title": "Porequipos",
+      "category": "Liga",
+      "src": "/fotosLiga/porequipos.jpeg",
+      "highlight": "Competicion por equipos",
+      "desc": "Imagen de una jornada de liga con ritmo competitivo y ambiente de club.",
+      "year": "2026"
+    },
+    {
+      "id": 12,
+      "title": "Clases",
+      "category": "Clases",
+      "src": "/fotosClase/clases.jpeg",
+      "highlight": "Entrenamientos y tecnica",
+      "desc": "Sesion de entrenamiento y aprendizaje en pista dentro de la escuela.",
+      "year": "2026"
+    },
+    {
+      "id": 13,
+      "title": "Premiodanipau",
+      "category": "Alumnos",
+      "src": "/fotosAlumnos/premiodanipau.jpeg",
+      "highlight": "Vida del club",
+      "desc": "Momento destacado de alumnos, premios, partidos y ambiente de la escuela.",
+      "year": "2026"
+    },
+    {
+      "id": 14,
+      "title": "Nanivsperu",
+      "category": "Alumnos",
+      "src": "/fotosAlumnos/nanivsperu.jpeg",
+      "highlight": "Vida del club",
+      "desc": "Momento destacado de alumnos, premios, partidos y ambiente de la escuela.",
+      "year": "2026"
+    },
+    {
+      "id": 15,
+      "title": "Premiopauricis",
+      "category": "Alumnos",
+      "src": "/fotosAlumnos/premiopauricis.jpeg",
+      "highlight": "Vida del club",
+      "desc": "Momento destacado de alumnos, premios, partidos y ambiente de la escuela.",
+      "year": "2026"
+    },
+    {
+      "id": 16,
+      "title": "Torneopablodani",
+      "category": "Alumnos",
+      "src": "/fotosAlumnos/torneopablodani.jpeg",
+      "highlight": "Vida del club",
+      "desc": "Momento destacado de alumnos, premios, partidos y ambiente de la escuela.",
+      "year": "2026"
+    },
+    {
+      "id": 17,
+      "title": "Nani",
+      "category": "Alumnos",
+      "src": "/fotosAlumnos/nani.jpeg",
+      "highlight": "Vida del club",
+      "desc": "Momento destacado de alumnos, premios, partidos y ambiente de la escuela.",
+      "year": "2026"
+    }
+  ]
+}
