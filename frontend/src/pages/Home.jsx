@@ -1,10 +1,122 @@
 import { Link } from "react-router-dom";
-import "./home.css";
 import { useEffect, useState } from "react";
 import { getWeatherForClub } from "../services/weatherService";
+import HomeNewsCard from "../components/HomeNewsCard";
+import "./home.css";
 
 const CLUB_LAT = 39.483017;
 const CLUB_LON = -6.364445;
+
+const FEATURES = [
+  {
+    icon: "🎾",
+    title: "Reservas rapidas y claras",
+    description:
+      "Consulta disponibilidad real de pistas, encuentra tu hueco y confirma en segundos sin llamadas ni cruces de mensajes.",
+  },
+  {
+    icon: "📚",
+    title: "Clases por nivel y objetivo",
+    description:
+      "Desde iniciacion hasta competicion, con grupos, horarios y seguimiento pensados para una escuela de padel viva.",
+  },
+  {
+    icon: "🏆",
+    title: "Torneos, liga y vida de club",
+    description:
+      "Toda la actividad del club en un mismo sitio: competiciones, jornadas, avisos y momentos que mantienen la comunidad en movimiento.",
+  },
+  {
+    icon: "🌦️",
+    title: "Estado de pista con sensor XIAO",
+    description:
+      "El tiempo y las condiciones de juego forman parte del proyecto: una capa util para decidir cuando reservar y como preparar la sesion.",
+  },
+];
+
+const QUICK_LINKS = [
+  {
+    icon: "🎾",
+    title: "Reservar pista",
+    description: "Elige hora, pista y juega sin esperas.",
+    to: "/reservas",
+    accent: "green",
+  },
+  {
+    icon: "📘",
+    title: "Clases por niveles",
+    description: "Busca el grupo que mejor encaja contigo.",
+    to: "/clases",
+    accent: "blue",
+  },
+  {
+    icon: "🏆",
+    title: "Torneos y liga",
+    description: "Sigue la actividad competitiva del club.",
+    to: "/torneos",
+    accent: "gold",
+  },
+  {
+    icon: "📸",
+    title: "Galeria del club",
+    description: "Revisa fotos de alumnos, jornadas y eventos.",
+    to: "/galeria",
+    accent: "slate",
+  },
+];
+
+const NEWS_ITEMS = [
+  {
+    id: 1,
+    category: "Liga",
+    date: "26 abr 2026",
+    title: "La liga femenina firma otra jornada solida en casa",
+    summary:
+      "El equipo mantiene buenas sensaciones tras una nueva ronda con ritmo alto, buen ambiente y apoyo del club en pista.",
+    image: `${process.env.PUBLIC_URL}/fotosLiga/ligafem.jpeg`,
+    featured: true,
+  },
+  {
+    id: 2,
+    category: "Clases",
+    date: "24 abr 2026",
+    title: "Nueva sesion tecnica con foco en bandeja y juego de red",
+    summary:
+      "Los grupos de clases siguen trabajando automatismos y lectura de punto con sesiones mas dinamicas y seguimiento por nivel.",
+    image: `${process.env.PUBLIC_URL}/fotosClase/clases.jpeg`,
+  },
+  {
+    id: 3,
+    category: "Club",
+    date: "22 abr 2026",
+    title: "Premios y momentos destacados tras el torneo del club",
+    summary:
+      "La entrega de premios refuerza el ambiente de escuela real, con alumnos, competicion y comunidad compartiendo pista y club.",
+    image: `${process.env.PUBLIC_URL}/fotosAlumnos/premiodanipau.jpeg`,
+  },
+  {
+    id: 4,
+    category: "Alumnos",
+    date: "19 abr 2026",
+    title: "Mas actividad social y partidos entre alumnos durante la semana",
+    summary:
+      "La plataforma sigue ayudando a mover reservas, clases y partidos entre alumnos para que el club no se pare.",
+    image: `${process.env.PUBLIC_URL}/fotosAlumnos/nani.jpeg`,
+  },
+];
+
+function formatDay(dateStr) {
+  const date = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  if (date.toDateString() === today.toDateString()) return "Hoy";
+  if (date.toDateString() === tomorrow.toDateString()) return "Manana";
+
+  return date.toLocaleDateString("es-ES", { weekday: "short", day: "2-digit" });
+}
 
 function Home() {
   const [weather, setWeather] = useState(null);
@@ -26,43 +138,55 @@ function Home() {
         setWeatherLoading(false);
       }
     };
+
     loadWeather();
   }, []);
 
-  const formatDay = (dateStr) => {
-    const d = new Date(dateStr);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (d.toDateString() === today.toDateString()) return "Hoy";
-    if (d.toDateString() === tomorrow.toDateString()) return "Mañana";
-    return d.toLocaleDateString("es-ES", { weekday: "short", day: "2-digit" });
-  };
+  const featuredNews = NEWS_ITEMS.find((item) => item.featured) || NEWS_ITEMS[0];
+  const secondaryNews = NEWS_ITEMS.filter((item) => item.id !== featuredNews.id);
 
   return (
     <section className="home">
-      {/* HERO */}
       <section className="hero">
         <div className="heroCard heroGrid">
           <div className="heroLeft">
             <div className="pill">
               <span className="dot" aria-hidden="true" />
-              Escuela Norba Pádel | Gestión y reservas
+              Escuela Norba Padel | Club, clases y reservas
             </div>
 
-            <h2>Tu escuela de pádel,<br />más fácil que nunca.</h2>
+            <h2>
+              Tu escuela de padel,
+              <br />
+              mejor organizada y mas viva.
+            </h2>
 
             <p>
-              La mejor escuela de pádel en <strong>Cáceres</strong>, con gestión online de
-              reservas, clases y torneos. ¡Únete y mejora tu juego hoy!
+              Una plataforma pensada para un club real: reservas rapidas, clases por nivel,
+              competicion activa y estado de pista conectado al proyecto con sensor <strong>XIAO</strong>.
             </p>
 
             <div className="ctaRow">
-              <Link className="btn btn-primary" to="/reservas">Reservar pista</Link>
-              <Link className="btn btn-ghost" to="/clases">Ver clases</Link>
-              <Link className="btn btn-ghost" to="/torneos">Ver torneos</Link>
+              <Link className="btn btn-primary" to="/reservas">
+                Reservar pista
+              </Link>
+              <Link className="btn btn-ghost" to="/clases">
+                Ver clases
+              </Link>
+              <Link className="btn btn-ghost" to="/torneos">
+                Torneos y liga
+              </Link>
+            </div>
+
+            <div className="heroNotes">
+              <div className="heroNoteCard">
+                <strong>Club activo cada semana</strong>
+                <span>Clases, reservas, torneos y alumnos moviendo la escuela a diario.</span>
+              </div>
+              <div className="heroNoteCard">
+                <strong>Informacion util antes de jugar</strong>
+                <span>El bloque del tiempo ayuda a decidir cuando reservar y como preparar la pista.</span>
+              </div>
             </div>
           </div>
 
@@ -70,19 +194,19 @@ function Home() {
             <div className="kpi">
               <div className="kpiItem">
                 <strong>Reservas en 30s</strong>
-                <span>Flujo rápido y sin líos</span>
+                <span>Proceso rapido y claro para jugar sin rodeos</span>
               </div>
               <div className="kpiItem">
-                <strong>Clases</strong>
-                <span>Todos los niveles y horarios</span>
+                <strong>Escuela por niveles</strong>
+                <span>Clases, grupos y horarios para cada perfil</span>
               </div>
               <div className="kpiItem">
-                <strong>Todo en uno</strong>
-                <span>Clases, torneos y mucho pádel</span>
+                <strong>Club conectado</strong>
+                <span>Competicion, actividad y seguimiento en un mismo sitio</span>
               </div>
             </div>
 
-            {/* Panel del tiempo */}
+            {/* El tiempo sigue siendo una pieza principal del valor del proyecto */}
             <div
               className="weatherBox weatherBoxClickable"
               onClick={() => weather && setShowWeatherModal(true)}
@@ -90,23 +214,39 @@ function Home() {
               tabIndex={0}
             >
               <div className="weatherTop">
-                <h4>Tiempo en la pista</h4>
-                <span className="weatherBadge">Ver más</span>
+                <div>
+                  <span className="weatherEyebrow">Sensor XIAO en pista</span>
+                  <h4>Tiempo y estado de juego</h4>
+                </div>
+                <span className="weatherBadge">Ver mas</span>
               </div>
 
               {weatherLoading && <p className="weatherHint">Cargando tiempo...</p>}
 
               {!weatherLoading && weatherError && (
-                <p className="weatherHint">❌ {weatherError}</p>
+                <p className="weatherHint">Error: {weatherError}</p>
               )}
 
               {!weatherLoading && !weatherError && weather && (
                 <>
                   <div className="weatherMain">
-                    <div className="weatherIcon" aria-hidden="true">{weather.emoji}</div>
+                    <div className="weatherIcon" aria-hidden="true">
+                      {weather.emoji}
+                    </div>
                     <div>
                       <p className="weatherTemp">{weather.temperature}ºC</p>
                       <p className="weatherDesc">{weather.description}</p>
+                    </div>
+                  </div>
+
+                  <div className="weatherStatusRow">
+                    <div className="weatherStatusCard">
+                      <span>Estado pista</span>
+                      <strong>{weather.pista}</strong>
+                    </div>
+                    <div className="weatherStatusCard">
+                      <span>Sensacion</span>
+                      <strong>{Math.round(weather.apparentTemperature)}ºC</strong>
                     </div>
                   </div>
 
@@ -114,12 +254,12 @@ function Home() {
                     <span className="chip">Viento: {weather.windSpeed} km/h</span>
                     <span className="chip">Lluvia: {weather.precipitationProbability}%</span>
                     <span className={`chip ${weather.pista === "RIESGO" ? "chipRisk" : "chipOk"}`}>
-                      Pista: {weather.pista}
+                      Jugar: {weather.pista === "RIESGO" ? "Con cautela" : "Buen momento"}
                     </span>
                   </div>
 
                   <p className="weatherHint">
-                    Pulsa para ver previsión semanal y recomendaciones
+                    Pulsa para ver prevision semanal, humedad, UV y recomendaciones de juego.
                   </p>
                 </>
               )}
@@ -128,13 +268,14 @@ function Home() {
         </div>
       </section>
 
-      {/* Modal del tiempo */}
       {showWeatherModal && weather && (
         <div className="weatherModalBackdrop" onClick={() => setShowWeatherModal(false)}>
-          <div className="weatherModal" onClick={(e) => e.stopPropagation()}>
+          <div className="weatherModal" onClick={(event) => event.stopPropagation()}>
             <div className="weatherModalHead">
-              <h3>Tiempo en Norba Pádel</h3>
-              <button className="weatherCloseBtn" onClick={() => setShowWeatherModal(false)}>✕</button>
+              <h3>Tiempo en Norba Padel</h3>
+              <button className="weatherCloseBtn" onClick={() => setShowWeatherModal(false)}>
+                ×
+              </button>
             </div>
 
             <div className="weatherCurrentBig">
@@ -143,27 +284,27 @@ function Home() {
                 <p className="weatherCurrentTemp">{Math.round(weather.temperature)}°C</p>
                 <p className="weatherCurrentDesc">{weather.description}</p>
                 <p className="weatherCurrentFeel">
-                  Sensación térmica: {Math.round(weather.apparentTemperature)}°C
+                  Sensacion termica: {Math.round(weather.apparentTemperature)}°C
                 </p>
               </div>
             </div>
 
             <div className="weatherDetailGrid">
               <div className="weatherDetailItem">
-                <span className="wdLabel">💧 Humedad</span>
+                <span className="wdLabel">Humedad</span>
                 <span className="wdValue">{weather.humidity}%</span>
               </div>
               <div className="weatherDetailItem">
-                <span className="wdLabel">💨 Viento</span>
+                <span className="wdLabel">Viento</span>
                 <span className="wdValue">{weather.windSpeed} km/h</span>
               </div>
               <div className="weatherDetailItem">
-                <span className="wdLabel">🌧️ Lluvia</span>
+                <span className="wdLabel">Lluvia</span>
                 <span className="wdValue">{weather.precipitationProbability}%</span>
               </div>
               <div className="weatherDetailItem">
-                <span className="wdLabel">☀️ Índice UV</span>
-                <span className="wdValue">{weather.uvIndex ?? "—"}</span>
+                <span className="wdLabel">Indice UV</span>
+                <span className="wdValue">{weather.uvIndex ?? "-"}</span>
               </div>
             </div>
 
@@ -179,7 +320,7 @@ function Home() {
 
             {weather.forecast && weather.forecast.length > 0 && (
               <div className="forecastSection">
-                <h4>Previsión de los próximos 7 días</h4>
+                <h4>Prevision de los proximos 7 dias</h4>
                 <div className="forecastList">
                   {weather.forecast.map((day) => (
                     <div className="forecastDay" key={day.date}>
@@ -190,7 +331,7 @@ function Home() {
                         <strong>{Math.round(day.tempMax)}°</strong>
                         <span className="fDayMin"> / {Math.round(day.tempMin)}°</span>
                       </span>
-                      <span className="fDayRain">💧 {day.precipitationProbability}%</span>
+                      <span className="fDayRain">{day.precipitationProbability}%</span>
                     </div>
                   ))}
                 </div>
@@ -204,68 +345,85 @@ function Home() {
         </div>
       )}
 
-      {/* Ventajas */}
       <section className="features">
-        <div className="featuresHead">
-          <h3>¿Por qué usar nuestra plataforma?</h3>
+        <div className="sectionHeader">
+          <span className="sectionEyebrow">Por que funciona</span>
+          <h3>Una home pensada para mover una escuela de padel real</h3>
           <p>
-            La manera más rápida de jugar al pádel en Norba Pádel, sin complicaciones.
-            <br />
-            Busca tu hora, avisa a tus amigos, reserva y disfruta.
+            La plataforma no solo muestra informacion: organiza reservas, clases, competicion y
+            condiciones de juego para que el club tenga ritmo todos los dias.
           </p>
         </div>
 
         <div className="featuresGrid">
-          <div className="featureCard">
-            <span className="featureIcon">📅</span>
-            <strong>Gestión fácil</strong>
-            <p>Te buscamos hueco a tu nivel y horarios.</p>
+          {FEATURES.map((feature) => (
+            <article className="featureCard" key={feature.title}>
+              <span className="featureIcon">{feature.icon}</span>
+              <strong>{feature.title}</strong>
+              <p>{feature.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="quick">
+        <div className="quickCard">
+          <div className="sectionHeader sectionHeaderInline">
+            <div>
+              <span className="sectionEyebrow">Empieza aqui</span>
+              <h3>Accesos rapidos del club</h3>
+            </div>
+            <p>
+              Las acciones que mas usa una escuela real: reservar, revisar clases, seguir torneos y
+              ver la actividad del club.
+            </p>
           </div>
-          <div className="featureCard">
-            <span className="featureIcon">👥</span>
-            <strong>Para todos</strong>
-            <p>Clases para niños, adultos y profesionales. Todos los niveles.</p>
-          </div>
-          <div className="featureCard">
-            <span className="featureIcon">⚡</span>
-            <strong>Automatización</strong>
-            <p>Recordatorios, avisos y control rápido de tus clases y torneos.</p>
-          </div>
-          <div className="featureCard">
-            <span className="featureIcon">🎯</span>
-            <strong>100% personalizado</strong>
-            <p>Clases individuales para mejorar todos los aspectos.</p>
+
+          <div className="quickGrid">
+            {QUICK_LINKS.map((item) => (
+              <Link className={`quickItem quickItem-${item.accent}`} to={item.to} key={item.title}>
+                <span className="qiIcon">{item.icon}</span>
+                <span className="qiTitle">{item.title}</span>
+                <span className="qiDesc">{item.description}</span>
+                <span className="qiAction">Entrar</span>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Accesos rápidos */}
-      <section className="quick">
-        <div className="quickCard">
-          <h3>Accesos rápidos</h3>
-          <p>Empieza por lo importante con un clic, no esperes más.</p>
+      <section className="newsSection">
+        <div className="sectionHeader sectionHeaderInline">
+          <div>
+            <span className="sectionEyebrow">Club en marcha</span>
+            <h3>Noticias del club</h3>
+          </div>
+          <Link className="newsMoreBtn" to="/galeria">
+            Ver todas
+          </Link>
+        </div>
 
-          <div className="quickGrid">
-            <Link className="quickItem" to="/reservas">
-              <span className="qiIcon">🎾</span>
-              <span className="qiTitle">Reservar pista</span>
-              <span className="qiDesc">Elige pista y horario</span>
-            </Link>
-            <Link className="quickItem" to="/clases">
-              <span className="qiIcon">📚</span>
-              <span className="qiTitle">Clases por niveles</span>
-              <span className="qiDesc">Iniciación, medio, avanzado</span>
-            </Link>
-            <Link className="quickItem" to="/torneos">
-              <span className="qiIcon">🏆</span>
-              <span className="qiTitle">Torneos</span>
-              <span className="qiDesc">Menores y adultos</span>
-            </Link>
-            <Link className="quickItem" to="/galeria">
-              <span className="qiIcon">📸</span>
-              <span className="qiTitle">Galería</span>
-              <span className="qiDesc">Fotos de alumnos y competiciones</span>
-            </Link>
+        <div className="newsLayout">
+          <article className="newsFeatured">
+            <img src={featuredNews.image} alt={featuredNews.title} className="newsFeaturedImage" />
+            <div className="newsFeaturedOverlay" />
+            <div className="newsFeaturedContent">
+              <div className="newsMeta">
+                <span className="newsCategory">{featuredNews.category}</span>
+                <span className="newsDate">{featuredNews.date}</span>
+              </div>
+              <h4>{featuredNews.title}</h4>
+              <p>{featuredNews.summary}</p>
+              <Link className="newsReadBtn" to="/galeria">
+                Seguir actividad del club
+              </Link>
+            </div>
+          </article>
+
+          <div className="newsList">
+            {secondaryNews.map((item) => (
+              <HomeNewsCard key={item.id} item={item} />
+            ))}
           </div>
         </div>
       </section>
