@@ -46,6 +46,20 @@ function nextHour(hhmm, durationMinutes = 90) {
   return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
 }
 
+// Periodo del día según la hora
+function getDayPeriod(hhmm) {
+  const h = parseInt(hhmm.split(":")[0], 10);
+  if (h < 13) return { label: "Mañana", icon: "🌅", className: "periodMorning" };
+  if (h < 19) return { label: "Tarde", icon: "☀️", className: "periodAfternoon" };
+  return { label: "Noche", icon: "🌙", className: "periodNight" };
+}
+
+// Si necesita iluminación según la hora
+function needsLighting(hhmm) {
+  const h = parseInt(hhmm.split(":")[0], 10);
+  return h >= 19;
+}
+
 function toISODate(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");

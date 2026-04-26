@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* ================================================
    HOME PAGE — Estilos completos
    Paleta verde oscuro (hero) + verde marca (CTAs)
@@ -82,10 +83,24 @@
       rgba(74, 222, 128, 0.03) 66.5%,
       transparent 66.5%);
   pointer-events: none;
+=======
+/* ===== HOME LAYOUT ===== */
+.home {
+  display: grid;
+  gap: 2rem;
+  padding: 1.25rem 0 2.5rem;
+}
+
+.hero,
+.features,
+.quick {
+  width: 100%;
+>>>>>>> 3b70c54 (añade .env prodcution para vercel)
 }
 
 .heroGrid {
   display: grid;
+<<<<<<< HEAD
   grid-template-columns: 1fr 1fr;
   gap: 2.2rem;
   align-items: start;
@@ -96,11 +111,49 @@
 /* === HERO LEFT === */
 .heroLeft {
   animation: fadeSlideUp 0.5s ease 0.08s both;
+=======
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: 1.5rem;
+  padding: 1.75rem;
+  overflow: hidden;
+  position: relative;
+  background:
+    radial-gradient(circle at top left, rgba(22, 163, 74, 0.14), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.96));
+}
+
+.heroLeft,
+.heroRight {
+  display: grid;
+  align-content: start;
+}
+
+.heroLeft {
+  gap: 1.15rem;
+}
+
+.heroLeft h2 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  max-width: 12ch;
+  color: #0f172a;
+}
+
+.heroLeft p {
+  margin: 0;
+  max-width: 62ch;
+  color: #475569;
+  font-size: 1.02rem;
+  line-height: 1.7;
+>>>>>>> 3b70c54 (añade .env prodcution para vercel)
 }
 
 .pill {
   display: inline-flex;
   align-items: center;
+<<<<<<< HEAD
   gap: 0.5rem;
   padding: 0.35rem 1rem;
   border-radius: 999px;
@@ -142,11 +195,32 @@
 .heroLeft strong {
   color: var(--brand-400);
   font-weight: 700;
+=======
+  gap: 0.55rem;
+  width: fit-content;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(22, 163, 74, 0.18);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  color: #166534;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #22c55e, #15803d);
+  box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.15);
+>>>>>>> 3b70c54 (añade .env prodcution para vercel)
 }
 
 .ctaRow {
   display: flex;
   flex-wrap: wrap;
+<<<<<<< HEAD
   gap: 0.65rem;
 }
 
@@ -219,17 +293,67 @@
   background: var(--hero-glass);
   border: 1px solid var(--hero-glass-b);
   backdrop-filter: blur(14px);
+=======
+  gap: 0.8rem;
+  margin-top: 0.35rem;
+}
+
+.heroRight {
+  gap: 1rem;
+}
+
+.kpi {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.kpiItem {
+  display: grid;
+  gap: 0.2rem;
+  padding: 1rem 1.1rem;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.95);
+  color: #ffffff;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+}
+
+.kpiItem strong {
+  font-size: 1rem;
+}
+
+.kpiItem span {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.92rem;
+}
+
+.weatherBox {
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem;
+  border-radius: 22px;
+  background: linear-gradient(160deg, #0a1628, #0d2137 55%, #0f2b1e);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.25);
+>>>>>>> 3b70c54 (añade .env prodcution para vercel)
 }
 
 .weatherTop {
   display: flex;
+<<<<<<< HEAD
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.9rem;
+=======
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+>>>>>>> 3b70c54 (añade .env prodcution para vercel)
 }
 
 .weatherTop h4 {
   margin: 0;
+<<<<<<< HEAD
   font-size: 0.9rem;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.88);
@@ -242,12 +366,26 @@
   border: 1px solid rgba(74, 222, 128, 0.22);
   color: var(--brand-400);
   font-size: 0.7rem;
+=======
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.weatherBadge {
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  color: #bbf7d0;
+  font-size: 0.78rem;
+>>>>>>> 3b70c54 (añade .env prodcution para vercel)
   font-weight: 700;
 }
 
 .weatherMain {
   display: flex;
   align-items: center;
+<<<<<<< HEAD
   gap: 1rem;
   margin-bottom: 0.9rem;
 }
@@ -275,11 +413,36 @@
   color: var(--hero-muted);
   font-weight: 600;
   text-transform: capitalize;
+=======
+  gap: 0.9rem;
+}
+
+.weatherIcon {
+  font-size: 2.8rem;
+  line-height: 1;
+}
+
+.weatherTemp,
+.weatherDesc,
+.weatherHint {
+  margin: 0;
+}
+
+.weatherTemp {
+  font-size: 1.7rem;
+  font-weight: 900;
+}
+
+.weatherDesc {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.92rem;
+>>>>>>> 3b70c54 (añade .env prodcution para vercel)
 }
 
 .weatherChips {
   display: flex;
   flex-wrap: wrap;
+<<<<<<< HEAD
   gap: 0.4rem;
   margin-bottom: 0.65rem;
 }
@@ -314,6 +477,148 @@
 }
 
 /* === WEATHER BOX CLICKABLE === */
+=======
+  gap: 0.55rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.72rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.chipRisk {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fecaca;
+}
+
+.chipOk {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.38);
+  color: #dcfce7;
+}
+
+.weatherHint {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+/* ===== FEATURES ===== */
+.features {
+  display: grid;
+  gap: 1.15rem;
+}
+
+.featuresHead {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.featuresHead h3,
+.quickCard h3 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  line-height: 1.1;
+  color: #0f172a;
+}
+
+.featuresHead p,
+.quickCard p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.featureCard {
+  min-height: 180px;
+  padding: 1.25rem;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95));
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+}
+
+.featureCard strong {
+  display: block;
+  margin-bottom: 0.55rem;
+  font-size: 1.04rem;
+  color: #0f172a;
+}
+
+.featureCard p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.65;
+}
+
+/* ===== QUICK LINKS ===== */
+.quickCard {
+  padding: 1.5rem;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #0f172a, #111827 55%, #14532d);
+  color: #ffffff;
+  box-shadow: 0 25px 70px rgba(15, 23, 42, 0.22);
+}
+
+.quickCard h3,
+.quickCard p {
+  color: inherit;
+}
+
+.quickCard p {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.quickGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-top: 1.2rem;
+}
+
+.quickItem {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 124px;
+  padding: 1rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+}
+
+.quickItem:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.qiTitle {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.qiDesc {
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  font-size: 0.92rem;
+}
+
+/* ===== WEATHER BOX CLICKABLE ===== */
+>>>>>>> 3b70c54 (añade .env prodcution para vercel)
 .weatherBoxClickable {
   cursor: pointer;
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
@@ -321,6 +626,7 @@
 
 .weatherBoxClickable:hover {
   transform: translateY(-2px);
+<<<<<<< HEAD
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(74, 222, 128, 0.35);
 }
@@ -492,6 +798,8 @@
   .quickGrid {
     grid-template-columns: repeat(2, 1fr);
   }
+=======
+>>>>>>> 3b70c54 (añade .env prodcution para vercel)
 }
 
 /* ===== WEATHER MODAL ===== */
@@ -741,8 +1049,22 @@
 
 /* Modal responsive */
 @media (max-width: 480px) {
+  .home {
+    gap: 1.4rem;
+    padding-top: 0.8rem;
+  }
+
+  .heroGrid,
   .weatherModal {
     padding: 1.2rem;
+  }
+
+  .pill {
+    font-size: 0.82rem;
+  }
+
+  .heroLeft h2 {
+    max-width: none;
   }
 
   .weatherCurrentBig {
@@ -773,3 +1095,44 @@
     display: none;
   }
 }
+<<<<<<< HEAD
+=======
+
+@media (max-width: 920px) {
+  .heroGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .featuresGrid,
+  .quickGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .ctaRow,
+  .weatherChips {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .featuresGrid,
+  .quickGrid,
+  .weatherDetailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .featureCard,
+  .quickItem {
+    min-height: auto;
+  }
+
+  .forecastDay {
+    grid-template-columns: 56px 32px 1fr auto;
+  }
+
+  .fDayRain {
+    display: none;
+  }
+}
+>>>>>>> 3b70c54 (añade .env prodcution para vercel)

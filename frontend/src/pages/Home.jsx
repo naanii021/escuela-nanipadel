@@ -3,14 +3,14 @@ import "./home.css";
 import { useEffect, useState } from "react";
 import { getWeatherForClub } from "../services/weatherService";
 
+const CLUB_LAT = 39.483017;
+const CLUB_LON = -6.364445;
+
 function Home() {
   const [weather, setWeather] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState("");
   const [showWeatherModal, setShowWeatherModal] = useState(false);
-
-  const CLUB_LAT = 39.483017;
-  const CLUB_LON = -6.364445;
 
   useEffect(() => {
     const loadWeather = async () => {
