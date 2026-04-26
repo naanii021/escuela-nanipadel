@@ -7,30 +7,30 @@ import "./home.css";
 const CLUB_LAT = 39.483017;
 const CLUB_LON = -6.364445;
 
-const FEATURES = [
+const PLATFORM_ITEMS = [
   {
     icon: "🎾",
-    title: "Reservas rapidas y claras",
+    title: "Reservar pista con disponibilidad real",
     description:
-      "Consulta disponibilidad real de pistas, encuentra tu hueco y confirma en segundos sin llamadas ni cruces de mensajes.",
+      "Consulta horarios, encuentra el hueco que mejor encaja y confirma sin llamadas ni esperas innecesarias.",
   },
   {
     icon: "📚",
-    title: "Clases por nivel y objetivo",
+    title: "Seguir clases por nivel y objetivo",
     description:
-      "Desde iniciacion hasta competicion, con grupos, horarios y seguimiento pensados para una escuela de padel viva.",
+      "La escuela organiza grupos, horarios y progresion para que cada alumno encuentre su sitio dentro del club.",
   },
   {
     icon: "🏆",
-    title: "Torneos, liga y vida de club",
+    title: "Vivir torneos, liga y actividad de club",
     description:
-      "Toda la actividad del club en un mismo sitio: competiciones, jornadas, avisos y momentos que mantienen la comunidad en movimiento.",
+      "La competicion y la comunidad forman parte del dia a dia: torneos, jornadas y momentos que mantienen activo el club.",
   },
   {
     icon: "🌦️",
-    title: "Estado de pista con sensor XIAO",
+    title: "Consultar condiciones de juego antes de salir",
     description:
-      "El tiempo y las condiciones de juego forman parte del proyecto: una capa util para decidir cuando reservar y como preparar la sesion.",
+      "El estado de pista y el tiempo conectado al sensor XIAO aportan una capa util que diferencia el proyecto.",
   },
 ];
 
@@ -173,36 +173,22 @@ function Home() {
               <Link className="btn btn-ghost" to="/clases">
                 Ver clases
               </Link>
-              <Link className="btn btn-ghost" to="/torneos">
-                Torneos y liga
-              </Link>
-            </div>
-
-            <div className="heroNotes">
-              <div className="heroNoteCard">
-                <strong>Club activo cada semana</strong>
-                <span>Clases, reservas, torneos y alumnos moviendo la escuela a diario.</span>
-              </div>
-              <div className="heroNoteCard">
-                <strong>Informacion util antes de jugar</strong>
-                <span>El bloque del tiempo ayuda a decidir cuando reservar y como preparar la pista.</span>
-              </div>
             </div>
           </div>
 
           <div className="heroRight">
-            <div className="kpi">
-              <div className="kpiItem">
-                <strong>Reservas en 30s</strong>
-                <span>Proceso rapido y claro para jugar sin rodeos</span>
+            <div className="heroStatusStrip" aria-label="Resumen rapido del club">
+              <div className="heroStatusItem">
+                <span>Reservas</span>
+                <strong>Rapidas</strong>
               </div>
-              <div className="kpiItem">
-                <strong>Escuela por niveles</strong>
-                <span>Clases, grupos y horarios para cada perfil</span>
+              <div className="heroStatusItem">
+                <span>Clases</span>
+                <strong>Por nivel</strong>
               </div>
-              <div className="kpiItem">
-                <strong>Club conectado</strong>
-                <span>Competicion, actividad y seguimiento en un mismo sitio</span>
+              <div className="heroStatusItem">
+                <span>Club</span>
+                <strong>Activo</strong>
               </div>
             </div>
 
@@ -346,23 +332,34 @@ function Home() {
       )}
 
       <section className="features">
-        <div className="sectionHeader">
-          <span className="sectionEyebrow">Por que funciona</span>
-          <h3>Una home pensada para mover una escuela de padel real</h3>
-          <p>
-            La plataforma no solo muestra informacion: organiza reservas, clases, competicion y
-            condiciones de juego para que el club tenga ritmo todos los dias.
-          </p>
-        </div>
+        <div className="platformBlock">
+          <div className="platformIntro">
+            <span className="sectionEyebrow">Que puedes hacer</span>
+            <h3>Una plataforma pensada para una escuela de padel real</h3>
+            <p>
+              Aqui no solo reservas: organizas tu juego, sigues la actividad del club y consultas
+              informacion util antes de entrar en pista.
+            </p>
+            <div className="platformLeadCard">
+              <strong>Todo gira alrededor de una experiencia mas util para alumnos y club.</strong>
+              <span>
+                Reservas, clases, competicion y condiciones de juego conectadas en una misma
+                plataforma para que la escuela tenga mas ritmo y mejor organizacion.
+              </span>
+            </div>
+          </div>
 
-        <div className="featuresGrid">
-          {FEATURES.map((feature) => (
-            <article className="featureCard" key={feature.title}>
-              <span className="featureIcon">{feature.icon}</span>
-              <strong>{feature.title}</strong>
-              <p>{feature.description}</p>
-            </article>
-          ))}
+          <div className="platformGrid">
+            {PLATFORM_ITEMS.map((item) => (
+              <article className="platformItem" key={item.title}>
+                <span className="platformIcon">{item.icon}</span>
+                <div>
+                  <strong>{item.title}</strong>
+                  <p>{item.description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
