@@ -168,9 +168,18 @@
   gap: 1rem;
 }
 
+/* Acento de nivel en "Mis clases" (versiones claras sobre verde) */
+.miClaseCard { --nivel-color: rgba(255,255,255,0.5); }
+.miClaseCard[data-nivel="ninos"]         { --nivel-color: #93c5fd; }
+.miClaseCard[data-nivel="iniciacion"]    { --nivel-color: #86efac; }
+.miClaseCard[data-nivel="avanzado"]      { --nivel-color: #fcd34d; }
+.miClaseCard[data-nivel="avanzado_plus"] { --nivel-color: #d8b4fe; }
+.miClaseCard[data-nivel="competicion"]   { --nivel-color: #fca5a5; }
+
 .miClaseCard {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 2px solid var(--nivel-color);
   border-radius: 16px;
   padding: 1.1rem 1.15rem;
   backdrop-filter: blur(8px);
@@ -496,41 +505,62 @@
 /* ─── Grid tarjetas ──────────────────────────────────────── */
 .listaClases {
   display: grid;
-  gap: 1rem;
+  gap: 1.1rem;
   grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
 }
 
+/* ─── Acento de color por nivel ──────────────────────────── */
+.claseCard { --nivel-color: #e2e8f0; --nivel-color-bg: rgba(226,232,240,0.25); }
+.claseCard[data-nivel="ninos"]         { --nivel-color: #3b82f6; --nivel-color-bg: rgba(59,130,246,0.06); }
+.claseCard[data-nivel="iniciacion"]    { --nivel-color: #16a34a; --nivel-color-bg: rgba(22,163,74,0.06); }
+.claseCard[data-nivel="avanzado"]      { --nivel-color: #d97706; --nivel-color-bg: rgba(217,119,6,0.06); }
+.claseCard[data-nivel="avanzado_plus"] { --nivel-color: #9333ea; --nivel-color-bg: rgba(147,51,234,0.06); }
+.claseCard[data-nivel="competicion"]   { --nivel-color: #ef4444; --nivel-color-bg: rgba(239,68,68,0.06); }
+
 /* ─── Tarjeta ────────────────────────────────────────────── */
 .claseCard {
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(0, 0, 0, 0.07);
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-top: 3px solid var(--nivel-color);
   border-radius: 20px;
-  padding: 1.2rem 1.25rem;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.06),
+    0 8px 24px rgba(15, 23, 42, 0.07);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
 .claseCard:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.10);
+  transform: translateY(-4px);
+  box-shadow:
+    0 2px 6px rgba(15, 23, 42, 0.07),
+    0 16px 40px rgba(15, 23, 42, 0.11);
 }
 
-/* ─── Card: top row ──────────────────────────────────────── */
+/* ─── Card: top row (cabecera tintada por nivel) ─────────── */
 .cardTop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.6rem;
+  padding: 0.85rem 1.25rem 0.75rem;
+  background: var(--nivel-color-bg);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.055);
+}
+
+/* ─── Card: body wrapper ─────────────────────────────────── */
+.cardBody {
+  padding: 1rem 1.25rem 1.25rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ─── Card: title ────────────────────────────────────────── */
 .cardTitle {
   margin: 0 0 0.9rem;
-  font-size: 1.1rem;
+  font-size: 1.13rem;
   font-weight: 800;
   line-height: 1.25;
   color: var(--text);
@@ -599,12 +629,11 @@
 /* ─── Card: footer (occupancy + bottom row) ──────────────── */
 .cardFooter {
   margin-top: auto;
-  padding-top: 0.85rem;
-  margin-top: 0.9rem;
+  padding-top: 0.8rem;
   border-top: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.6rem;
 }
 
 .occupancyWrap {
@@ -621,9 +650,9 @@
 
 .occBar {
   flex: 1;
-  height: 7px;
+  height: 8px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.07);
+  background: rgba(15, 23, 42, 0.07);
   overflow: hidden;
 }
 
@@ -631,12 +660,12 @@
   display: block;
   height: 100%;
   border-radius: 999px;
-  transition: width 0.5s ease;
+  transition: width 0.6s ease;
 }
 
-.occLow  span { background: #16a34a; }
-.occMid  span { background: #d97706; }
-.occHigh span { background: #dc2626; }
+.occLow  span { background: linear-gradient(90deg, #4ade80, #16a34a); }
+.occMid  span { background: linear-gradient(90deg, #fbbf24, #d97706); }
+.occHigh span { background: linear-gradient(90deg, #f87171, #dc2626); }
 
 .occStatus {
   font-size: 0.72rem;
@@ -688,23 +717,24 @@
 .cardLoginCta {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.79rem;
+  gap: 0.38rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  color: var(--brand);
+  color: #fff;
   text-decoration: none;
-  padding: 0.27rem 0.7rem;
+  padding: 0.42rem 0.9rem;
   border-radius: 999px;
-  border: 1px solid rgba(22, 163, 74, 0.22);
-  background: rgba(22, 163, 74, 0.05);
-  transition: background 0.14s, border-color 0.14s;
+  background: var(--brand);
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.28);
+  transition: background 0.14s ease, transform 0.12s ease, box-shadow 0.14s ease;
   margin-left: auto;
   white-space: nowrap;
 }
 
 .cardLoginCta:hover {
-  background: rgba(22, 163, 74, 0.11);
-  border-color: rgba(22, 163, 74, 0.38);
+  background: var(--brand-600);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
 }
 
 /* ─── Responsive: tablet ─────────────────────────────────── */

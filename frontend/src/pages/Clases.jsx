@@ -61,10 +61,15 @@ function proximaDia(dia1, dia2) {
   return dayNames[d] || null;
 }
 
-function occupancyInfo(alumnos, cupo) {
+function capacidadReal(cupo, nivel) {
+  if (Number(cupo) > 0) return Number(cupo);
+  return nivel === "ninos" ? 6 : 4;
+}
+
+function occupancyInfo(alumnos, cupo, nivel) {
   const a = Number(alumnos || 0);
-  const c = Number(cupo || 0);
-  const pct = c ? Math.round((a / c) * 100) : 0;
+  const c = capacidadReal(cupo, nivel);
+  const pct = Math.round((a / c) * 100);
   const barCls = pct >= 90 ? "occHigh" : pct >= 60 ? "occMid" : "occLow";
   const statusCls = pct >= 90 ? "occStatusFull" : pct >= 60 ? "occStatusMid" : "occStatusFree";
   const label = pct >= 90 ? "Completo" : pct >= 60 ? "Casi lleno" : "Disponible";
@@ -248,7 +253,7 @@ export default function Clases() {
               {misClases.map((c) => {
                 const proxima = proximaDia(c.dia1, c.dia2);
                 return (
-                  <div className="miClaseCard" key={c.id}>
+                  <div className="miClaseCard" key={c.id} data-nivel={c.nivel || "default"}>
                     <div className="miClaseTop">
                       <span className={`badge ${nivelBadgeClass(c.nivel)}`}>{nivelLabel(c.nivel)}</span>
                       <span className="codeTag">{c.codigo}</span>
@@ -370,16 +375,17 @@ export default function Clases() {
         {!loading && !err && filtered.length > 0 && (
           <div className="listaClases">
             {filtered.map((g) => {
-              const { a, c, pct, barCls, statusCls, label } = occupancyInfo(g.alumnos, g.cupo);
+              const { a, c, pct, barCls, statusCls, label } = occupancyInfo(g.alumnos, g.cupo, g.nivel);
               const proxima = proximaDia(g.dia1, g.dia2);
 
               return (
-                <article className="claseCard" key={g.id}>
+                <article className="claseCard" key={g.id} data-nivel={g.nivel || "default"}>
                   <div className="cardTop">
                     <span className={`badge ${nivelBadgeClass(g.nivel)}`}>{nivelLabel(g.nivel)}</span>
                     <span className="codeTag">{g.codigo}</span>
                   </div>
 
+                  <div className="cardBody">
                   <h3 className="cardTitle">{g.nombre}</h3>
 
                   <div className="metaGrid">
@@ -423,12 +429,13 @@ export default function Clases() {
                         {!logged && (
                           <Link to="/login" className="cardLoginCta">
                             <IcLock />
-                            Acceder
+                            Iniciar sesión
                           </Link>
                         )}
                       </div>
                     )}
                   </div>
+                  </div>{/* cardBody */}
                 </article>
               );
             })}

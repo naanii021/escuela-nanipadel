@@ -2,7 +2,7 @@
 export async function getWeatherForClub(lat, lon) {
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,wind_speed_10m,weather_code,is_day,uv_index` +
+    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,wind_speed_10m,surface_pressure,pressure_msl,weather_code,is_day,uv_index` +
     `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max` +
     `&forecast_days=7&wind_speed_unit=kmh&timezone=auto`;
 
@@ -21,6 +21,7 @@ export async function getWeatherForClub(lat, lon) {
   const humidity = current.relative_humidity_2m;
   const precipitationProbability = current.precipitation_probability;
   const windSpeed = current.wind_speed_10m;
+  const pressure = current.pressure_msl ?? current.surface_pressure ?? null;
   const weatherCode = current.weather_code;
   const isDay = current.is_day;
   const uvIndex = current.uv_index;
@@ -69,6 +70,7 @@ export async function getWeatherForClub(lat, lon) {
     humidity,
     precipitationProbability,
     windSpeed,
+    pressure,
     weatherCode,
     isDay,
     uvIndex,

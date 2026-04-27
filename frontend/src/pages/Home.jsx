@@ -204,7 +204,7 @@ function Home() {
                   <span className="weatherEyebrow">Sensor XIAO en pista</span>
                   <h4>Tiempo y estado de juego</h4>
                 </div>
-                <span className="weatherBadge">Ver mas</span>
+                <span className="weatherBadge">Vista rapida</span>
               </div>
 
               {weatherLoading && <p className="weatherHint">Cargando tiempo...</p>}
@@ -247,6 +247,13 @@ function Home() {
                   <p className="weatherHint">
                     Pulsa para ver prevision semanal, humedad, UV y recomendaciones de juego.
                   </p>
+                  <Link
+                    className="weatherPageLink"
+                    to="/estado-pista"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    Ver estado completo
+                  </Link>
                 </>
               )}
             </div>
@@ -327,6 +334,9 @@ function Home() {
             <p className="weatherUpdated">
               Actualizado: {new Date(weather.updatedAt).toLocaleString()}
             </p>
+            <Link className="weatherModalPageLink" to="/estado-pista">
+              Abrir pagina completa
+            </Link>
           </div>
         </div>
       )}

@@ -4,6 +4,7 @@ const path = require("path");
 const rootDir = path.resolve(__dirname, "..");
 const publicDir = path.join(rootDir, "public");
 const manifestPath = path.join(publicDir, "gallery-manifest.json");
+const courtManifestPath = path.join(publicDir, "court-photos-manifest.json");
 const validExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif"]);
 
 const sourceFolders = [
@@ -100,4 +101,21 @@ const manifest = {
 };
 
 fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+const courtPhotos = collectPhotosFromFolder({
+  folder: "fotosPista",
+  category: "Pista",
+  legacy: false,
+}).map((photo, index) => ({
+  id: index + 1,
+  title: photo.title,
+  src: photo.src,
+  desc: "Vista de las pistas y del entorno del club para acompanar el estado de juego.",
+}));
+
+const courtManifest = {
+  generatedAt: new Date().toISOString(),
+  photos: courtPhotos,
+};
+
+fs.writeFileSync(courtManifestPath, `${JSON.stringify(courtManifest, null, 2)}\n`, "utf8");
 console.log(`Generated gallery manifest with ${photos.length} photos.`);

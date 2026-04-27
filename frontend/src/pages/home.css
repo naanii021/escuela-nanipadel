@@ -376,6 +376,31 @@
   line-height: 1.55;
 }
 
+.weatherPageLink,
+.weatherModalPageLink {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.weatherPageLink {
+  margin-top: 0.72rem;
+  color: #bbf7d0;
+  font-size: 0.82rem;
+}
+
+.weatherModalPageLink {
+  margin-top: 1rem;
+  padding: 0.78rem 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
 .sectionHeader {
   margin-bottom: 1.35rem;
 }

@@ -27,7 +27,6 @@ function Header() {
   return (
     <div className={`headerWrap${scrolled ? " scrolled" : ""}`}>
       <div className="container header">
-
         <NavLink to="/" className="brand" aria-label="Ir al inicio">
           <div className="badge">
             <span>NP</span>
@@ -39,14 +38,29 @@ function Header() {
         </NavLink>
 
         <div className="headerRight">
-          <nav className="nav" aria-label="Navegación principal">
-            <NavLink to="/" end className={navClass}>Inicio</NavLink>
-            <NavLink to="/reservas" className={navClass}>Reservas</NavLink>
-            <NavLink to="/clases" className={navClass}>Clases</NavLink>
-            <NavLink to="/torneos" className={navClass}>Torneos</NavLink>
-            <NavLink to="/galeria" className={navClass}>Galería</NavLink>
+          <nav className="nav" aria-label="Navegacion principal">
+            <NavLink to="/" end className={navClass}>
+              Inicio
+            </NavLink>
+            <NavLink to="/reservas" className={navClass}>
+              Reservas
+            </NavLink>
+            <NavLink to="/clases" className={navClass}>
+              Clases
+            </NavLink>
+            <NavLink to="/torneos" className={navClass}>
+              Torneos
+            </NavLink>
+            <NavLink to="/estado-pista" className={navClass}>
+              Estado pista
+            </NavLink>
+            <NavLink to="/galeria" className={navClass}>
+              Galeria
+            </NavLink>
             {logged && (user?.rol === "profesor" || user?.rol === "admin") && (
-              <NavLink to="/panel" className={navClass}>Panel</NavLink>
+              <NavLink to="/panel" className={navClass}>
+                Panel
+              </NavLink>
             )}
           </nav>
 

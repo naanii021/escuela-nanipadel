@@ -1,94 +1,144 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
 import { db } from "./db/connection.js";
 import reservasRouter from "./routes/reservas.js";
 import authRouter from "./routes/auth.js";
 import clasesRouter from "./routes/Clases.js";
 import torneosRouter from "./routes/torneos.js";
-import path from "path";
-import { fileURLToPath } from "url";
 
+// Cargamos variables de entorno desde .env
 dotenv.config();
 
+// Creamos la app de Express
 const app = express();
+
+// Puerto del backend
 const PORT = process.env.PORT || 4000;
 
-// CORS para React
-app.use(
-  cors({
-    //origin: "http://localhost:3000",
-  })
-);
+// ======================================================
+// MIDDLEWARES
+// ======================================================
 
-// JSON body
+// Permitimos peticiones desde otros orígenes.
+// Como ahora usas frontend en Vercel y backend en el miniPC,
+// lo más práctico es dejar CORS abierto de momento.
+app.use(cors());
+
+// Permite leer JSON que llegue en el body de las peticiones
 app.use(express.json());
 
-// Usar el router de reservas
+// ======================================================
+// ROUTERS
+// ======================================================
+
+// Rutas de reservas
 app.use("/api/reservas", reservasRouter);
 
-// Usar el router de auth
+// Rutas de autenticación
 app.use("/api/auth", authRouter);
 
+// Rutas de clases
 app.use("/api/clases", clasesRouter);
 
+// Rutas de torneos
 app.use("/api/torneos", torneosRouter);
 
+// ======================================================
+// RUTAS BÁSICAS
+// ======================================================
 
-// Root
-app.get("/", (_req, res) => res.send("Servidor NaniPadel funcionando 🚀"));
+// Ruta raíz sencilla para comprobar que el backend está vivo
+app.get("/", (_req, res) => {
+  res.send("Servidor NaniPadel funcionando 🚀");
+});
 
-// Ping
+// Ruta de prueba rápida para saber si el backend responde
 app.get("/api/ping", (_req, res) => {
   res.json({ ok: true, message: "pong" });
 });
 
-// Test DB
+// Ruta para comprobar si la conexión a MySQL está funcionando
 app.get("/api/db-test", async (_req, res) => {
   try {
     const [rows] = await db.promise().query("SELECT 1 AS ok");
-    res.json({ ok: true, result: rows[0] });
+
+    res.json({
+      ok: true,
+      result: rows[0],
+    });
   } catch (e) {
     console.error("❌ DB TEST ERROR:", e);
-    res.status(500).json({ ok: false, message: e.message });
+
+    res.status(500).json({
+      ok: false,
+      message: e.message,
+    });
   }
 });
 
-// Listar alumnos (en formato consistente)
+// ======================================================
+// ALUMNOS
+// ======================================================
+
+// Devuelve todos los alumnos ordenados por id
 app.get("/api/alumnos", async (_req, res) => {
   try {
-    const [rows] = await db.promise().query("SELECT * FROM alumnos ORDER BY id");
-    res.json({ ok: true, alumnos: rows });
+    const [rows] = await db.promise().query(
+      "SELECT * FROM alumnos ORDER BY id"
+    );
+
+    res.json({
+      ok: true,
+      alumnos: rows,
+    });
   } catch (e) {
     console.error("❌ Error /api/alumnos:", e);
-    res.status(500).json({ ok: false, message: e.message });
+
+    res.status(500).json({
+      ok: false,
+      message: e.message,
+    });
   }
 });
 
-// ✅ Listar grupos (clases) con profesor + nº alumnos
+// ======================================================
+// GRUPOS / CLASES
+// ======================================================
+
+// Devuelve grupos con filtros opcionales y número de alumnos
 app.get("/api/grupos", async (req, res) => {
   console.log("🔎 GET /api/grupos");
+
   try {
+    // Filtros opcionales recibidos por query string
     const { nivel, profesor_id, dia } = req.query;
 
     const filters = [];
     const values = [];
 
+    // Filtrar por nivel
     if (nivel) {
       filters.push("g.nivel = ?");
       values.push(nivel);
     }
 
+    // Filtrar por profesor
     if (profesor_id) {
       filters.push("g.profesor_id = ?");
       values.push(profesor_id);
     }
 
+    // Filtrar por día (coincide con dia1 o dia2)
     if (dia) {
       filters.push("(g.dia1 = ? OR g.dia2 = ?)");
       values.push(dia, dia);
     }
 
+    // Si hay filtros, construimos el WHERE
     const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
     const [rows] = await db.promise().query(
@@ -121,14 +171,26 @@ app.get("/api/grupos", async (req, res) => {
       values
     );
 
-    res.json({ ok: true, grupos: rows });
+    res.json({
+      ok: true,
+      grupos: rows,
+    });
   } catch (e) {
     console.error("❌ Error /api/grupos:", e);
-    res.status(500).json({ ok: false, message: e.message });
+
+    res.status(500).json({
+      ok: false,
+      message: e.message,
+    });
   }
 });
 
-// Guardar datos meteorológicos de la XIAO
+// ======================================================
+// METEO XIAO
+// ======================================================
+
+// Esta ruta recibe datos desde la XIAO.
+// La idea es que la placa haga un POST con temperatura, humedad, etc.
 app.post("/api/meteo-xiao", async (req, res) => {
   try {
     const {
@@ -141,7 +203,7 @@ app.post("/api/meteo-xiao", async (req, res) => {
       estado,
     } = req.body;
 
-    // Validación básica
+    // Validación básica para evitar guardar lecturas incompletas
     if (
       temperatura == null ||
       humedad == null ||
@@ -180,11 +242,16 @@ app.post("/api/meteo-xiao", async (req, res) => {
     });
   } catch (e) {
     console.error("❌ Error /api/meteo-xiao POST:", e);
-    res.status(500).json({ ok: false, message: e.message });
+
+    res.status(500).json({
+      ok: false,
+      message: e.message,
+    });
   }
 });
 
-// Obtener la última lectura meteorológica de la XIAO
+// Devuelve la última lectura meteorológica guardada.
+// Útil para mostrarla en la home o en una página específica.
 app.get("/api/meteo-xiao", async (_req, res) => {
   try {
     const [rows] = await db.promise().query(`
@@ -200,19 +267,62 @@ app.get("/api/meteo-xiao", async (_req, res) => {
     });
   } catch (e) {
     console.error("❌ Error /api/meteo-xiao GET:", e);
-    res.status(500).json({ ok: false, message: e.message });
+
+    res.status(500).json({
+      ok: false,
+      message: e.message,
+    });
   }
 });
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const buildPath = path.join(__dirname, "..", "frontend","build");
-app.use(express.static(buildPath));
-app.get("*", (_req, res) => {
-	res.sendFile(path.join(buildPath, "index.html"));
+// Alias más claro para frontend
+app.get("/api/meteo-xiao/latest", async (_req, res) => {
+  try {
+    const [rows] = await db.promise().query(`
+      SELECT *
+      FROM meteo_xiao
+      ORDER BY creado_en DESC
+      LIMIT 1
+    `);
+
+    res.json({
+      ok: true,
+      meteo: rows[0] || null,
+    });
+  } catch (e) {
+    console.error("❌ Error /api/meteo-xiao/latest GET:", e);
+
+    res.status(500).json({
+      ok: false,
+      message: e.message,
+    });
+  }
 });
 
-// Arranque del servidor
+// ======================================================
+// FRONTEND ESTÁTICO
+// ======================================================
+
+// Necesario para obtener la ruta real del proyecto al usar módulos ES
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ruta a la carpeta build del frontend
+const buildPath = path.join(__dirname, "..", "frontend", "build");
+
+// Servimos los archivos estáticos del frontend compilado
+app.use(express.static(buildPath));
+
+// Cualquier ruta no-API devuelve index.html para que React Router funcione
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(buildPath, "index.html"));
+});
+
+// ======================================================
+// ARRANQUE DEL SERVIDOR
+// ======================================================
+
+// Arrancamos el backend escuchando en todas las interfaces
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Backend activo en http://localhost:${PORT}`);
 });
