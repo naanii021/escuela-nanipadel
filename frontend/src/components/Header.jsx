@@ -51,6 +51,9 @@ function Header() {
             <NavLink to="/torneos" className={navClass}>
               Torneos
             </NavLink>
+            <NavLink to="/tienda" className={navClass}>
+              Tienda
+            </NavLink>
             <NavLink to="/estado-pista" className={navClass}>
               Estado pista
             </NavLink>
