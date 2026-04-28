@@ -9,6 +9,7 @@ import reservasRouter from "./routes/reservas.js";
 import authRouter from "./routes/auth.js";
 import clasesRouter from "./routes/Clases.js";
 import torneosRouter from "./routes/torneos.js";
+import asistenteRouter from "./routes/asistente.js";
 
 // Cargamos variables de entorno desde .env
 dotenv.config();
@@ -46,6 +47,9 @@ app.use("/api/clases", clasesRouter);
 
 // Rutas de torneos
 app.use("/api/torneos", torneosRouter);
+
+// Ruta resumen para el asistente del club
+app.use("/api/asistente", asistenteRouter);
 
 // ======================================================
 // RUTAS BÁSICAS

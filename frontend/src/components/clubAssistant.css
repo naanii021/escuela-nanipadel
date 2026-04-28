@@ -1,0 +1,177 @@
+.clubAssistant {
+  position: fixed;
+  right: 1.2rem;
+  bottom: 1.2rem;
+  z-index: 160;
+}
+
+.assistantFab {
+  width: 68px;
+  height: 68px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #0f172a, #1f2937 55%, #16a34a 100%);
+  color: #ffffff;
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.28);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.assistantFab:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 24px 40px rgba(15, 23, 42, 0.34);
+}
+
+.assistantFabInner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.88rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.assistantPanel {
+  position: absolute;
+  right: 0;
+  bottom: 84px;
+  width: min(380px, calc(100vw - 1.6rem));
+  padding: 1rem;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 248, 251, 0.98));
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 28px 56px rgba(15, 23, 42, 0.18);
+}
+
+.assistantPanelHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-bottom: 0.9rem;
+}
+
+.assistantEyebrow,
+.assistantReplyTag {
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.assistantEyebrow {
+  margin-bottom: 0.28rem;
+  color: #16a34a;
+}
+
+.assistantPanelHead h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.assistantCloseBtn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.04);
+  color: #334155;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.assistantWelcome,
+.assistantReplyCard {
+  border-radius: 18px;
+  padding: 0.95rem 1rem;
+}
+
+.assistantWelcome {
+  margin-bottom: 0.85rem;
+  background: linear-gradient(135deg, #0f172a, #1f2937);
+  color: #ffffff;
+}
+
+.assistantWelcome strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.94rem;
+}
+
+.assistantWelcome p,
+.assistantReplyCard p,
+.assistantState {
+  margin: 0;
+  line-height: 1.56;
+  font-size: 0.9rem;
+}
+
+.assistantActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.9rem;
+}
+
+.assistantActionChip {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 999px;
+  padding: 0.56rem 0.8rem;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.assistantActionChip.isActive {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.assistantReplyCard {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.06);
+}
+
+.assistantReplyTag {
+  margin-bottom: 0.4rem;
+  color: #16a34a;
+}
+
+.assistantReplyLink {
+  display: inline-flex;
+  margin-top: 0.75rem;
+  padding: 0.66rem 0.9rem;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.assistantError {
+  color: #dc2626;
+}
+
+@media (max-width: 720px) {
+  .clubAssistant {
+    right: 0.8rem;
+    bottom: 0.8rem;
+  }
+
+  .assistantPanel {
+    width: min(360px, calc(100vw - 1rem));
+    bottom: 78px;
+    padding: 0.9rem;
+  }
+}

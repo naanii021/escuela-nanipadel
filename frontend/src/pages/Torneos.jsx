@@ -10,27 +10,32 @@ const CATEGORY_META = {
   adultos: {
     label: "Adultos",
     accentClass: "catAdultos",
-    image: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=1200&q=80",
+    image:
+      "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=1200&q=80",
   },
   menores: {
     label: "Menores",
     accentClass: "catMenores",
-    image: "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1200&q=80",
+    image:
+      "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1200&q=80",
   },
   mixto: {
     label: "Mixto",
     accentClass: "catMixto",
-    image: "https://images.unsplash.com/photo-1547347298-4074fc3086f0?auto=format&fit=crop&w=1200&q=80",
+    image:
+      "https://images.unsplash.com/photo-1547347298-4074fc3086f0?auto=format&fit=crop&w=1200&q=80",
   },
   competicion: {
     label: "Competicion",
     accentClass: "catCompeticion",
-    image: "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?auto=format&fit=crop&w=1200&q=80",
+    image:
+      "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?auto=format&fit=crop&w=1200&q=80",
   },
   liga_interna: {
     label: "Liga interna",
     accentClass: "catLiga",
-    image: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=1200&q=80",
+    image:
+      "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=1200&q=80",
   },
 };
 
@@ -76,7 +81,8 @@ function getCategoryMeta(categoria) {
     CATEGORY_META[categoria] || {
       label: categoria || "General",
       accentClass: "catAdultos",
-      image: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=1200&q=80",
+      image:
+        "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=1200&q=80",
     }
   );
 }
@@ -171,6 +177,8 @@ function Torneos() {
     return torneos.filter((t) => t.categoria === activeFilter);
   }, [torneos, activeFilter]);
 
+  const featuredPhotos = tournamentPhotos.slice(0, 4);
+
   const handleInscripcion = async (torneo) => {
     if (!isLogged()) {
       navigate("/login");
@@ -206,123 +214,65 @@ function Torneos() {
   return (
     <section className="torneos" aria-label="Torneos del club">
       <div className="torneosShell">
-        <div className="torneosHero">
-          <div className="torneosHeroText">
+        <section className="torneosHero">
+          <div className="torneosHeroCopy">
             <span className="torneosEyebrow">
               <span className="eyebrowDot" aria-hidden="true" />
-              Calendario deportivo
+              Competicion del club
             </span>
-            <h2 className="torneosTitle">Torneos</h2>
+            <h2 className="torneosTitle">Torneos y jornadas con inscripcion directa</h2>
             <p className="intro">
-              Compite por categorias, revisa plazas disponibles en tiempo real y apunta tu pareja
-              en los eventos activos del club.
+              Consulta torneos activos, revisa plazas y apunta tu pareja desde una vista mas clara y
+              centrada en competir.
             </p>
           </div>
 
-          <div className="torneosHeroVisual">
-            <div className="heroPhotoCard">
-              <img
-                src="https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?auto=format&fit=crop&w=1400&q=80"
-                alt="Jugadores de padel en torneo"
-                loading="lazy"
-              />
-              <div className="heroPhotoOverlay" aria-hidden="true" />
-              <div className="heroFloatingBadge" aria-hidden="true">
-                <span>NaniPadel</span>
-              </div>
+          <div className="torneosMetrics" role="list" aria-label="Resumen de torneos">
+            <div className="torneosMetricCard" role="listitem">
+              <span>Total publicados</span>
+              <strong>{stats.total}</strong>
             </div>
-
-            <div className="torneosStats" role="list" aria-label="Estadisticas de torneos">
-              <div className="torneoStat statBlue" role="listitem">
-                <strong aria-label={`${stats.total} torneos totales`}>{stats.total}</strong>
-                <span>Torneos</span>
-              </div>
-              <div className="torneoStat statGreen" role="listitem">
-                <strong aria-label={`${stats.abiertos} torneos abiertos`}>{stats.abiertos}</strong>
-                <span>Abiertos</span>
-              </div>
-              <div className="torneoStat statOrange" role="listitem">
-                <strong aria-label={`${stats.proximos} torneos proximos`}>{stats.proximos}</strong>
-                <span>Proximos</span>
-              </div>
-              <div className="torneoStat statPurple" role="listitem">
-                <strong aria-label={`${stats.plazas} plazas libres`}>{stats.plazas}</strong>
-                <span>Plazas libres</span>
-              </div>
+            <div className="torneosMetricCard" role="listitem">
+              <span>Abiertos ahora</span>
+              <strong>{stats.abiertos}</strong>
             </div>
-          </div>
-        </div>
-
-        <section className="torneosStory" aria-label="Presentacion de torneos">
-          <div className="torneosStoryIntro">
-            <span className="torneosBlockEyebrow">Vida competitiva</span>
-            <h3>Torneos, jornadas y ambiente real de club</h3>
-            <p>
-              Aqui se muestra la parte mas activa de la competicion del club: torneos sociales,
-              jornadas, cuadros, parejas y ambiente de juego para que la seccion tenga mas vida.
-            </p>
-          </div>
-
-          <div className="torneosStoryHighlights">
-            <article className="storyHighlightCard">
-              <strong>Momentos del torneo</strong>
-              <p>Fotos de partidos, premios, actividad en pista y ritmo competitivo del club.</p>
-            </article>
-            <article className="storyHighlightCard">
-              <strong>Ambiente de competicion</strong>
-              <p>Una capa visual mas fuerte para acompanar la parte funcional de inscripciones.</p>
-            </article>
+            <div className="torneosMetricCard" role="listitem">
+              <span>Proximos</span>
+              <strong>{stats.proximos}</strong>
+            </div>
+            <div className="torneosMetricCard" role="listitem">
+              <span>Plazas libres</span>
+              <strong>{stats.plazas}</strong>
+            </div>
           </div>
         </section>
 
-        {tournamentPhotos.length > 0 && (
-          <section className="torneosGallerySection" aria-label="Galeria de torneos">
-            <div className="torneosGalleryHead">
-              <div>
-                <span className="torneosBlockEyebrow">Galeria visual</span>
-                <h3>Momentos del torneo</h3>
-              </div>
-              <p>
-                Las imagenes se leen solas desde <code>fotosTorneo</code> y cualquier foto nueva
-                aparecera aqui al volver a arrancar o compilar.
-              </p>
-            </div>
-
-            <div className="torneosGalleryGrid">
-              {tournamentPhotos.map((photo, index) => (
-                <article
-                  className={`torneosGalleryCard${index === 0 ? " torneosGalleryCardFeatured" : ""}`}
-                  key={photo.id}
-                >
-                  <img src={photo.src} alt={photo.title} loading="lazy" />
-                  <div className="torneosGalleryOverlay" aria-hidden="true" />
-                  <div className="torneosGalleryContent">
-                    <span>{photo.highlight}</span>
-                    <strong>{photo.title}</strong>
-                    <p>{photo.desc}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
-
         {!loading && !err && (
-          <nav className="torneosFilters" aria-label="Filtrar torneos por categoria">
-            {CATEGORY_FILTERS.map((f) => (
-              <button
-                key={f.key}
-                className={`filterTab${activeFilter === f.key ? " filterTabActive" : ""}`}
-                onClick={() => setActiveFilter(f.key)}
-                aria-pressed={activeFilter === f.key}
-              >
-                {f.label}
-                <span className="filterTabBadge" aria-label={`${filterCounts[f.key] ?? 0} torneos`}>
-                  {filterCounts[f.key] ?? 0}
-                </span>
-              </button>
-            ))}
-          </nav>
+          <section className="torneosControlBar">
+            <div className="torneosControlHead">
+              <div>
+                <span className="torneosSectionEyebrow">Inscripciones</span>
+                <h3>Torneos activos y proximos</h3>
+              </div>
+              <p>Filtra por categoria y entra directo a los torneos con plazas disponibles.</p>
+            </div>
+
+            <nav className="torneosFilters" aria-label="Filtrar torneos por categoria">
+              {CATEGORY_FILTERS.map((f) => (
+                <button
+                  key={f.key}
+                  className={`filterTab${activeFilter === f.key ? " filterTabActive" : ""}`}
+                  onClick={() => setActiveFilter(f.key)}
+                  aria-pressed={activeFilter === f.key}
+                >
+                  {f.label}
+                  <span className="filterTabBadge" aria-label={`${filterCounts[f.key] ?? 0} torneos`}>
+                    {filterCounts[f.key] ?? 0}
+                  </span>
+                </button>
+              ))}
+            </nav>
+          </section>
         )}
 
         {feedback && (
@@ -354,108 +304,137 @@ function Torneos() {
         )}
 
         {!loading && !err && filteredTorneos.length > 0 && (
-          <div className="torneosGrid">
-            {filteredTorneos.map((torneo, index) => {
-              const category = getCategoryMeta(torneo.categoria);
-              const status = getStatusMeta(torneo.estado);
-              const occupancy = occupancyMeta(torneo.inscritos, torneo.max_parejas);
-              const isClosed = ["cerrado", "cancelado", "finalizado", "completo"].includes(
-                torneo.estado
-              );
+          <section className="torneosPrimaryBlock">
+            <div className="torneosGrid">
+              {filteredTorneos.map((torneo, index) => {
+                const category = getCategoryMeta(torneo.categoria);
+                const status = getStatusMeta(torneo.estado);
+                const occupancy = occupancyMeta(torneo.inscritos, torneo.max_parejas);
+                const isClosed = ["cerrado", "cancelado", "finalizado", "completo"].includes(
+                  torneo.estado
+                );
 
-              return (
-                <article
-                  className={`torneoCard ${category.accentClass}`}
-                  key={torneo.id}
-                  style={{ "--i": index }}
-                  aria-label={`Torneo: ${torneo.nombre}`}
-                >
-                  <div className="torneoMedia">
-                    <img src={category.image} alt={`Categoria ${category.label}`} loading="lazy" />
-                    <div className="torneoMediaOverlay" aria-hidden="true" />
-                    <div className="torneoBadges">
-                      <span className={`torneoBadge torneoCategoria ${category.accentClass}`}>
-                        {category.label}
-                      </span>
-                      <span className={`torneoBadge torneoEstado ${status.className}`}>
-                        {status.label}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="torneoBody">
-                    <div className="torneoTitleRow">
-                      <h3>{torneo.nombre}</h3>
-                      <span className="torneoPrice" aria-label={`Precio: ${formatPrecio(torneo.precio)}`}>
-                        {formatPrecio(torneo.precio)}
-                      </span>
-                    </div>
-
-                    {torneo.descripcion && <p className="torneoDescripcion">{torneo.descripcion}</p>}
-
-                    <div className="torneoMeta">
-                      <div className="metaBlock">
-                        <span className="metaLabel">Fecha</span>
-                        <strong>{formatFecha(torneo.fecha_inicio)}</strong>
-                      </div>
-                      <div className="metaBlock">
-                        <span className="metaLabel">Hora</span>
-                        <strong>{formatHora(torneo.hora_inicio)}</strong>
-                      </div>
-                      <div className="metaBlock">
-                        <span className="metaLabel">Nivel</span>
-                        <strong>{torneo.nivel || "Todos"}</strong>
-                      </div>
-                      <div className="metaBlock">
-                        <span className="metaLabel">Modalidad</span>
-                        <strong>{torneo.modalidad || "A definir"}</strong>
-                      </div>
-                    </div>
-
-                    {(torneo.edad_min || torneo.edad_max) && (
-                      <div className="torneoDetails">
-                        <span className="detailChip">
-                          Edad {torneo.edad_min || "?"} - {torneo.edad_max || "?"} anos
+                return (
+                  <article
+                    className={`torneoCard ${category.accentClass}`}
+                    key={torneo.id}
+                    style={{ "--i": index }}
+                    aria-label={`Torneo: ${torneo.nombre}`}
+                  >
+                    <div className="torneoMedia">
+                      <img src={category.image} alt={`Categoria ${category.label}`} loading="lazy" />
+                      <div className="torneoMediaOverlay" aria-hidden="true" />
+                      <div className="torneoBadges">
+                        <span className={`torneoBadge torneoCategoria ${category.accentClass}`}>
+                          {category.label}
+                        </span>
+                        <span className={`torneoBadge torneoEstado ${status.className}`}>
+                          {status.label}
                         </span>
                       </div>
-                    )}
-
-                    <div className="torneoCapacity">
-                      <div className="capacityRow">
-                        <span>Plazas</span>
-                        <strong>{occupancy.text}</strong>
-                      </div>
-                      <div
-                        className={`capacityBar ${occupancy.className}`}
-                        role="progressbar"
-                        aria-valuenow={occupancy.percent}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-label={`Ocupacion: ${occupancy.percent}%`}
-                      >
-                        <span style={{ width: `${occupancy.percent}%` }} />
-                      </div>
                     </div>
 
-                    <button
-                      className={`btnTorneo${torneo.inscrito ? " isSubscribed" : ""}`}
-                      disabled={actionId === torneo.id || (!torneo.inscrito && isClosed)}
-                      onClick={() => handleInscripcion(torneo)}
-                      aria-busy={actionId === torneo.id}
-                    >
-                      {actionId === torneo.id
-                        ? "Procesando..."
-                        : torneo.inscrito
-                          ? "Cancelar inscripcion"
-                          : isClosed
-                            ? "Inscripciones cerradas"
-                            : "Apuntarse"}
-                    </button>
+                    <div className="torneoBody">
+                      <div className="torneoTitleRow">
+                        <h3>{torneo.nombre}</h3>
+                        <span className="torneoPrice" aria-label={`Precio: ${formatPrecio(torneo.precio)}`}>
+                          {formatPrecio(torneo.precio)}
+                        </span>
+                      </div>
+
+                      {torneo.descripcion && <p className="torneoDescripcion">{torneo.descripcion}</p>}
+
+                      <div className="torneoMeta">
+                        <div className="metaBlock">
+                          <span className="metaLabel">Fecha</span>
+                          <strong>{formatFecha(torneo.fecha_inicio)}</strong>
+                        </div>
+                        <div className="metaBlock">
+                          <span className="metaLabel">Hora</span>
+                          <strong>{formatHora(torneo.hora_inicio)}</strong>
+                        </div>
+                        <div className="metaBlock">
+                          <span className="metaLabel">Nivel</span>
+                          <strong>{torneo.nivel || "Todos"}</strong>
+                        </div>
+                        <div className="metaBlock">
+                          <span className="metaLabel">Modalidad</span>
+                          <strong>{torneo.modalidad || "A definir"}</strong>
+                        </div>
+                      </div>
+
+                      {(torneo.edad_min || torneo.edad_max) && (
+                        <div className="torneoDetails">
+                          <span className="detailChip">
+                            Edad {torneo.edad_min || "?"} - {torneo.edad_max || "?"} anos
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="torneoCapacity">
+                        <div className="capacityRow">
+                          <span>Plazas</span>
+                          <strong>{occupancy.text}</strong>
+                        </div>
+                        <div
+                          className={`capacityBar ${occupancy.className}`}
+                          role="progressbar"
+                          aria-valuenow={occupancy.percent}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-label={`Ocupacion: ${occupancy.percent}%`}
+                        >
+                          <span style={{ width: `${occupancy.percent}%` }} />
+                        </div>
+                      </div>
+
+                      <button
+                        className={`btnTorneo${torneo.inscrito ? " isSubscribed" : ""}`}
+                        disabled={actionId === torneo.id || (!torneo.inscrito && isClosed)}
+                        onClick={() => handleInscripcion(torneo)}
+                        aria-busy={actionId === torneo.id}
+                      >
+                        {actionId === torneo.id
+                          ? "Procesando..."
+                          : torneo.inscrito
+                            ? "Cancelar inscripcion"
+                            : isClosed
+                              ? "Inscripciones cerradas"
+                              : "Apuntarse"}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {featuredPhotos.length > 0 && (
+          <section className="torneosGallerySection" aria-label="Ambiente competitivo">
+            <div className="torneosGalleryHead">
+              <div>
+                <span className="torneosSectionEyebrow">Ambiente competitivo</span>
+                <h3>La parte visual acompana, no manda</h3>
+              </div>
+              <p>Imagenes del torneo y del ambiente del club cargadas automaticamente desde `fotosTorneo`.</p>
+            </div>
+
+            <div className="torneosGalleryGrid">
+              {featuredPhotos.map((photo) => (
+                <article className="torneosGalleryCard" key={photo.id}>
+                  <div className="torneosGalleryMedia">
+                    <img src={photo.src} alt={photo.title} loading="lazy" />
+                  </div>
+                  <div className="torneosGalleryBody">
+                    <span>{photo.highlight}</span>
+                    <strong>{photo.title}</strong>
+                    <p>{photo.desc}</p>
                   </div>
                 </article>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          </section>
         )}
       </div>
     </section>

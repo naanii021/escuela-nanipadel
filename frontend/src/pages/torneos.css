@@ -1,128 +1,80 @@
-/* ============================================================
-   TORNEOS PAGE — Modern · Animated · Accessible
-   ============================================================ */
-
-/* ── Page background ── */
 .torneos {
   position: relative;
   min-height: 100%;
   padding: 0 0 4rem;
   background:
-    radial-gradient(circle at 14% 18%, rgba(34, 197, 94, 0.11), transparent 28%),
-    radial-gradient(circle at 86% 14%, rgba(245, 158, 11, 0.10), transparent 26%),
-    radial-gradient(circle at 50% 82%, rgba(99, 102, 241, 0.06), transparent 34%),
-    linear-gradient(180deg, #f8fafc 0%, #f0f4fb 100%);
+    radial-gradient(circle at 14% 18%, rgba(34, 197, 94, 0.08), transparent 28%),
+    radial-gradient(circle at 84% 14%, rgba(245, 158, 11, 0.08), transparent 24%),
+    linear-gradient(180deg, #f8fafc 0%, #eef3f8 100%);
   overflow: hidden;
 }
 
-/* Diagonal texture */
 .torneos::before {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.3) 0%, transparent 44%),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.24) 0%, transparent 44%),
     repeating-linear-gradient(
       -45deg,
       transparent,
-      transparent 74px,
-      rgba(15, 23, 42, 0.025) 74px,
-      rgba(15, 23, 42, 0.025) 76px
+      transparent 82px,
+      rgba(15, 23, 42, 0.02) 82px,
+      rgba(15, 23, 42, 0.02) 84px
     );
   pointer-events: none;
-  z-index: 0;
 }
 
-/* Animated rainbow accent bar at top */
-.torneos::after {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: linear-gradient(
-    90deg,
-    #16a34a, #22c55e, #f59e0b, #ea580c,
-    #9333ea, #22c55e, #16a34a
-  );
-  background-size: 400% 100%;
-  animation: torneosAccentBar 7s linear infinite;
-  z-index: 2;
-}
-
-@keyframes torneosAccentBar {
-  0%   { background-position: 0% 50%; }
-  100% { background-position: 400% 50%; }
-}
-
-/* ── Shell ── */
 .torneosShell {
   position: relative;
   z-index: 1;
   max-width: 1180px;
   margin: 0 auto;
-  padding: 2.5rem 1.2rem 0;
+  padding: 2.1rem 1.2rem 0;
 }
 
-/* ============================================================
-   HERO
-   ============================================================ */
+.torneosHero,
+.torneosControlBar,
+.torneosGallerySection,
+.torneosFeedback,
+.torneosMessage {
+  border-radius: 24px;
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+}
+
 .torneosHero {
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 1.4rem;
-  align-items: stretch;
-  margin-bottom: 1.4rem;
-  padding: 1.6rem;
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(15, 23, 42, 0.07);
-  box-shadow:
-    0 20px 48px rgba(15, 23, 42, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  animation: heroFadeIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes heroFadeIn {
-  from { opacity: 0; transform: translateY(18px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.torneosHeroText {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 0.6rem 0.4rem 0.6rem 0.5rem;
-}
-
-.torneosHeroVisual {
-  display: grid;
-  grid-template-rows: minmax(220px, 1fr) auto;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
   gap: 1rem;
+  align-items: end;
+  margin-bottom: 1.1rem;
+  padding: 1.5rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.96));
 }
 
-/* ── Eyebrow badge with glow dot ── */
-.torneosEyebrow {
+.torneosHeroCopy {
+  max-width: 58ch;
+}
+
+.torneosEyebrow,
+.torneosSectionEyebrow {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.44rem 1rem 0.44rem 0.72rem;
-  margin-bottom: 1.05rem;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.torneosEyebrow {
+  padding: 0.42rem 0.9rem 0.42rem 0.68rem;
+  margin-bottom: 0.9rem;
   border-radius: 999px;
   border: 1px solid rgba(22, 163, 74, 0.24);
   background: rgba(22, 163, 74, 0.07);
   color: #15803d;
-  font-size: 0.81rem;
-  font-weight: 700;
-  letter-spacing: 0.35px;
-  width: fit-content;
-  animation: eyebrowSlideIn 0.5s 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes eyebrowSlideIn {
-  from { opacity: 0; transform: translateX(-14px); }
-  to   { opacity: 1; transform: translateX(0); }
 }
 
 .eyebrowDot {
@@ -131,224 +83,121 @@
   border-radius: 50%;
   background: #22c55e;
   flex-shrink: 0;
-  animation: dotRipple 2.4s ease-in-out infinite;
 }
 
-@keyframes dotRipple {
-  0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
-  65%  { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-}
-
-/* ── H1 gradient text ── */
 .torneosTitle {
   margin: 0 0 0.55rem;
-  font-size: 3.4rem;
-  line-height: 1;
+  max-width: 12ch;
+  font-size: clamp(2.2rem, 4.6vw, 3.8rem);
+  line-height: 0.98;
   font-weight: 900;
-  letter-spacing: -1.4px;
-  background: linear-gradient(
-    135deg,
-    #0f172a 8%,
-    #16a34a 42%,
-    #ea580c 72%,
-    #f59e0b 100%
-  );
-  background-size: 220% 220%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation:
-    titleIn 0.55s 0.24s cubic-bezier(0.22, 1, 0.36, 1) both,
-    titleGradientShift 9s ease infinite;
-}
-
-@keyframes titleIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes titleGradientShift {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  letter-spacing: -0.05em;
+  color: #0f172a;
 }
 
 .intro {
   margin: 0;
-  max-width: 520px;
   color: #475569;
-  font-size: 1.02rem;
-  line-height: 1.66;
-  animation: introFadeIn 0.5s 0.34s ease both;
+  font-size: 0.98rem;
+  line-height: 1.62;
 }
 
-@keyframes introFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-/* ── Hero photo card ── */
-.heroPhotoCard {
-  position: relative;
-  height: 100%;
-  min-height: 220px;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.18);
-}
-
-.heroPhotoCard img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.65s ease;
-}
-
-.heroPhotoCard:hover img {
-  transform: scale(1.05);
-}
-
-.heroPhotoOverlay {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.04) 0%, rgba(15, 23, 42, 0.34) 100%),
-    linear-gradient(135deg, rgba(22, 163, 74, 0.08), transparent 50%);
-}
-
-.heroFloatingBadge {
-  position: absolute;
-  bottom: 0.85rem;
-  left: 0.85rem;
-  padding: 0.38rem 0.88rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.16);
-}
-
-.heroFloatingBadge span {
-  font-size: 0.77rem;
-  font-weight: 800;
-  color: #0f172a;
-  letter-spacing: 0.25px;
-}
-
-/* ============================================================
-   STATS — 4 cards alternating colors, hover-lift, pulse numbers
-   ============================================================ */
-.torneosStats {
+.torneosMetrics {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.8rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
-.torneoStat {
-  padding: 1rem 0.75rem;
+.torneosMetricCard {
+  padding: 1rem 1.05rem;
   border-radius: 18px;
-  text-align: center;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
-  transition: transform 0.22s ease, box-shadow 0.22s ease;
-  animation: statSlideUp 0.5s ease both;
-  cursor: default;
+  background: linear-gradient(175deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.99));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.2);
 }
 
-.torneoStat:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.26);
+.torneosMetricCard span {
+  display: block;
+  margin-bottom: 0.28rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
-.torneoStat:nth-child(1) { animation-delay: 0.32s; }
-.torneoStat:nth-child(2) { animation-delay: 0.42s; }
-.torneoStat:nth-child(3) { animation-delay: 0.52s; }
-.torneoStat:nth-child(4) { animation-delay: 0.62s; }
-
-@keyframes statSlideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* Alternating accent colors */
-.statBlue   { background: linear-gradient(145deg, #1d4ed8, #0c1a5e); }
-.statGreen  { background: linear-gradient(145deg, #15803d, #052e16); }
-.statOrange { background: linear-gradient(145deg, #c2410c, #1e0800); }
-.statPurple { background: linear-gradient(145deg, #7e22ce, #1e053a); }
-
-.torneoStat strong {
+.torneosMetricCard strong {
   display: block;
   color: #ffffff;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 900;
-  line-height: 1.1;
-  animation: statPulse 3.2s ease-in-out infinite;
+  line-height: 1.08;
 }
 
-.torneoStat:nth-child(2) strong { animation-delay: 0.3s; }
-.torneoStat:nth-child(3) strong { animation-delay: 0.6s; }
-.torneoStat:nth-child(4) strong { animation-delay: 0.9s; }
-
-@keyframes statPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.8; transform: scale(0.96); }
+.torneosControlBar {
+  margin-bottom: 1.2rem;
+  padding: 1.15rem 1.2rem 1.05rem;
+  background: rgba(255, 255, 255, 0.9);
 }
 
-.torneoStat span {
-  display: block;
-  margin-top: 0.22rem;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.9px;
-  color: rgba(255, 255, 255, 0.55);
+.torneosControlHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+  margin-bottom: 0.95rem;
+  flex-wrap: wrap;
 }
 
-/* ============================================================
-   FILTER TABS — underline-animate
-   ============================================================ */
+.torneosControlHead h3,
+.torneosGalleryHead h3 {
+  margin: 0.1rem 0 0;
+  color: #0f172a;
+  font-size: clamp(1.35rem, 2.4vw, 1.8rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.torneosControlHead p,
+.torneosGalleryHead p {
+  margin: 0;
+  max-width: 48ch;
+  color: #64748b;
+  line-height: 1.58;
+  font-size: 0.92rem;
+}
+
+.torneosSectionEyebrow {
+  color: #16a34a;
+}
+
 .torneosFilters {
   display: flex;
-  gap: 0.3rem;
-  margin-bottom: 1.5rem;
-  padding: 0.42rem;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(15, 23, 42, 0.07);
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  gap: 0.34rem;
+  padding: 0.3rem;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.03);
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  animation: filtersIn 0.45s 0.45s ease both;
 }
 
-.torneosFilters::-webkit-scrollbar { display: none; }
-
-@keyframes filtersIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+.torneosFilters::-webkit-scrollbar {
+  display: none;
 }
 
 .filterTab {
-  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.58rem 1.05rem;
+  padding: 0.58rem 0.95rem;
   border: none;
   border-radius: 12px;
   background: transparent;
   color: #64748b;
   font-size: 0.86rem;
-  font-weight: 600;
-  cursor: pointer;
+  font-weight: 700;
   white-space: nowrap;
-  flex-shrink: 0;
+  cursor: pointer;
   transition: color 0.2s ease, background 0.2s ease;
 }
 
@@ -357,273 +206,63 @@
   background: rgba(15, 23, 42, 0.05);
 }
 
-.filterTab:focus-visible {
-  outline: 2px solid #16a34a;
-  outline-offset: 2px;
-  border-radius: 12px;
-}
-
-/* Underline indicator */
-.filterTab::after {
-  content: "";
-  position: absolute;
-  bottom: 5px;
-  left: 50%;
-  right: 50%;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #16a34a, #22c55e);
-  transition:
-    left  0.27s cubic-bezier(0.4, 0, 0.2, 1),
-    right 0.27s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.filterTabActive::after {
-  left: 10px;
-  right: 10px;
-}
-
 .filterTabActive {
-  color: #15803d;
-  background: rgba(22, 163, 74, 0.08);
-  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
 }
 
 .filterTabBadge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.25rem;
-  height: 1.25rem;
-  padding: 0 0.32rem;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.35rem;
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.08);
-  color: #64748b;
-  font-size: 0.71rem;
-  font-weight: 700;
-  transition: background 0.2s ease, color 0.2s ease;
+  color: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
 }
 
 .filterTabActive .filterTabBadge {
-  background: rgba(22, 163, 74, 0.16);
-  color: #15803d;
+  background: rgba(255, 255, 255, 0.12);
 }
 
-/* ============================================================
-   STORY + GALLERY
-   ============================================================ */
-.torneosStory,
-.torneosGallerySection {
-  margin-bottom: 1.5rem;
-  padding: 1.35rem;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(15, 23, 42, 0.07);
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.07);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.torneosStory {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
-  gap: 1rem;
-  align-items: stretch;
-}
-
-.torneosBlockEyebrow {
-  display: inline-flex;
-  margin-bottom: 0.45rem;
-  color: #16a34a;
-  font-size: 0.76rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.torneosStoryIntro h3,
-.torneosGalleryHead h3 {
-  margin: 0 0 0.5rem;
-  color: #0f172a;
-  font-size: clamp(1.35rem, 2.3vw, 1.9rem);
-  line-height: 1.08;
-  letter-spacing: -0.03em;
-}
-
-.torneosStoryIntro p,
-.torneosGalleryHead p {
-  margin: 0;
-  color: #475569;
-  line-height: 1.66;
-}
-
-.torneosStoryHighlights {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.storyHighlightCard {
-  padding: 1rem 1.05rem;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.95));
-  border: 1px solid rgba(15, 23, 42, 0.06);
-}
-
-.storyHighlightCard strong,
-.torneosGalleryContent strong {
-  display: block;
-  margin-bottom: 0.3rem;
-  font-weight: 850;
-}
-
-.storyHighlightCard p,
-.torneosGalleryContent p {
-  margin: 0;
-  color: #64748b;
-  line-height: 1.58;
-}
-
-.torneosGalleryHead {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
-}
-
-.torneosGalleryHead code {
-  padding: 0.12rem 0.38rem;
-  border-radius: 8px;
-  background: rgba(15, 23, 42, 0.05);
-  color: #0f172a;
-}
-
-.torneosGalleryGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.95rem;
-}
-
-.torneosGalleryCard {
-  position: relative;
-  overflow: hidden;
-  min-height: 240px;
-  border-radius: 22px;
-  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.14);
-  transition: transform 0.22s ease, box-shadow 0.22s ease;
-}
-
-.torneosGalleryCard:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 26px 46px rgba(15, 23, 42, 0.18);
-}
-
-.torneosGalleryCardFeatured {
-  grid-column: span 2;
-  min-height: 300px;
-}
-
-.torneosGalleryCard img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.55s ease;
-}
-
-.torneosGalleryCard:hover img {
-  transform: scale(1.05);
-}
-
-.torneosGalleryOverlay {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.06), rgba(15, 23, 42, 0.86)),
-    linear-gradient(135deg, rgba(34, 197, 94, 0.16), transparent 48%);
-}
-
-.torneosGalleryContent {
-  position: absolute;
-  left: 1rem;
-  right: 1rem;
-  bottom: 1rem;
-  color: #ffffff;
-}
-
-.torneosGalleryContent span {
-  display: inline-flex;
-  margin-bottom: 0.45rem;
-  padding: 0.34rem 0.68rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.torneosGalleryContent strong {
-  font-size: 1rem;
-  color: #ffffff;
-}
-
-.torneosGalleryContent p {
-  color: rgba(255, 255, 255, 0.72);
-}
-
-/* ============================================================
-   FEEDBACK / MESSAGES
-   ============================================================ */
 .torneosFeedback,
 .torneosMessage {
-  padding: 1rem 1.2rem;
-  margin-bottom: 1.2rem;
-  border-radius: 16px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  animation: msgIn 0.3s ease both;
-}
-
-@keyframes msgIn {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  padding: 1rem 1.15rem;
+  margin-bottom: 1.1rem;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .torneosFeedback {
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.26);
+  border-color: rgba(34, 197, 94, 0.24);
   color: #15803d;
-  font-weight: 600;
+  background: rgba(34, 197, 94, 0.08);
+  font-weight: 700;
 }
 
 .torneosMessage {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(15, 23, 42, 0.08);
   color: #475569;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
 .torneosError {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.26);
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.24);
   color: #dc2626;
-  font-weight: 600;
 }
 
-/* ============================================================
-   GRID
-   ============================================================ */
+.torneosPrimaryBlock {
+  margin-bottom: 1.5rem;
+}
+
 .torneosGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1.25rem;
 }
 
-/* ── Skeleton ── */
 .torneoSkeleton {
   height: 470px;
   border-radius: 24px;
@@ -639,32 +278,23 @@
 }
 
 @keyframes shimmerSweep {
-  0%   { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
 }
 
-/* ============================================================
-   TOURNAMENT CARD
-   ============================================================ */
 .torneoCard {
   position: relative;
   overflow: hidden;
   border-radius: 24px;
-  background: linear-gradient(
-    175deg,
-    rgba(15, 23, 42, 0.92) 0%,
-    rgba(2, 6, 23, 0.98) 100%
-  );
+  background: linear-gradient(175deg, rgba(15, 23, 42, 0.92) 0%, rgba(2, 6, 23, 0.98) 100%);
   border: 1px solid rgba(255, 255, 255, 0.07);
   box-shadow: 0 20px 44px rgba(15, 23, 42, 0.22);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
-  animation: cardSlideUp 0.55s ease both;
-  animation-delay: calc(var(--i, 0) * 0.07s + 0.12s);
-}
-
-@keyframes cardSlideUp {
-  from { opacity: 0; transform: translateY(28px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .torneoCard:hover {
@@ -674,7 +304,6 @@
     inset 0 0 0 1px rgba(255, 255, 255, 0.09);
 }
 
-/* Category glow overlay (::before) */
 .torneoCard::before {
   content: "";
   position: absolute;
@@ -682,11 +311,7 @@
   border-radius: 24px;
   opacity: 0;
   pointer-events: none;
-  background: radial-gradient(
-    circle at 50% 0%,
-    var(--category-glow, rgba(59, 130, 246, 0.12)),
-    transparent 62%
-  );
+  background: radial-gradient(circle at 50% 0%, var(--category-glow, rgba(59, 130, 246, 0.12)), transparent 62%);
   transition: opacity 0.3s ease;
   z-index: 0;
 }
@@ -695,17 +320,17 @@
   opacity: 1;
 }
 
-/* Category accent bar (::after) */
 .torneoCard::after {
   content: "";
   position: absolute;
-  left: 0; top: 0; bottom: 0;
+  left: 0;
+  top: 0;
+  bottom: 0;
   width: 4px;
   background: var(--category-gradient, linear-gradient(180deg, #3b82f6, #60a5fa));
   z-index: 2;
 }
 
-/* Category CSS variables */
 .catAdultos {
   --category-gradient: linear-gradient(180deg, #2563eb, #38bdf8);
   --category-glow: rgba(37, 99, 235, 0.14);
@@ -731,7 +356,6 @@
   --category-glow: rgba(234, 88, 12, 0.14);
 }
 
-/* ── Card media ── */
 .torneoMedia {
   position: relative;
   height: 204px;
@@ -779,7 +403,6 @@
   font-weight: 800;
   letter-spacing: 0.28px;
   backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 .torneoCategoria {
@@ -792,7 +415,6 @@
   border: 1px solid transparent;
 }
 
-/* ── Status badge colors ── */
 .statusAbierto {
   background: rgba(34, 197, 94, 0.18);
   border-color: rgba(34, 197, 94, 0.36);
@@ -831,7 +453,6 @@
   color: #e2e8f0;
 }
 
-/* ── Card body ── */
 .torneoBody {
   position: relative;
   z-index: 1;
@@ -919,7 +540,6 @@
   font-weight: 600;
 }
 
-/* ── Capacity bar ── */
 .torneoCapacity {
   margin-bottom: 1rem;
 }
@@ -955,11 +575,18 @@
 }
 
 .occLow span,
-.occOpen span { background: linear-gradient(90deg, #16a34a, #4ade80); }
-.occMid span  { background: linear-gradient(90deg, #ea580c, #fcd34d); }
-.occHigh span { background: linear-gradient(90deg, #dc2626, #fb7185); }
+.occOpen span {
+  background: linear-gradient(90deg, #16a34a, #4ade80);
+}
 
-/* ── Action button ── */
+.occMid span {
+  background: linear-gradient(90deg, #ea580c, #fcd34d);
+}
+
+.occHigh span {
+  background: linear-gradient(90deg, #dc2626, #fb7185);
+}
+
 .btnTorneo {
   width: 100%;
   border: none;
@@ -985,22 +612,11 @@
     inset 0 0 0 1px rgba(255, 255, 255, 0.16);
 }
 
-.btnTorneo:focus-visible {
-  outline: 2px solid #f59e0b;
-  outline-offset: 3px;
-}
-
 .btnTorneo.isSubscribed {
   background: linear-gradient(135deg, #2563eb, #0ea5e9);
   box-shadow:
     0 4px 14px rgba(37, 99, 235, 0.3),
     inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-}
-
-.btnTorneo.isSubscribed:hover:not(:disabled) {
-  box-shadow:
-    0 8px 24px rgba(37, 99, 235, 0.4),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.16);
 }
 
 .btnTorneo:disabled {
@@ -1010,64 +626,116 @@
   transform: none;
 }
 
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
+.torneosGallerySection {
+  padding: 1.2rem;
+  background: rgba(255, 255, 255, 0.88);
+}
 
-/* Tablet */
+.torneosGalleryHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.95rem;
+}
+
+.torneosGalleryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.torneosGalleryCard {
+  overflow: hidden;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.torneosGalleryMedia {
+  aspect-ratio: 1.1 / 0.9;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+
+.torneosGalleryMedia img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.torneosGalleryBody {
+  padding: 0.95rem;
+}
+
+.torneosGalleryBody span {
+  display: inline-flex;
+  margin-bottom: 0.35rem;
+  color: #16a34a;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.torneosGalleryBody strong {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: #0f172a;
+  font-size: 0.96rem;
+  line-height: 1.3;
+}
+
+.torneosGalleryBody p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.87rem;
+  line-height: 1.55;
+}
+
 @media (max-width: 980px) {
+  .torneosHero,
+  .torneosControlHead,
+  .torneosGalleryHead {
+    grid-template-columns: 1fr;
+  }
+
   .torneosHero {
     grid-template-columns: 1fr;
   }
 
-  .torneosStory,
+  .torneosMetrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   .torneosGalleryGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .torneosGalleryCardFeatured {
-    grid-column: span 1;
-  }
-
-  .torneosStats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .torneosGrid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-/* Mobile */
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   .torneosShell {
-    padding: 1.6rem 0.9rem 0;
+    padding: 1.5rem 0.9rem 0;
   }
 
-  .torneosHero {
-    padding: 1.2rem;
-    gap: 1rem;
-  }
-
-  .torneosStory,
+  .torneosHero,
+  .torneosControlBar,
   .torneosGallerySection {
-    padding: 1.1rem;
+    padding: 1.05rem;
   }
 
   .torneosTitle {
-    font-size: 2.6rem;
-    letter-spacing: -1px;
+    max-width: none;
+    font-size: 2.5rem;
   }
 
-  .torneosStats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
+  .torneosMetrics,
+  .torneosGalleryGrid,
+  .torneoMeta,
   .torneosGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .torneoMeta {
     grid-template-columns: 1fr;
   }
 
@@ -1075,42 +743,13 @@
     flex-direction: column;
     gap: 0.5rem;
   }
-
-  .heroPhotoCard {
-    min-height: 190px;
-  }
 }
 
-/* ============================================================
-   ACCESSIBILITY — prefers-reduced-motion
-   ============================================================ */
 @media (prefers-reduced-motion: reduce) {
-  .torneosHero,
-  .torneosTitle,
-  .torneosEyebrow,
-  .intro,
-  .torneosFilters,
-  .torneoStat,
   .torneoCard,
-  .torneosFeedback,
-  .torneosMessage {
-    animation: none !important;
-  }
-
-  .torneos::after {
-    animation: none;
-    background: linear-gradient(90deg, #16a34a, #22c55e, #f59e0b);
-  }
-
-  .eyebrowDot {
-    animation: none;
-  }
-
-  .torneoStat strong {
-    animation: none !important;
-  }
-
+  .torneoMedia img,
+  .btnTorneo,
   .capacityBar span {
-    transition: none;
+    transition: none !important;
   }
 }
