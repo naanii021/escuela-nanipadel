@@ -5,6 +5,7 @@ const rootDir = path.resolve(__dirname, "..");
 const publicDir = path.join(rootDir, "public");
 const manifestPath = path.join(publicDir, "gallery-manifest.json");
 const courtManifestPath = path.join(publicDir, "court-photos-manifest.json");
+const tournamentManifestPath = path.join(publicDir, "tournament-photos-manifest.json");
 const validExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif"]);
 
 const sourceFolders = [
@@ -118,4 +119,24 @@ const courtManifest = {
 };
 
 fs.writeFileSync(courtManifestPath, `${JSON.stringify(courtManifest, null, 2)}\n`, "utf8");
+const tournamentPhotos = collectPhotosFromFolder({
+  folder: "fotosTorneo",
+  category: "Torneos",
+  legacy: false,
+})
+  .sort((a, b) => b.sortTime - a.sortTime || a.title.localeCompare(b.title, "es"))
+  .map((photo, index) => ({
+    id: index + 1,
+    title: photo.title,
+    src: photo.src,
+    highlight: index === 0 ? "Momentos del torneo" : "Ambiente de competicion",
+    desc: "Imagen del ambiente competitivo, jornadas y actividad deportiva del club.",
+  }));
+
+const tournamentManifest = {
+  generatedAt: new Date().toISOString(),
+  photos: tournamentPhotos,
+};
+
+fs.writeFileSync(tournamentManifestPath, `${JSON.stringify(tournamentManifest, null, 2)}\n`, "utf8");
 console.log(`Generated gallery manifest with ${photos.length} photos.`);
