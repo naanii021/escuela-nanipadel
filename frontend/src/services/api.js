@@ -26,3 +26,13 @@ export async function apiGet(path, options = {}) {
 
   return data;
 }
+
+export async function apiGetPrivate(path, token, options = {}) {
+  return apiGet(path, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
+    },
+  });
+}

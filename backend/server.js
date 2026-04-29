@@ -10,6 +10,7 @@ import authRouter from "./routes/auth.js";
 import clasesRouter from "./routes/Clases.js";
 import torneosRouter from "./routes/torneos.js";
 import asistenteRouter from "./routes/asistente.js";
+import gestionRouter from "./routes/gestion.js";
 
 // Cargamos variables de entorno desde .env
 dotenv.config();
@@ -50,6 +51,9 @@ app.use("/api/torneos", torneosRouter);
 
 // Ruta resumen para el asistente del club
 app.use("/api/asistente", asistenteRouter);
+
+// Rutas privadas de gestion para profesorado y administracion
+app.use("/api/gestion", gestionRouter);
 
 // ======================================================
 // RUTAS BÁSICAS

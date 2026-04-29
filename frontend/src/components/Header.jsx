@@ -60,7 +60,7 @@ function Header() {
             <NavLink to="/galeria" className={navClass}>
               Galeria
             </NavLink>
-            {logged && (user?.rol === "profesor" || user?.rol === "admin") && (
+            {logged && (user?.rol === "profesor" || user?.rol === "profe" || user?.rol === "admin") && (
               <NavLink to="/panel" className={navClass}>
                 Panel
               </NavLink>

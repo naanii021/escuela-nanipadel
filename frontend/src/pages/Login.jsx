@@ -56,7 +56,7 @@ function Login() {
       saveSession(data.token, data.user);
       console.log("LOGIN OK:", data.user);
 
-      if (data.user.rol === "profesor" || data.user.rol === "admin") {
+      if (data.user.rol === "profesor" || data.user.rol === "profe" || data.user.rol === "admin") {
         navigate("/panel");
       } else {
         navigate("/reservas");

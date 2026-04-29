@@ -25,7 +25,7 @@ function App() {
         <Route path="/galeria" element={<Galeria />} />
         <Route path="/estado-pista" element={<EstadoPista />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/panel" element={<PanelProfesor />} />
+        <Route path="/panel/*" element={<PanelProfesor />} />
       </Routes>
     </Layout>
   );
