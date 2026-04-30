@@ -1,4 +1,5 @@
 import express from "express";
+import bcrypt from "bcrypt";
 import { db } from "../db/connection.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
 
@@ -125,9 +126,11 @@ router.get("/resumen", async (req, res) => {
     const alumnoEmailSelect = alumnoColumns.has("email") ? "a.email" : "NULL AS email";
     const alumnoTelefonoSelect = alumnoColumns.has("telefono") ? "a.telefono" : "NULL AS telefono";
     const alumnoActivoSelect = alumnoColumns.has("activo") ? "a.activo" : "1 AS activo";
+    const alumnoUsuarioSelect = alumnoColumns.has("usuario_id") ? "a.usuario_id" : "NULL AS usuario_id";
     const alumnoGroupByEmail = alumnoColumns.has("email") ? ", a.email" : "";
     const alumnoGroupByTelefono = alumnoColumns.has("telefono") ? ", a.telefono" : "";
     const alumnoGroupByActivo = alumnoColumns.has("activo") ? ", a.activo" : "";
+    const alumnoGroupByUsuario = alumnoColumns.has("usuario_id") ? ", a.usuario_id" : "";
 
     if (!isAdmin && !profesorId) {
       return res.json({
@@ -153,6 +156,7 @@ router.get("/resumen", async (req, res) => {
         ${alumnoEmailSelect},
         ${alumnoTelefonoSelect},
         ${alumnoActivoSelect},
+        ${alumnoUsuarioSelect},
         GROUP_CONCAT(DISTINCT g.id ORDER BY g.hora_inicio SEPARATOR ',') AS grupo_ids,
         GROUP_CONCAT(DISTINCT g.nombre ORDER BY g.hora_inicio SEPARATOR ' | ') AS grupos,
         GROUP_CONCAT(DISTINCT CONCAT_WS(' ', g.dia1, g.dia2, g.hora_inicio) ORDER BY g.hora_inicio SEPARATOR ' | ') AS horarios,
@@ -163,7 +167,7 @@ router.get("/resumen", async (req, res) => {
        ${alumnoJoinType} grupos g ON g.id = ga.grupo_id AND g.activo = 1 ${scopeWhere}
        LEFT JOIN profesores p ON p.id = g.profesor_id
        WHERE ${alumnoColumns.has("activo") ? "a.activo = 1" : "1 = 1"}
-       GROUP BY a.id, a.nombre, a.apellidos, a.nivel${alumnoGroupByEmail}${alumnoGroupByTelefono}${alumnoGroupByActivo}
+       GROUP BY a.id, a.nombre, a.apellidos, a.nivel${alumnoGroupByEmail}${alumnoGroupByTelefono}${alumnoGroupByActivo}${alumnoGroupByUsuario}
        ORDER BY a.apellidos, a.nombre`,
       scopeParams
     );
@@ -220,7 +224,8 @@ router.get("/resumen", async (req, res) => {
         a.nivel,
         ${buildSelect("a", alumnoColumns, "email")},
         ${buildSelect("a", alumnoColumns, "telefono")},
-        ${alumnoColumns.has("activo") ? "a.activo" : "1 AS activo"}
+        ${alumnoColumns.has("activo") ? "a.activo" : "1 AS activo"},
+        ${buildSelect("a", alumnoColumns, "usuario_id")}
        FROM alumnos a
        WHERE ${alumnoColumns.has("activo") ? "a.activo = 1" : "1 = 1"}
        ORDER BY a.apellidos, a.nombre`
@@ -385,6 +390,43 @@ router.delete("/grupos/:id/alumnos/:alumnoId", requireAdmin, async (req, res) =>
   }
 });
 
+router.post("/alumnos", requireAdmin, async (req, res) => {
+  try {
+    const columns = await getTableColumns("alumnos");
+    const payload = {
+      nombre: req.body.nombre?.trim(),
+      apellidos: req.body.apellidos?.trim() || null,
+      nivel: req.body.nivel || null,
+      telefono: req.body.telefono?.trim() || null,
+      email: req.body.email?.trim() || null,
+      activo: req.body.activo ?? 1,
+      observaciones: req.body.observaciones?.trim() || null,
+      usuario_id: null,
+    };
+
+    if (!payload.nombre) {
+      return res.status(400).json({ ok: false, message: "El nombre del alumno es obligatorio" });
+    }
+
+    const allowed = ["nombre", "apellidos", "nivel", "telefono", "email", "activo", "observaciones", "usuario_id"];
+    const { fields, values } = pickWritableFields(payload, allowed, columns);
+
+    const [result] = await query(
+      `INSERT INTO alumnos (${fields.join(", ")}) VALUES (${fields.map(() => "?").join(", ")})`,
+      values
+    );
+
+    res.status(201).json({
+      ok: true,
+      id: result.insertId,
+      message: "Alumno creado correctamente",
+    });
+  } catch (e) {
+    console.error("Error POST /api/gestion/alumnos:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
 router.put("/alumnos/:id", requireAdmin, async (req, res) => {
   try {
     const columns = await getTableColumns("alumnos");
@@ -404,6 +446,106 @@ router.put("/alumnos/:id", requireAdmin, async (req, res) => {
   } catch (e) {
     console.error("Error PUT /api/gestion/alumnos/:id:", e);
     res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+router.post("/alumnos/:id/crear-acceso", requireAdmin, async (req, res) => {
+  const connection = await db.promise().getConnection();
+
+  try {
+    const alumnoColumns = await getTableColumns("alumnos");
+    const usuarioColumns = await getTableColumns("usuarios");
+
+    if (!alumnoColumns.has("usuario_id")) {
+      return res.status(400).json({
+        ok: false,
+        message: "La tabla alumnos no tiene usuario_id para enlazar cuentas",
+      });
+    }
+
+    const email = req.body.email?.trim().toLowerCase();
+    const password = req.body.password;
+
+    if (!email || !password) {
+      return res.status(400).json({ ok: false, message: "Email y contrasena son obligatorios" });
+    }
+
+    if (String(password).length < 6) {
+      return res.status(400).json({ ok: false, message: "La contrasena debe tener al menos 6 caracteres" });
+    }
+
+    await connection.beginTransaction();
+
+    const [alumnos] = await connection.query(
+      `SELECT id, nombre, apellidos, usuario_id
+       FROM alumnos
+       WHERE id = ?
+       FOR UPDATE`,
+      [req.params.id]
+    );
+
+    if (alumnos.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ ok: false, message: "Alumno no encontrado" });
+    }
+
+    const alumno = alumnos[0];
+
+    if (alumno.usuario_id) {
+      await connection.rollback();
+      return res.status(409).json({ ok: false, message: "Este alumno ya tiene acceso a la plataforma" });
+    }
+
+    const [existingUsers] = await connection.query(
+      "SELECT id FROM usuarios WHERE email = ? LIMIT 1",
+      [email]
+    );
+
+    if (existingUsers.length > 0) {
+      await connection.rollback();
+      return res.status(409).json({ ok: false, message: "Ya existe un usuario con ese email" });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const fullName = `${alumno.nombre || ""} ${alumno.apellidos || ""}`.trim();
+    const payload = {
+      nombre: fullName || alumno.nombre,
+      email,
+      password_hash: passwordHash,
+      rol: "alumno",
+      activo: 1,
+      telefono: req.body.telefono?.trim() || null,
+    };
+
+    const { fields, values } = pickWritableFields(
+      payload,
+      ["nombre", "email", "telefono", "password_hash", "rol", "activo"],
+      usuarioColumns
+    );
+
+    const [userResult] = await connection.query(
+      `INSERT INTO usuarios (${fields.join(", ")}) VALUES (${fields.map(() => "?").join(", ")})`,
+      values
+    );
+
+    await connection.query(
+      "UPDATE alumnos SET usuario_id = ? WHERE id = ?",
+      [userResult.insertId, req.params.id]
+    );
+
+    await connection.commit();
+
+    res.status(201).json({
+      ok: true,
+      user_id: userResult.insertId,
+      message: "Acceso creado y enlazado al alumno correctamente",
+    });
+  } catch (e) {
+    await connection.rollback();
+    console.error("Error POST /api/gestion/alumnos/:id/crear-acceso:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  } finally {
+    connection.release();
   }
 });
 

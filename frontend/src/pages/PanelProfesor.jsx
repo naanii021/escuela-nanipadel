@@ -22,6 +22,22 @@ const emptyGroupForm = {
   activo: 1,
 };
 
+const emptyStudentForm = {
+  nombre: "",
+  apellidos: "",
+  nivel: "iniciacion",
+  telefono: "",
+  email: "",
+  activo: 1,
+  observaciones: "",
+  grupo_id: "",
+};
+
+const emptyAccessForm = {
+  email: "",
+  password: "",
+};
+
 const IcSearch = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
     <circle cx="11" cy="11" r="8" />
@@ -116,7 +132,11 @@ export default function PanelProfesor() {
   const [editingGroup, setEditingGroup] = useState(null);
   const [groupForm, setGroupForm] = useState(emptyGroupForm);
   const [studentFormOpen, setStudentFormOpen] = useState(false);
+  const [creatingStudent, setCreatingStudent] = useState(false);
   const [studentForm, setStudentForm] = useState({});
+  const [accessFormOpen, setAccessFormOpen] = useState(false);
+  const [accessStudent, setAccessStudent] = useState(null);
+  const [accessForm, setAccessForm] = useState(emptyAccessForm);
   const [studentToAdd, setStudentToAdd] = useState("");
 
   const loadPanel = useCallback(async () => {
@@ -322,6 +342,7 @@ export default function PanelProfesor() {
   };
 
   const openEditStudent = (student) => {
+    setCreatingStudent(false);
     setSelectedStudent(student);
     setStudentForm({
       nombre: student.nombre || "",
@@ -334,18 +355,65 @@ export default function PanelProfesor() {
     setStudentFormOpen(true);
   };
 
+  const openNewStudent = () => {
+    setCreatingStudent(true);
+    setSelectedStudent(null);
+    setStudentForm({
+      ...emptyStudentForm,
+      grupo_id: selectedGroup?.id || "",
+    });
+    setStudentFormOpen(true);
+  };
+
   const saveStudent = async (event) => {
     event.preventDefault();
-    if (!isAdmin || !selectedStudent) return;
+    if (!isAdmin) return;
 
     try {
       setSaving(true);
-      await apiPut(`/api/gestion/alumnos/${selectedStudent.id}`, studentForm);
+      if (creatingStudent) {
+        const data = await apiPost("/api/gestion/alumnos", studentForm);
+
+        if (studentForm.grupo_id && data.id) {
+          await apiPost(`/api/gestion/grupos/${studentForm.grupo_id}/alumnos`, { alumno_id: data.id });
+        }
+
+        showNotice(studentForm.grupo_id ? "Alumno creado y asignado al grupo" : "Alumno creado");
+      } else if (selectedStudent) {
+        await apiPut(`/api/gestion/alumnos/${selectedStudent.id}`, studentForm);
+        showNotice("Alumno actualizado");
+      }
+
       setStudentFormOpen(false);
-      showNotice("Alumno actualizado");
       await loadPanel();
     } catch (e) {
       setError(e.message || "No se pudo guardar el alumno");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openCreateAccess = (student) => {
+    setAccessStudent(student);
+    setAccessForm({
+      email: student.email || "",
+      password: "",
+    });
+    setAccessFormOpen(true);
+  };
+
+  const saveAccess = async (event) => {
+    event.preventDefault();
+    if (!isAdmin || !accessStudent) return;
+
+    try {
+      setSaving(true);
+      await apiPost(`/api/gestion/alumnos/${accessStudent.id}/crear-acceso`, accessForm);
+      setAccessFormOpen(false);
+      showNotice("Acceso creado para el alumno");
+      await loadPanel();
+    } catch (e) {
+      setError(e.message || "No se pudo crear el acceso");
     } finally {
       setSaving(false);
     }
@@ -389,7 +457,10 @@ export default function PanelProfesor() {
         </div>
 
         {isAdmin && (
-          <button className="staffPrimaryBtn" onClick={openNewGroup}>Nuevo grupo</button>
+          <div className="staffActions">
+            <button className="staffSecondaryBtn" onClick={openNewStudent}>Nuevo alumno</button>
+            <button className="staffPrimaryBtn" onClick={openNewGroup}>Nuevo grupo</button>
+          </div>
         )}
       </div>
 
@@ -520,7 +591,7 @@ export default function PanelProfesor() {
 
           <div className="studentsTable">
             <div className={isAdmin ? "studentsTableHead studentsTableHeadAdmin" : "studentsTableHead"}>
-              <span>Alumno</span><span>Nivel</span><span>Grupo</span><span>Profesor</span><span>Horario / pista</span>{isAdmin && <span>Acciones</span>}
+              <span>Alumno</span><span>Nivel</span><span>Acceso</span><span>Grupo</span><span>Profesor</span><span>Horario / pista</span>{isAdmin && <span>Acciones</span>}
             </div>
 
             {filteredAlumnos.map((alumno) => (
@@ -530,10 +601,16 @@ export default function PanelProfesor() {
                   <div><strong>{alumno.nombre} {alumno.apellidos}</strong><small>{alumno.telefono || alumno.email || "Sin contacto"}</small></div>
                 </div>
                 <span className={nivelClass(alumno.nivel)}>{nivelLabel(alumno.nivel)}</span>
+                <span className={alumno.usuario_id ? "accessBadge accessOn" : "accessBadge accessOff"}>{alumno.usuario_id ? "Con acceso" : "Sin acceso"}</span>
                 <span className="studentCell">{alumno.grupos || "-"}</span>
                 <span className="studentCell">{alumno.profesores || "-"}</span>
                 <span className="studentCell">{alumno.horarios || "-"}{alumno.pistas ? ` - Pista ${alumno.pistas}` : ""}</span>
-                {isAdmin && <button className="staffSecondaryBtn" onClick={() => openEditStudent(alumno)}>Editar</button>}
+                {isAdmin && (
+                  <div className="rowActions">
+                    {!alumno.usuario_id && <button className="staffPrimaryBtn" onClick={() => openCreateAccess(alumno)}>Crear acceso</button>}
+                    <button className="staffSecondaryBtn" onClick={() => openEditStudent(alumno)}>Editar</button>
+                  </div>
+                )}
               </article>
             ))}
           </div>
@@ -568,7 +645,7 @@ export default function PanelProfesor() {
       {isAdmin && studentFormOpen && (
         <div className="staffModalBackdrop">
           <form className="staffModal" onSubmit={saveStudent}>
-            <div className="modalHeader"><h2>Editar alumno</h2><button type="button" onClick={() => setStudentFormOpen(false)}>Cerrar</button></div>
+            <div className="modalHeader"><h2>{creatingStudent ? "Nuevo alumno" : "Editar alumno"}</h2><button type="button" onClick={() => setStudentFormOpen(false)}>Cerrar</button></div>
             <div className="formGrid">
               <label>Nombre<input value={studentForm.nombre || ""} onChange={(e) => setStudentForm({ ...studentForm, nombre: e.target.value })} required /></label>
               <label>Apellidos<input value={studentForm.apellidos || ""} onChange={(e) => setStudentForm({ ...studentForm, apellidos: e.target.value })} /></label>
@@ -576,8 +653,29 @@ export default function PanelProfesor() {
               <label>Telefono<input value={studentForm.telefono || ""} onChange={(e) => setStudentForm({ ...studentForm, telefono: e.target.value })} /></label>
               <label>Email<input type="email" value={studentForm.email || ""} onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })} /></label>
               <label>Activo<select value={studentForm.activo ?? 1} onChange={(e) => setStudentForm({ ...studentForm, activo: Number(e.target.value) })}><option value={1}>Activo</option><option value={0}>Inactivo</option></select></label>
+              {creatingStudent && (
+                <label>Asignar a grupo<select value={studentForm.grupo_id || ""} onChange={(e) => setStudentForm({ ...studentForm, grupo_id: e.target.value })}><option value="">Sin grupo por ahora</option>{gruposOptions.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
+              )}
+              <label className="formFieldWide">Observaciones<input value={studentForm.observaciones || ""} onChange={(e) => setStudentForm({ ...studentForm, observaciones: e.target.value })} placeholder="Notas internas opcionales" /></label>
             </div>
-            <div className="modalActions"><button type="button" onClick={() => setStudentFormOpen(false)}>Cancelar</button><button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar alumno"}</button></div>
+            <div className="modalActions"><button type="button" onClick={() => setStudentFormOpen(false)}>Cancelar</button><button type="submit" disabled={saving}>{saving ? "Guardando..." : creatingStudent ? "Crear alumno" : "Guardar alumno"}</button></div>
+          </form>
+        </div>
+      )}
+
+      {isAdmin && accessFormOpen && (
+        <div className="staffModalBackdrop">
+          <form className="staffModal" onSubmit={saveAccess}>
+            <div className="modalHeader"><h2>Crear acceso</h2><button type="button" onClick={() => setAccessFormOpen(false)}>Cerrar</button></div>
+            <div className="accessIntro">
+              <strong>{accessStudent?.nombre} {accessStudent?.apellidos}</strong>
+              <span>Se creara una cuenta de usuario enlazada a esta ficha de alumno.</span>
+            </div>
+            <div className="formGrid">
+              <label>Email<input type="email" value={accessForm.email || ""} onChange={(e) => setAccessForm({ ...accessForm, email: e.target.value })} required /></label>
+              <label>Contrasena inicial<input type="password" value={accessForm.password || ""} onChange={(e) => setAccessForm({ ...accessForm, password: e.target.value })} minLength={6} required /></label>
+            </div>
+            <div className="modalActions"><button type="button" onClick={() => setAccessFormOpen(false)}>Cancelar</button><button type="submit" disabled={saving}>{saving ? "Creando..." : "Crear acceso"}</button></div>
           </form>
         </div>
       )}
