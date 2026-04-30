@@ -1,4 +1,21 @@
-const API_BASE = (process.env.REACT_APP_API_URL || "").replace(/\/$/, "");
+function getDefaultApiBase() {
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+
+  if (typeof window !== "undefined") {
+    const { hostname, port } = window.location;
+    const isLocalFrontend = ["localhost", "127.0.0.1"].includes(hostname) && port === "3000";
+
+    if (isLocalFrontend) {
+      return "http://localhost:4000";
+    }
+  }
+
+  return "";
+}
+
+const API_BASE = getDefaultApiBase().replace(/\/$/, "");
 
 // Guardar token y usuario en localStorage
 export function saveSession(token, user) {

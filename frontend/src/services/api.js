@@ -1,12 +1,49 @@
-const API_BASE = (process.env.REACT_APP_API_URL || "").replace(/\/$/, "");
+import { getToken } from "./auth";
+
+function getDefaultApiBase() {
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+
+  if (typeof window !== "undefined") {
+    const { hostname, port } = window.location;
+    const isLocalFrontend = ["localhost", "127.0.0.1"].includes(hostname) && port === "3000";
+
+    if (isLocalFrontend) {
+      return "http://localhost:4000";
+    }
+  }
+
+  return "";
+}
+
+const API_BASE = getDefaultApiBase().replace(/\/$/, "");
+
+function buildApiUrl(path) {
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+function buildHeaders(options = {}) {
+  const headers = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
+
+  const token = getToken();
+
+  if (token && !headers.Authorization) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  return headers;
+}
 
 export async function apiGet(path, options = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(buildApiUrl(path), {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
+    headers: buildHeaders(options),
   });
 
   const text = await res.text();
@@ -15,8 +52,19 @@ export async function apiGet(path, options = {}) {
   try {
     data = JSON.parse(text);
   } catch {
+    const response = text.trim();
+    const looksLikeHtml =
+      response.toLowerCase().startsWith("<!doctype html") ||
+      response.toLowerCase().startsWith("<html");
+
+    if (looksLikeHtml) {
+      throw new Error(
+        `La ruta ${path} devolvio HTML en vez de JSON. Comprueba que el backend este activo y que REACT_APP_API_URL apunte al servidor Express.`
+      );
+    }
+
     throw new Error(
-      `La API no devolvió JSON válido. URL: ${path}. Respuesta recibida: ${text.slice(0, 120)}`
+      `La API no devolvio JSON valido. URL: ${path}. Respuesta recibida: ${text.slice(0, 120)}`
     );
   }
 
@@ -31,7 +79,7 @@ export async function apiGetPrivate(path, token, options = {}) {
   return apiGet(path, {
     ...options,
     headers: {
-      Authorization: `Bearer ${token}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
   });

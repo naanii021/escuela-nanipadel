@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { apiGetPrivate } from "../services/api";
+import { apiGet } from "../services/api";
 import { getToken, getUser, logout } from "../services/auth";
 import "./panelProfesor.css";
 
@@ -83,7 +83,7 @@ export default function PanelProfesor() {
       try {
         setLoading(true);
         setError("");
-        const data = await apiGetPrivate("/api/gestion/resumen", token);
+        const data = await apiGet("/api/gestion/resumen");
 
         setAlumnos(data.alumnos || []);
         setGrupos(data.grupos || []);
