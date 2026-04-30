@@ -14,6 +14,39 @@ async function getTableColumns(tableName) {
   return new Set(rows.map((row) => row.Field));
 }
 
+function isAdmin(req) {
+  return String(req.user?.rol || "").toLowerCase() === "admin";
+}
+
+function requireAdmin(req, res, next) {
+  if (!isAdmin(req)) {
+    return res.status(403).type("application/json").json({
+      ok: false,
+      message: "Solo administracion puede modificar la gestion de escuela",
+    });
+  }
+
+  next();
+}
+
+function pickWritableFields(payload, allowedFields, tableColumns) {
+  const fields = [];
+  const values = [];
+
+  allowedFields.forEach((field) => {
+    if (tableColumns.has(field) && Object.prototype.hasOwnProperty.call(payload, field)) {
+      fields.push(field);
+      values.push(payload[field] === "" ? null : payload[field]);
+    }
+  });
+
+  return { fields, values };
+}
+
+function buildSelect(tableAlias, columns, field) {
+  return columns.has(field) ? `${tableAlias}.${field}` : `NULL AS ${field}`;
+}
+
 async function getProfesorIdForUser(user) {
   const role = String(user?.rol || "").toLowerCase();
 
@@ -91,8 +124,10 @@ router.get("/resumen", async (req, res) => {
     const alumnoColumns = await getTableColumns("alumnos");
     const alumnoEmailSelect = alumnoColumns.has("email") ? "a.email" : "NULL AS email";
     const alumnoTelefonoSelect = alumnoColumns.has("telefono") ? "a.telefono" : "NULL AS telefono";
+    const alumnoActivoSelect = alumnoColumns.has("activo") ? "a.activo" : "1 AS activo";
     const alumnoGroupByEmail = alumnoColumns.has("email") ? ", a.email" : "";
     const alumnoGroupByTelefono = alumnoColumns.has("telefono") ? ", a.telefono" : "";
+    const alumnoGroupByActivo = alumnoColumns.has("activo") ? ", a.activo" : "";
 
     if (!isAdmin && !profesorId) {
       return res.json({
@@ -107,6 +142,7 @@ router.get("/resumen", async (req, res) => {
 
     const scopeWhere = isAdmin ? "" : "AND g.profesor_id = ?";
     const scopeParams = isAdmin ? [] : [profesorId];
+    const alumnoJoinType = isAdmin ? "LEFT JOIN" : "JOIN";
 
     const [alumnos] = await query(
       `SELECT
@@ -116,17 +152,18 @@ router.get("/resumen", async (req, res) => {
         a.nivel,
         ${alumnoEmailSelect},
         ${alumnoTelefonoSelect},
+        ${alumnoActivoSelect},
         GROUP_CONCAT(DISTINCT g.id ORDER BY g.hora_inicio SEPARATOR ',') AS grupo_ids,
         GROUP_CONCAT(DISTINCT g.nombre ORDER BY g.hora_inicio SEPARATOR ' | ') AS grupos,
         GROUP_CONCAT(DISTINCT CONCAT_WS(' ', g.dia1, g.dia2, g.hora_inicio) ORDER BY g.hora_inicio SEPARATOR ' | ') AS horarios,
         GROUP_CONCAT(DISTINCT g.pista_habitual ORDER BY g.pista_habitual SEPARATOR ', ') AS pistas,
         GROUP_CONCAT(DISTINCT CONCAT(p.nombre, ' ', p.apellidos) ORDER BY p.nombre SEPARATOR ', ') AS profesores
        FROM alumnos a
-       JOIN grupo_alumnos ga ON ga.alumno_id = a.id AND ga.activo = 1
-       JOIN grupos g ON g.id = ga.grupo_id AND g.activo = 1 ${scopeWhere}
+       ${alumnoJoinType} grupo_alumnos ga ON ga.alumno_id = a.id AND ga.activo = 1
+       ${alumnoJoinType} grupos g ON g.id = ga.grupo_id AND g.activo = 1 ${scopeWhere}
        LEFT JOIN profesores p ON p.id = g.profesor_id
-       WHERE a.activo = 1
-       GROUP BY a.id, a.nombre, a.apellidos, a.nivel${alumnoGroupByEmail}${alumnoGroupByTelefono}
+       WHERE ${alumnoColumns.has("activo") ? "a.activo = 1" : "1 = 1"}
+       GROUP BY a.id, a.nombre, a.apellidos, a.nivel${alumnoGroupByEmail}${alumnoGroupByTelefono}${alumnoGroupByActivo}
        ORDER BY a.apellidos, a.nombre`,
       scopeParams
     );
@@ -162,12 +199,43 @@ router.get("/resumen", async (req, res) => {
     );
 
     const grupos = parseGroupRows(groupRows);
+    const [profesores] = await query(
+      `SELECT id, nombre, apellidos, CONCAT(nombre, ' ', apellidos) AS nombre_completo
+       FROM profesores
+       ORDER BY nombre, apellidos`
+    );
+
+    const [pistas] = await query(
+      `SELECT id, nombre
+       FROM pistas
+       WHERE ${await getTableColumns("pistas").then((columns) => columns.has("activa") ? "activa = 1" : "1 = 1")}
+       ORDER BY id`
+    );
+
+    const [todosAlumnos] = await query(
+      `SELECT
+        a.id,
+        a.nombre,
+        a.apellidos,
+        a.nivel,
+        ${buildSelect("a", alumnoColumns, "email")},
+        ${buildSelect("a", alumnoColumns, "telefono")},
+        ${alumnoColumns.has("activo") ? "a.activo" : "1 AS activo"}
+       FROM alumnos a
+       WHERE ${alumnoColumns.has("activo") ? "a.activo = 1" : "1 = 1"}
+       ORDER BY a.apellidos, a.nombre`
+    );
 
     res.json({
       ok: true,
       scope: isAdmin ? "admin" : "profesor",
       alumnos,
       grupos,
+      catalogos: {
+        profesores,
+        pistas,
+        alumnos: isAdmin ? todosAlumnos : alumnos,
+      },
       stats: {
         totalAlumnos: alumnos.length,
         totalGrupos: grupos.length,
@@ -176,6 +244,165 @@ router.get("/resumen", async (req, res) => {
     });
   } catch (e) {
     console.error("Error GET /api/gestion/resumen:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+router.post("/grupos", requireAdmin, async (req, res) => {
+  try {
+    const columns = await getTableColumns("grupos");
+    const payload = {
+      codigo: req.body.codigo?.trim() || null,
+      nombre: req.body.nombre?.trim(),
+      nivel: req.body.nivel || null,
+      profesor_id: req.body.profesor_id || null,
+      dia1: req.body.dia1 || null,
+      dia2: req.body.dia2 || null,
+      hora_inicio: req.body.hora_inicio || null,
+      duracion_min: req.body.duracion_min || 60,
+      pista_habitual: req.body.pista_habitual || null,
+      cupo: req.body.cupo || null,
+      activo: req.body.activo ?? 1,
+    };
+
+    if (!payload.nombre) {
+      return res.status(400).json({ ok: false, message: "El nombre del grupo es obligatorio" });
+    }
+
+    const allowed = ["codigo", "nombre", "nivel", "profesor_id", "dia1", "dia2", "hora_inicio", "duracion_min", "pista_habitual", "cupo", "activo"];
+    const { fields, values } = pickWritableFields(payload, allowed, columns);
+
+    const placeholders = fields.map(() => "?").join(", ");
+    const [result] = await query(
+      `INSERT INTO grupos (${fields.join(", ")}) VALUES (${placeholders})`,
+      values
+    );
+
+    res.status(201).json({ ok: true, id: result.insertId, message: "Grupo creado correctamente" });
+  } catch (e) {
+    console.error("Error POST /api/gestion/grupos:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+router.put("/grupos/:id", requireAdmin, async (req, res) => {
+  try {
+    const columns = await getTableColumns("grupos");
+    const allowed = ["codigo", "nombre", "nivel", "profesor_id", "dia1", "dia2", "hora_inicio", "duracion_min", "pista_habitual", "cupo", "activo"];
+    const { fields, values } = pickWritableFields(req.body, allowed, columns);
+
+    if (!fields.length) {
+      return res.status(400).json({ ok: false, message: "No hay campos validos para actualizar" });
+    }
+
+    await query(
+      `UPDATE grupos SET ${fields.map((field) => `${field} = ?`).join(", ")} WHERE id = ?`,
+      [...values, req.params.id]
+    );
+
+    res.json({ ok: true, message: "Grupo actualizado correctamente" });
+  } catch (e) {
+    console.error("Error PUT /api/gestion/grupos/:id:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+router.delete("/grupos/:id", requireAdmin, async (req, res) => {
+  try {
+    const columns = await getTableColumns("grupos");
+
+    if (columns.has("activo")) {
+      await query("UPDATE grupos SET activo = 0 WHERE id = ?", [req.params.id]);
+      return res.json({ ok: true, message: "Grupo desactivado correctamente" });
+    }
+
+    await query("DELETE FROM grupo_alumnos WHERE grupo_id = ?", [req.params.id]);
+    await query("DELETE FROM grupos WHERE id = ?", [req.params.id]);
+    res.json({ ok: true, message: "Grupo eliminado correctamente" });
+  } catch (e) {
+    console.error("Error DELETE /api/gestion/grupos/:id:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+router.post("/grupos/:id/alumnos", requireAdmin, async (req, res) => {
+  try {
+    const alumnoId = req.body.alumno_id;
+
+    if (!alumnoId) {
+      return res.status(400).json({ ok: false, message: "Selecciona un alumno" });
+    }
+
+    const [existing] = await query(
+      "SELECT * FROM grupo_alumnos WHERE grupo_id = ? AND alumno_id = ? LIMIT 1",
+      [req.params.id, alumnoId]
+    );
+
+    if (existing.length > 0) {
+      if (Object.prototype.hasOwnProperty.call(existing[0], "activo")) {
+        await query("UPDATE grupo_alumnos SET activo = 1 WHERE grupo_id = ? AND alumno_id = ?", [req.params.id, alumnoId]);
+      }
+
+      return res.json({ ok: true, message: "Alumno ya vinculado al grupo" });
+    }
+
+    const columns = await getTableColumns("grupo_alumnos");
+    const payload = { grupo_id: req.params.id, alumno_id: alumnoId, activo: 1 };
+    const { fields, values } = pickWritableFields(payload, ["grupo_id", "alumno_id", "activo"], columns);
+
+    await query(
+      `INSERT INTO grupo_alumnos (${fields.join(", ")}) VALUES (${fields.map(() => "?").join(", ")})`,
+      values
+    );
+
+    res.status(201).json({ ok: true, message: "Alumno anadido al grupo" });
+  } catch (e) {
+    console.error("Error POST /api/gestion/grupos/:id/alumnos:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+router.delete("/grupos/:id/alumnos/:alumnoId", requireAdmin, async (req, res) => {
+  try {
+    const columns = await getTableColumns("grupo_alumnos");
+
+    if (columns.has("activo")) {
+      await query(
+        "UPDATE grupo_alumnos SET activo = 0 WHERE grupo_id = ? AND alumno_id = ?",
+        [req.params.id, req.params.alumnoId]
+      );
+    } else {
+      await query(
+        "DELETE FROM grupo_alumnos WHERE grupo_id = ? AND alumno_id = ?",
+        [req.params.id, req.params.alumnoId]
+      );
+    }
+
+    res.json({ ok: true, message: "Alumno quitado del grupo" });
+  } catch (e) {
+    console.error("Error DELETE /api/gestion/grupos/:id/alumnos/:alumnoId:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+router.put("/alumnos/:id", requireAdmin, async (req, res) => {
+  try {
+    const columns = await getTableColumns("alumnos");
+    const allowed = ["nombre", "apellidos", "nivel", "telefono", "email", "activo"];
+    const { fields, values } = pickWritableFields(req.body, allowed, columns);
+
+    if (!fields.length) {
+      return res.status(400).json({ ok: false, message: "No hay campos validos para actualizar" });
+    }
+
+    await query(
+      `UPDATE alumnos SET ${fields.map((field) => `${field} = ?`).join(", ")} WHERE id = ?`,
+      [...values, req.params.id]
+    );
+
+    res.json({ ok: true, message: "Alumno actualizado correctamente" });
+  } catch (e) {
+    console.error("Error PUT /api/gestion/alumnos/:id:", e);
     res.status(500).json({ ok: false, message: e.message });
   }
 });

@@ -41,6 +41,22 @@ function buildHeaders(options = {}) {
 }
 
 export async function apiGet(path, options = {}) {
+  return apiRequest(path, { ...options, method: "GET" });
+}
+
+export async function apiPost(path, body, options = {}) {
+  return apiRequest(path, { ...options, method: "POST", body: JSON.stringify(body) });
+}
+
+export async function apiPut(path, body, options = {}) {
+  return apiRequest(path, { ...options, method: "PUT", body: JSON.stringify(body) });
+}
+
+export async function apiDelete(path, options = {}) {
+  return apiRequest(path, { ...options, method: "DELETE" });
+}
+
+async function apiRequest(path, options = {}) {
   const res = await fetch(buildApiUrl(path), {
     ...options,
     headers: buildHeaders(options),
