@@ -1,20 +1,19 @@
+/* Panel de gestion: fondo exterior claro, paneles interiores oscuros */
 .staffPanel {
-  --panel-bg: #08111f;
-  --panel-bg-2: #0d1828;
-  --surface-dark: rgba(15, 25, 39, 0.94);
-  --surface-soft: rgba(20, 32, 49, 0.92);
-  --surface-raised: rgba(27, 42, 62, 0.94);
-  --line-dark: rgba(148, 163, 184, 0.16);
-  --line-strong: rgba(148, 163, 184, 0.24);
-  --text-strong: #f8fafc;
-  --text-soft: #cbd5e1;
-  --text-muted-dark: #8da0b8;
-  --green: #22c55e;
-  --green-strong: #16a34a;
-  --green-soft: rgba(34, 197, 94, 0.13);
-  --danger: #fb7185;
-  --danger-soft: rgba(251, 113, 133, 0.13);
-  --shadow-dark: 0 22px 60px rgba(0, 0, 0, 0.28);
+  --staff-surface: #101827;
+  --staff-surface-2: #142033;
+  --staff-surface-3: #1a2a40;
+  --staff-border: rgba(148, 163, 184, 0.18);
+  --staff-border-strong: rgba(148, 163, 184, 0.28);
+  --staff-text: #f8fafc;
+  --staff-text-soft: #cbd5e1;
+  --staff-muted: #8ea1b8;
+  --staff-green: #22c55e;
+  --staff-green-strong: #16a34a;
+  --staff-green-soft: rgba(34, 197, 94, 0.14);
+  --staff-danger: #fb7185;
+  --staff-danger-soft: rgba(251, 113, 133, 0.13);
+  --staff-shadow: 0 18px 42px rgba(15, 23, 42, 0.14);
 
   width: min(1240px, calc(100% - 2rem));
   margin: 0 auto;
@@ -22,34 +21,21 @@
   display: flex;
   flex-direction: column;
   gap: 1.35rem;
-  color: var(--text-strong);
-  position: relative;
-  isolation: isolate;
+  color: var(--staff-text);
 }
 
-.staffPanel::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background:
-    radial-gradient(900px 420px at 18% 0%, rgba(34, 197, 94, 0.18), transparent 62%),
-    radial-gradient(700px 420px at 92% 10%, rgba(14, 165, 233, 0.12), transparent 58%),
-    linear-gradient(180deg, var(--panel-bg), var(--panel-bg-2) 52%, #07101b);
-  pointer-events: none;
-}
-
+/* Cabecera principal oscura sobre el fondo global claro */
 .staffHero {
   display: flex;
   justify-content: space-between;
   gap: 2rem;
   padding: 1.7rem 1.85rem;
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--staff-border);
   border-radius: 18px;
   background:
-    linear-gradient(135deg, rgba(24, 38, 57, 0.96), rgba(10, 22, 36, 0.96)),
-    var(--surface-dark);
-  box-shadow: var(--shadow-dark);
+    linear-gradient(135deg, rgba(20, 32, 51, 0.98), rgba(10, 20, 34, 0.98)),
+    var(--staff-surface);
+  box-shadow: var(--staff-shadow);
 }
 
 .staffHeroText {
@@ -61,10 +47,10 @@
   width: fit-content;
   margin-bottom: 0.6rem;
   padding: 0.28rem 0.7rem;
-  border: 1px solid rgba(34, 197, 94, 0.22);
+  border: 1px solid rgba(34, 197, 94, 0.24);
   border-radius: 999px;
-  background: var(--green-soft);
-  color: #86efac;
+  background: var(--staff-green-soft);
+  color: #bbf7d0;
   font-size: 0.74rem;
   font-weight: 900;
   letter-spacing: 0.04em;
@@ -73,7 +59,7 @@
 
 .staffHero h1 {
   margin: 0;
-  color: var(--text-strong);
+  color: var(--staff-text);
   font-size: 2.05rem;
   line-height: 1.05;
 }
@@ -81,7 +67,7 @@
 .staffHero p {
   max-width: 590px;
   margin: 0.7rem 0 0;
-  color: var(--text-soft);
+  color: var(--staff-text-soft);
   line-height: 1.6;
 }
 
@@ -96,7 +82,7 @@
 .metricCard {
   min-width: 96px;
   padding: 1rem;
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--staff-border);
   border-radius: 14px;
   background: linear-gradient(180deg, rgba(30, 45, 65, 0.92), rgba(13, 24, 39, 0.92));
   display: flex;
@@ -106,29 +92,29 @@
 }
 
 .metricCard strong {
-  display: block;
-  color: var(--text-strong);
+  color: var(--staff-text);
   font-size: 1.35rem;
   line-height: 1;
 }
 
 .metricCard span {
-  color: var(--text-muted-dark);
+  color: var(--staff-muted);
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
+/* Barras de herramientas y filtros */
 .staffToolbar,
 .staffFilters {
   display: grid;
   gap: 0.75rem;
   padding: 0.78rem;
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--staff-border);
   border-radius: 16px;
-  background: var(--surface-dark);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+  background: rgba(16, 24, 39, 0.96);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
 }
 
 .staffToolbar {
@@ -152,7 +138,7 @@
   padding: 0.24rem;
   border: 1px solid rgba(148, 163, 184, 0.1);
   border-radius: 13px;
-  background: rgba(2, 6, 23, 0.4);
+  background: rgba(2, 6, 23, 0.34);
 }
 
 .staffTabs button,
@@ -161,7 +147,7 @@
   border-radius: 10px;
   padding: 0.66rem 0.95rem;
   background: transparent;
-  color: var(--text-muted-dark);
+  color: var(--staff-muted);
   cursor: pointer;
   font-family: inherit;
   font-weight: 900;
@@ -184,7 +170,7 @@
   top: 50%;
   transform: translateY(-50%);
   display: flex;
-  color: var(--text-muted-dark);
+  color: var(--staff-muted);
   pointer-events: none;
 }
 
@@ -195,10 +181,10 @@
 .formGrid select {
   width: 100%;
   height: 44px;
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--staff-border);
   border-radius: 12px;
-  background: rgba(3, 7, 18, 0.46);
-  color: var(--text-strong);
+  background: rgba(3, 7, 18, 0.42);
+  color: var(--staff-text);
   font: inherit;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
@@ -225,10 +211,11 @@
 .formGrid input:focus,
 .formGrid select:focus {
   border-color: rgba(34, 197, 94, 0.54);
-  background: rgba(3, 7, 18, 0.62);
+  background: rgba(3, 7, 18, 0.6);
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
 }
 
+/* Botones y acciones */
 .staffPrimaryBtn,
 .staffSecondaryBtn,
 .staffDangerBtn,
@@ -248,37 +235,37 @@
 .staffPrimaryBtn,
 .modalActions button[type="submit"],
 .addStudentBar button {
-  background: linear-gradient(180deg, var(--green), var(--green-strong));
+  background: linear-gradient(180deg, var(--staff-green), var(--staff-green-strong));
   color: #052e16;
-  box-shadow: 0 12px 28px rgba(22, 163, 74, 0.26);
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.22);
 }
 
 .staffPrimaryBtn:hover,
 .modalActions button[type="submit"]:hover,
 .addStudentBar button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 16px 34px rgba(22, 163, 74, 0.32);
+  box-shadow: 0 14px 28px rgba(22, 163, 74, 0.27);
 }
 
 .staffSecondaryBtn,
 .modalActions button[type="button"],
 .modalHeader button {
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--staff-border);
   background: rgba(148, 163, 184, 0.1);
-  color: var(--text-soft);
+  color: var(--staff-text-soft);
 }
 
 .staffSecondaryBtn:hover,
 .modalActions button[type="button"]:hover,
 .modalHeader button:hover {
   background: rgba(148, 163, 184, 0.17);
-  color: var(--text-strong);
+  color: var(--staff-text);
 }
 
 .staffDangerBtn,
 .miniDangerBtn {
   border: 1px solid rgba(251, 113, 133, 0.22);
-  background: var(--danger-soft);
+  background: var(--staff-danger-soft);
   color: #fecdd3;
 }
 
@@ -304,10 +291,11 @@ button:disabled {
   border: 1px solid rgba(34, 197, 94, 0.28);
   border-radius: 14px;
   background: rgba(34, 197, 94, 0.11);
-  color: #bbf7d0;
+  color: #166534;
   font-weight: 900;
 }
 
+/* Layout principal de grupos */
 .groupsWorkspace {
   display: grid;
   grid-template-columns: 345px minmax(0, 1fr);
@@ -318,10 +306,10 @@ button:disabled {
 .groupList,
 .groupDetail,
 .studentsPanel {
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--staff-border);
   border-radius: 18px;
-  background: var(--surface-dark);
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
+  background: rgba(16, 24, 39, 0.96);
+  box-shadow: var(--staff-shadow);
 }
 
 .groupList {
@@ -343,12 +331,12 @@ button:disabled {
 
 .panelSectionTitle h2 {
   margin: 0;
-  color: var(--text-strong);
+  color: var(--staff-text);
   font-size: 1rem;
 }
 
 .panelSectionTitle span {
-  color: var(--text-muted-dark);
+  color: var(--staff-muted);
   font-size: 0.82rem;
   font-weight: 800;
 }
@@ -356,9 +344,9 @@ button:disabled {
 .groupListItem {
   width: 100%;
   padding: 0.98rem 1rem;
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--staff-border);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(27, 42, 62, 0.82), rgba(15, 25, 39, 0.86));
+  background: linear-gradient(180deg, rgba(27, 42, 62, 0.76), rgba(15, 25, 39, 0.82));
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -377,20 +365,20 @@ button:disabled {
 }
 
 .groupListItem[data-level="ninos"]::before { background: #60a5fa; }
-.groupListItem[data-level="iniciacion"]::before { background: #22c55e; }
+.groupListItem[data-level="iniciacion"]::before { background: var(--staff-green); }
 .groupListItem[data-level="avanzado"]::before { background: #f59e0b; }
 .groupListItem[data-level="avanzado_plus"]::before { background: #a78bfa; }
-.groupListItem[data-level="competicion"]::before { background: #fb7185; }
+.groupListItem[data-level="competicion"]::before { background: var(--staff-danger); }
 
 .groupListItem:hover,
 .groupListItem.active {
-  border-color: rgba(34, 197, 94, 0.34);
+  border-color: rgba(34, 197, 94, 0.32);
   transform: translateY(-1px);
-  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
 }
 
 .groupListItem.active {
-  background: linear-gradient(180deg, rgba(28, 53, 39, 0.96), rgba(14, 33, 25, 0.96));
+  background: linear-gradient(180deg, rgba(28, 53, 39, 0.94), rgba(14, 33, 25, 0.94));
 }
 
 .groupListTop {
@@ -401,13 +389,13 @@ button:disabled {
 }
 
 .groupListTop strong {
-  color: var(--text-strong);
+  color: var(--staff-text);
   font-size: 0.96rem;
   line-height: 1.25;
 }
 
 .groupListTop small {
-  color: var(--text-soft);
+  color: var(--staff-text-soft);
   font-size: 0.76rem;
   font-weight: 900;
   padding: 0.22rem 0.5rem;
@@ -420,10 +408,11 @@ button:disabled {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.45rem;
-  color: var(--text-muted-dark);
+  color: var(--staff-muted);
   font-size: 0.78rem;
 }
 
+/* Detalle de grupo y alumnos */
 .groupDetail,
 .studentsPanel {
   padding: 1.45rem;
@@ -434,7 +423,7 @@ button:disabled {
   justify-content: space-between;
   gap: 1.1rem;
   padding-bottom: 1.2rem;
-  border-bottom: 1px solid var(--line-dark);
+  border-bottom: 1px solid var(--staff-border);
 }
 
 .groupTitleBlock {
@@ -451,7 +440,7 @@ button:disabled {
 
 .groupDetailHeader h2 {
   margin: 0.55rem 0 0.45rem;
-  color: var(--text-strong);
+  color: var(--staff-text);
   font-size: 1.72rem;
   line-height: 1.1;
 }
@@ -461,7 +450,7 @@ button:disabled {
   flex-wrap: wrap;
   gap: 0.45rem;
   margin: 0;
-  color: var(--text-muted-dark);
+  color: var(--staff-muted);
   font-size: 0.9rem;
 }
 
@@ -509,7 +498,7 @@ button:disabled {
 }
 
 .groupCapacity span {
-  color: var(--text-muted-dark);
+  color: var(--staff-muted);
   font-size: 0.78rem;
   font-weight: 900;
 }
@@ -523,15 +512,15 @@ button:disabled {
 
 .groupMetaGrid div {
   padding: 0.98rem;
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--staff-border);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(27, 42, 62, 0.8), rgba(15, 25, 39, 0.78));
+  background: linear-gradient(180deg, rgba(27, 42, 62, 0.72), rgba(15, 25, 39, 0.76));
 }
 
 .groupMetaGrid span {
   display: block;
   margin-bottom: 0.28rem;
-  color: var(--text-muted-dark);
+  color: var(--staff-muted);
   font-size: 0.74rem;
   font-weight: 900;
   letter-spacing: 0.03em;
@@ -539,7 +528,7 @@ button:disabled {
 }
 
 .groupMetaGrid strong {
-  color: var(--text-strong);
+  color: var(--staff-text);
   font-size: 0.96rem;
   line-height: 1.35;
 }
@@ -550,9 +539,9 @@ button:disabled {
   gap: 0.65rem;
   margin: 0 0 1.05rem;
   padding: 0.78rem;
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--staff-border);
   border-radius: 14px;
-  background: rgba(2, 6, 23, 0.32);
+  background: rgba(2, 6, 23, 0.26);
 }
 
 .groupStudentsHeader {
@@ -565,12 +554,12 @@ button:disabled {
 
 .groupStudentsHeader h3 {
   margin: 0;
-  color: var(--text-strong);
+  color: var(--staff-text);
   font-size: 1rem;
 }
 
 .groupStudentsHeader span {
-  color: var(--text-muted-dark);
+  color: var(--staff-muted);
   font-size: 0.82rem;
   font-weight: 800;
 }
@@ -583,9 +572,9 @@ button:disabled {
 
 .studentMiniCard,
 .studentRow {
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--staff-border);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(27, 42, 62, 0.86), rgba(15, 25, 39, 0.9));
+  background: linear-gradient(180deg, rgba(27, 42, 62, 0.78), rgba(15, 25, 39, 0.84));
 }
 
 .studentMiniCard {
@@ -622,7 +611,7 @@ button:disabled {
 
 .studentMiniCard h3 {
   margin: 0;
-  color: var(--text-strong);
+  color: var(--staff-text);
   font-size: 0.96rem;
   line-height: 1.25;
 }
@@ -631,10 +620,11 @@ button:disabled {
 .studentMiniCard small,
 .studentIdentity small {
   margin: 0.2rem 0 0;
-  color: var(--text-muted-dark);
+  color: var(--staff-muted);
   font-size: 0.8rem;
 }
 
+/* Vista de alumnos */
 .studentsTable {
   display: flex;
   flex-direction: column;
@@ -656,7 +646,7 @@ button:disabled {
 
 .studentsTableHead {
   padding: 0.25rem 0.95rem;
-  color: var(--text-muted-dark);
+  color: var(--staff-muted);
   font-size: 0.74rem;
   font-weight: 900;
   letter-spacing: 0.04em;
@@ -671,7 +661,7 @@ button:disabled {
 
 .studentRow:hover {
   border-color: rgba(34, 197, 94, 0.25);
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
   transform: translateY(-1px);
 }
 
@@ -685,13 +675,13 @@ button:disabled {
 .studentIdentity strong {
   display: block;
   min-width: 0;
-  color: var(--text-strong);
+  color: var(--staff-text);
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
 .studentCell {
-  color: var(--text-soft);
+  color: var(--staff-text-soft);
   font-size: 0.88rem;
   line-height: 1.42;
   overflow-wrap: anywhere;
@@ -731,13 +721,14 @@ button:disabled {
   font-size: 0.8rem;
 }
 
+/* Estados, carga y modales */
 .staffEmpty,
 .staffError {
   padding: 1.4rem;
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--staff-border);
   border-radius: 16px;
-  background: rgba(2, 6, 23, 0.28);
-  color: var(--text-muted-dark);
+  background: rgba(2, 6, 23, 0.24);
+  color: var(--staff-muted);
   text-align: center;
 }
 
@@ -764,9 +755,9 @@ button:disabled {
 
 .staffSkeleton {
   height: 190px;
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--staff-border);
   border-radius: 20px;
-  background: linear-gradient(90deg, rgba(15,25,39,0.7), rgba(51,65,85,0.5), rgba(15,25,39,0.7));
+  background: linear-gradient(90deg, rgba(15,25,39,0.65), rgba(51,65,85,0.44), rgba(15,25,39,0.65));
   background-size: 200% 100%;
   animation: staffShimmer 1.4s infinite;
 }
@@ -778,7 +769,7 @@ button:disabled {
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: rgba(2, 6, 23, 0.72);
+  background: rgba(15, 23, 42, 0.46);
   backdrop-filter: blur(8px);
 }
 
@@ -786,12 +777,12 @@ button:disabled {
   width: min(720px, 100%);
   max-height: min(760px, calc(100vh - 2rem));
   overflow: auto;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--staff-border-strong);
   border-radius: 20px;
-  background: #101b2c;
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+  background: #101827;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.36);
   padding: 1.25rem;
-  color: var(--text-strong);
+  color: var(--staff-text);
 }
 
 .modalHeader {
@@ -804,7 +795,7 @@ button:disabled {
 
 .modalHeader h2 {
   margin: 0;
-  color: var(--text-strong);
+  color: var(--staff-text);
   font-size: 1.25rem;
 }
 
@@ -818,7 +809,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 0.38rem;
-  color: var(--text-muted-dark);
+  color: var(--staff-muted);
   font-size: 0.82rem;
   font-weight: 900;
 }
@@ -829,17 +820,17 @@ button:disabled {
   gap: 0.22rem;
   margin-bottom: 1rem;
   padding: 0.85rem;
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--staff-border);
   border-radius: 14px;
-  background: rgba(2, 6, 23, 0.28);
+  background: rgba(2, 6, 23, 0.24);
 }
 
 .accessIntro strong {
-  color: var(--text-strong);
+  color: var(--staff-text);
 }
 
 .accessIntro span {
-  color: var(--text-muted-dark);
+  color: var(--staff-muted);
   font-size: 0.88rem;
 }
 
