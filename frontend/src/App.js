@@ -11,6 +11,7 @@ import Galeria from "./pages/Galeria";
 import EstadoPista from "./pages/EstadoPista";
 import Login from "./pages/Login";
 import PanelProfesor from "./pages/PanelProfesor";
+import "./styles/premium.css";
 
 
 function App() {

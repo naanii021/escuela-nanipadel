@@ -7,6 +7,24 @@ import "./panelProfesor.css";
 const STAFF_ROLES = ["admin", "profesor", "profe"];
 const NIVELES = ["ninos", "iniciacion", "avanzado", "avanzado_plus", "competicion"];
 const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
+const GROUP_QUICK_FILTERS = [
+  { key: "todos", label: "Todos" },
+  { key: "ninos", label: "Ninos" },
+  { key: "iniciacion", label: "Iniciacion" },
+  { key: "avanzado", label: "Avanzado" },
+  { key: "competicion", label: "Competicion" },
+  { key: "con-huecos", label: "Con huecos" },
+  { key: "completos", label: "Completos" },
+  { key: "inactivos", label: "Inactivos" },
+];
+const STUDENT_QUICK_FILTERS = [
+  { key: "todos", label: "Todos" },
+  { key: "sin-acceso", label: "Sin acceso" },
+  { key: "con-acceso", label: "Con acceso" },
+  { key: "activos", label: "Activos" },
+  { key: "inactivos", label: "Inactivos" },
+  ...NIVELES.map((item) => ({ key: `nivel:${item}`, label: nivelLabel(item) })),
+];
 
 const emptyGroupForm = {
   codigo: "",
@@ -127,6 +145,9 @@ export default function PanelProfesor() {
   const [nivel, setNivel] = useState("");
   const [profesor, setProfesor] = useState("");
   const [grupo, setGrupo] = useState("");
+  const [groupQuickFilter, setGroupQuickFilter] = useState("todos");
+  const [studentQuickFilter, setStudentQuickFilter] = useState("todos");
+  const [studentProfile, setStudentProfile] = useState(null);
 
   const [groupFormOpen, setGroupFormOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
@@ -210,10 +231,17 @@ export default function PanelProfesor() {
       const matchNivel = !nivel || alumno.nivel === nivel;
       const matchProfesor = !profesor || normalize(alumno.profesores).includes(normalize(profesor));
       const matchGrupo = !grupo || String(alumno.grupo_ids || "").split(",").includes(String(grupo));
+      const matchQuick =
+        studentQuickFilter === "todos" ||
+        (studentQuickFilter === "sin-acceso" && !alumno.usuario_id) ||
+        (studentQuickFilter === "con-acceso" && alumno.usuario_id) ||
+        (studentQuickFilter === "activos" && Number(alumno.activo ?? 1) === 1) ||
+        (studentQuickFilter === "inactivos" && Number(alumno.activo ?? 1) === 0) ||
+        (studentQuickFilter.startsWith("nivel:") && alumno.nivel === studentQuickFilter.replace("nivel:", ""));
 
-      return matchText && matchNivel && matchProfesor && matchGrupo;
+      return matchText && matchNivel && matchProfesor && matchGrupo && matchQuick;
     });
-  }, [alumnos, search, nivel, profesor, grupo]);
+  }, [alumnos, search, nivel, profesor, grupo, studentQuickFilter]);
 
   const filteredGrupos = useMemo(() => {
     const text = normalize(search);
@@ -224,10 +252,45 @@ export default function PanelProfesor() {
       const matchNivel = !nivel || item.nivel === nivel;
       const matchProfesor = !profesor || String(item.profesor_id) === String(profesor) || item.profesor === profesor;
       const matchGrupo = !grupo || String(item.id) === String(grupo);
+      const ocupacion = item.alumnos?.length || 0;
+      const cupo = Number(item.cupo || 0);
+      const matchQuick =
+        groupQuickFilter === "todos" ||
+        item.nivel === groupQuickFilter ||
+        (groupQuickFilter === "avanzado" && item.nivel === "avanzado_plus") ||
+        (groupQuickFilter === "con-huecos" && Number(item.activo ?? 1) === 1 && (!cupo || ocupacion < cupo)) ||
+        (groupQuickFilter === "completos" && cupo > 0 && ocupacion >= cupo) ||
+        (groupQuickFilter === "inactivos" && Number(item.activo ?? 1) === 0);
 
-      return matchText && matchNivel && matchProfesor && matchGrupo;
+      return matchText && matchNivel && matchProfesor && matchGrupo && matchQuick;
     });
-  }, [grupos, search, nivel, profesor, grupo]);
+  }, [grupos, search, nivel, profesor, grupo, groupQuickFilter]);
+
+  const groupedFilteredGrupos = useMemo(() => {
+    const labels = [...NIVELES, "otros"];
+    return labels
+      .map((level) => ({
+        key: level,
+        label: level === "otros" ? "Otros" : nivelLabel(level),
+        items: filteredGrupos.filter((item) => (NIVELES.includes(item.nivel) ? item.nivel : "otros") === level),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [filteredGrupos]);
+
+  const panelMetrics = useMemo(() => {
+    const gruposConHuecos = grupos.filter((item) => {
+      const cupo = Number(item.cupo || 0);
+      return Number(item.activo ?? 1) === 1 && (!cupo || (item.alumnos?.length || 0) < cupo);
+    }).length;
+    const alumnosSinAcceso = alumnos.filter((item) => !item.usuario_id).length;
+
+    return {
+      totalGrupos: stats.totalGrupos || grupos.length,
+      totalAlumnos: stats.totalAlumnos || alumnos.length,
+      gruposConHuecos,
+      alumnosSinAcceso,
+    };
+  }, [alumnos, grupos, stats.totalAlumnos, stats.totalGrupos]);
 
   const selectedGroup = useMemo(
     () => filteredGrupos.find((item) => String(item.id) === String(selectedGroupId)) || filteredGrupos[0] || null,
@@ -240,13 +303,22 @@ export default function PanelProfesor() {
     return (catalogos.alumnos || []).filter((alumno) => !assigned.has(String(alumno.id)));
   }, [catalogos.alumnos, selectedGroup]);
 
-  const hasFilters = search || nivel || profesor || grupo;
+  const studentProfileGroup = useMemo(() => {
+    if (!studentProfile) return null;
+    const firstGroupId = String(studentProfile.grupo_ids || "").split(",").filter(Boolean)[0];
+    if (!firstGroupId) return null;
+    return grupos.find((item) => String(item.id) === String(firstGroupId)) || null;
+  }, [grupos, studentProfile]);
+
+  const hasFilters = search || nivel || profesor || grupo || groupQuickFilter !== "todos" || studentQuickFilter !== "todos";
 
   const clearFilters = () => {
     setSearch("");
     setNivel("");
     setProfesor("");
     setGrupo("");
+    setGroupQuickFilter("todos");
+    setStudentQuickFilter("todos");
   };
 
   const showNotice = (message) => {
@@ -437,9 +509,10 @@ export default function PanelProfesor() {
         </div>
 
         <div className="staffSummary">
-          <div className="metricCard"><span>Grupos</span><strong>{loading ? "-" : stats.totalGrupos}</strong></div>
-          <div className="metricCard"><span>Alumnos</span><strong>{loading ? "-" : stats.totalAlumnos}</strong></div>
-          <div className="metricCard"><span>Rol</span><strong>{String(user?.rol || "").toUpperCase()}</strong></div>
+          <div className="metricCard"><span>Grupos totales</span><strong>{loading ? "-" : panelMetrics.totalGrupos}</strong></div>
+          <div className="metricCard"><span>Alumnos totales</span><strong>{loading ? "-" : panelMetrics.totalAlumnos}</strong></div>
+          <div className="metricCard"><span>Grupos con huecos</span><strong>{loading ? "-" : panelMetrics.gruposConHuecos}</strong></div>
+          <div className="metricCard"><span>Sin acceso</span><strong>{loading ? "-" : panelMetrics.alumnosSinAcceso}</strong></div>
         </div>
       </header>
 
@@ -465,6 +538,22 @@ export default function PanelProfesor() {
       </div>
 
       <div className="staffFilters">
+        <div className="quickFilters" aria-label={activeView === "grupos" ? "Filtros rapidos de grupos" : "Filtros rapidos de alumnos"}>
+          {(activeView === "grupos" ? GROUP_QUICK_FILTERS : STUDENT_QUICK_FILTERS).map((item) => {
+            const active = activeView === "grupos" ? groupQuickFilter === item.key : studentQuickFilter === item.key;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                className={active ? "quickFilterChip active" : "quickFilterChip"}
+                onClick={() => activeView === "grupos" ? setGroupQuickFilter(item.key) : setStudentQuickFilter(item.key)}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+
         <select value={nivel} onChange={(e) => setNivel(e.target.value)}>
           <option value="">Todos los niveles</option>
           {niveles.map((item) => <option key={item} value={item}>{nivelLabel(item)}</option>)}
@@ -498,18 +587,27 @@ export default function PanelProfesor() {
           <aside className="groupList" aria-label="Listado de grupos">
             <div className="panelSectionTitle"><h2>Grupos</h2><span>{filteredGrupos.length} resultados</span></div>
 
-            {filteredGrupos.map((item) => (
-              <button key={item.id} className={String(selectedGroup?.id) === String(item.id) ? "groupListItem active" : "groupListItem"} data-level={item.nivel || "default"} onClick={() => setSelectedGroupId(item.id)}>
-                <span className="groupListTop">
-                  <strong>{item.nombre}</strong>
-                  <small>{item.alumnos?.length || 0}/{item.cupo || "-"}</small>
-                </span>
-                <span className="groupListMeta">
-                  <span className={nivelClass(item.nivel)}>{nivelLabel(item.nivel)}</span>
-                  <span>{formatDias(item.dia1, item.dia2)}</span>
-                  <span>{formatHora(item.hora_inicio, item.duracion_min)}</span>
-                </span>
-              </button>
+            {groupedFilteredGrupos.map((section) => (
+              <div className="groupLevelSection" key={section.key}>
+                <div className="groupLevelHeading">
+                  <span>{section.label}</span>
+                  <small>{section.items.length}</small>
+                </div>
+                {section.items.map((item) => (
+                  <button key={item.id} className={String(selectedGroup?.id) === String(item.id) ? "groupListItem active" : "groupListItem"} data-level={item.nivel || "default"} onClick={() => setSelectedGroupId(item.id)}>
+                    <span className="groupListTop">
+                      <strong>{item.nombre}</strong>
+                      <small>{item.alumnos?.length || 0}/{item.cupo || "-"}</small>
+                    </span>
+                    <span className="groupListMeta">
+                      <span className={nivelClass(item.nivel)}>{nivelLabel(item.nivel)}</span>
+                      <span>{formatDias(item.dia1, item.dia2)}</span>
+                      <span>{formatHora(item.hora_inicio, item.duracion_min)}</span>
+                      <span>{item.pista_habitual || "Sin pista"}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
             ))}
 
             {filteredGrupos.length === 0 && <div className="staffEmpty">No hay grupos con estos filtros.</div>}
@@ -539,10 +637,12 @@ export default function PanelProfesor() {
                 </div>
 
                 <div className="groupMetaGrid">
+                  <div><span>Profesor</span><strong>{selectedGroup.profesor || "No disponible"}</strong></div>
                   <div><span>Dias</span><strong>{formatDias(selectedGroup.dia1, selectedGroup.dia2)}</strong></div>
                   <div><span>Horario</span><strong>{formatHora(selectedGroup.hora_inicio, selectedGroup.duracion_min)}</strong></div>
                   <div><span>Pista</span><strong>{selectedGroup.pista_habitual || "-"}</strong></div>
                   <div><span>Cupo</span><strong>{selectedGroup.cupo || "-"}</strong></div>
+                  <div><span>Estado</span><strong>{Number(selectedGroup.activo ?? 1) === 1 ? "Activo" : "Inactivo"}</strong></div>
                 </div>
 
                 {isAdmin && (
@@ -591,7 +691,7 @@ export default function PanelProfesor() {
 
           <div className="studentsTable">
             <div className={isAdmin ? "studentsTableHead studentsTableHeadAdmin" : "studentsTableHead"}>
-              <span>Alumno</span><span>Nivel</span><span>Acceso</span><span>Grupo</span><span>Profesor</span><span>Horario / pista</span>{isAdmin && <span>Acciones</span>}
+              <span>Alumno</span><span>Nivel</span><span>Acceso</span><span>Grupo</span><span>Profesor</span><span>Horario / pista</span><span>Acciones</span>
             </div>
 
             {filteredAlumnos.map((alumno) => (
@@ -605,17 +705,80 @@ export default function PanelProfesor() {
                 <span className="studentCell">{alumno.grupos || "-"}</span>
                 <span className="studentCell">{alumno.profesores || "-"}</span>
                 <span className="studentCell">{alumno.horarios || "-"}{alumno.pistas ? ` - Pista ${alumno.pistas}` : ""}</span>
-                {isAdmin && (
-                  <div className="rowActions">
-                    {!alumno.usuario_id && <button className="staffPrimaryBtn" onClick={() => openCreateAccess(alumno)}>Crear acceso</button>}
-                    <button className="staffSecondaryBtn" onClick={() => openEditStudent(alumno)}>Editar</button>
-                  </div>
-                )}
+                <div className="rowActions">
+                  <button className="staffSecondaryBtn" onClick={() => setStudentProfile(alumno)}>Ver ficha</button>
+                  {isAdmin && (
+                    <>
+                      {!alumno.usuario_id && <button className="staffPrimaryBtn" onClick={() => openCreateAccess(alumno)}>Crear acceso</button>}
+                      <button className="staffSecondaryBtn" onClick={() => openEditStudent(alumno)}>Editar</button>
+                    </>
+                  )}
+                </div>
               </article>
             ))}
           </div>
 
           {filteredAlumnos.length === 0 && <div className="staffEmpty">No hay alumnos con estos filtros.</div>}
+        </div>
+      )}
+
+      {studentProfile && (
+        <div className="staffModalBackdrop">
+          <aside className="studentProfileDrawer" aria-label="Ficha completa del alumno">
+            <div className="modalHeader">
+              <h2>Ficha de alumno</h2>
+              <button type="button" onClick={() => setStudentProfile(null)} aria-label="Cerrar ficha">Cerrar</button>
+            </div>
+
+            <div className="studentProfileHero">
+              <div className="studentMark" data-level={studentProfile.nivel || "default"}>
+                {initials(studentProfile.nombre, studentProfile.apellidos)}
+              </div>
+              <div>
+                <span className={nivelClass(studentProfile.nivel)}>{nivelLabel(studentProfile.nivel)}</span>
+                <h3>{studentProfile.nombre} {studentProfile.apellidos}</h3>
+                <p>{Number(studentProfile.activo ?? 1) === 1 ? "Alumno activo" : "Alumno inactivo"}</p>
+              </div>
+            </div>
+
+            <div className="profileInfoGrid">
+              <div><span>Telefono</span><strong>{studentProfile.telefono || "No disponible"}</strong></div>
+              <div><span>Email</span><strong>{studentProfile.email || "No disponible"}</strong></div>
+              <div><span>Acceso plataforma</span><strong>{studentProfile.usuario_id ? "Con acceso" : "Sin acceso"}</strong></div>
+              <div><span>Grupo</span><strong>{studentProfile.grupos || "No disponible"}</strong></div>
+              <div><span>Profesor</span><strong>{studentProfile.profesores || studentProfileGroup?.profesor || "No disponible"}</strong></div>
+              <div><span>Dias</span><strong>{studentProfileGroup ? formatDias(studentProfileGroup.dia1, studentProfileGroup.dia2) : "No disponible"}</strong></div>
+              <div><span>Horario</span><strong>{studentProfile.horarios || (studentProfileGroup ? formatHora(studentProfileGroup.hora_inicio, studentProfileGroup.duracion_min) : "No disponible")}</strong></div>
+              <div><span>Pista</span><strong>{studentProfile.pistas || studentProfileGroup?.pista_habitual || "No disponible"}</strong></div>
+            </div>
+
+            <div className="profileNotes">
+              <span>Observaciones</span>
+              <p>{studentProfile.observaciones || "No disponible"}</p>
+            </div>
+
+            <div className="profileActions">
+              {studentProfileGroup && (
+                <button
+                  type="button"
+                  className="staffSecondaryBtn"
+                  onClick={() => {
+                    setSelectedGroupId(studentProfileGroup.id);
+                    setActiveView("grupos");
+                    setStudentProfile(null);
+                  }}
+                >
+                  Ver grupo
+                </button>
+              )}
+              {isAdmin && (
+                <>
+                  {!studentProfile.usuario_id && <button type="button" className="staffPrimaryBtn" onClick={() => { setStudentProfile(null); openCreateAccess(studentProfile); }}>Crear acceso</button>}
+                  <button type="button" className="staffSecondaryBtn" onClick={() => { setStudentProfile(null); openEditStudent(studentProfile); }}>Editar / desactivar</button>
+                </>
+              )}
+            </div>
+          </aside>
         </div>
       )}
 

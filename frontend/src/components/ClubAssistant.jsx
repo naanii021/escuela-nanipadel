@@ -5,11 +5,44 @@ import { isLogged } from "../services/auth";
 import "./clubAssistant.css";
 
 const QUICK_ACTIONS = [
-  { key: "mis-clases", label: "Mis clases" },
-  { key: "mis-reservas", label: "Mis reservas" },
-  { key: "torneos", label: "Torneos abiertos" },
-  { key: "estado-pista", label: "Estado de pista" },
-  { key: "ayuda", label: "Ayuda" },
+  {
+    key: "mis-clases",
+    label: "Mis clases",
+    icon: "📘",
+    description: "Consulta tus próximos entrenamientos.",
+  },
+  {
+    key: "mis-reservas",
+    label: "Mis reservas",
+    icon: "🎾",
+    description: "Revisa tus pistas reservadas.",
+  },
+  {
+    key: "torneos",
+    label: "Torneos abiertos",
+    icon: "🏆",
+    description: "Competiciones disponibles para apuntarte.",
+  },
+  {
+    key: "estado-pista",
+    label: "Estado de pista",
+    icon: "🌦️",
+    description: "Consulta clima, humedad y condiciones de juego.",
+  },
+  {
+    key: "ayuda",
+    label: "Ayuda",
+    icon: "✨",
+    description: "Te guío por la plataforma.",
+  },
+];
+
+const HELP_OPTIONS = [
+  { label: "Ver mis próximas clases", action: "mis-clases" },
+  { label: "Consultar mis reservas", action: "mis-reservas" },
+  { label: "Ver torneos disponibles", action: "torneos" },
+  { label: "Comprobar estado de pista", action: "estado-pista" },
+  { label: "Contactar con el club", to: "/" },
 ];
 
 function formatDateTime(date, time) {
@@ -41,7 +74,10 @@ function buildResponse(action, summary) {
     if (guest) {
       return {
         title: "Mis clases",
+        eyebrow: "Entrenamientos",
         text: "Inicia sesion para ver tu proxima clase y tus grupos asignados.",
+        detail: "Consulta horarios, profesor y grupo desde tu perfil.",
+        status: "Cuenta necesaria",
         cta: { label: "Entrar", to: "/login" },
       };
     }
@@ -50,14 +86,20 @@ function buildResponse(action, summary) {
     if (!nextClass) {
       return {
         title: "Mis clases",
+        eyebrow: "Entrenamientos",
         text: "Ahora mismo no veo clases asignadas a tu perfil.",
+        detail: "Puedes revisar los grupos disponibles de la escuela.",
+        status: "Sin asignar",
         cta: { label: "Ver clases", to: "/clases" },
       };
     }
 
     return {
       title: "Tu proxima clase",
+      eyebrow: "Entrenamientos",
       text: `${nextClass.nombre}. ${formatClassDate(nextClass.nextDate)} con ${nextClass.profesor}.`,
+      detail: "Llegar con unos minutos de margen siempre ayuda a empezar mejor.",
+      status: "Activa",
       cta: { label: "Ir a clases", to: "/clases" },
     };
   }
@@ -66,7 +108,10 @@ function buildResponse(action, summary) {
     if (guest) {
       return {
         title: "Mis reservas",
+        eyebrow: "Pistas",
         text: "Sin sesion solo puedo mostrar la zona general de reservas.",
+        detail: "Entra para consultar tus reservas personales.",
+        status: "Cuenta necesaria",
         cta: { label: "Entrar", to: "/login" },
       };
     }
@@ -76,6 +121,9 @@ function buildResponse(action, summary) {
       return {
         title: "Mis reservas",
         text: "No tienes reservas proximas ahora mismo.",
+        eyebrow: "Pistas",
+        detail: "Puedes buscar hueco por fecha, pista y hora.",
+        status: "Disponible",
         cta: { label: "Reservar pista", to: "/reservas" },
       };
     }
@@ -83,7 +131,10 @@ function buildResponse(action, summary) {
     const first = reservas[0];
     return {
       title: "Tu proxima reserva",
+      eyebrow: "Pistas",
       text: `${first.pista_nombre} el ${formatDateTime(first.fecha, first.hora_inicio)}.`,
+      detail: "Revisa la reserva antes de venir al club.",
+      status: "Confirmada",
       cta: { label: "Ver reservas", to: "/reservas" },
     };
   }
@@ -93,7 +144,10 @@ function buildResponse(action, summary) {
     if (!torneos.length) {
       return {
         title: "Torneos abiertos",
+        eyebrow: "Competicion",
         text: "No veo torneos abiertos o proximos ahora mismo.",
+        detail: "Puedes pasar por la seccion de torneos para ver novedades.",
+        status: "Sin abiertos",
         cta: { label: "Ver torneos", to: "/torneos" },
       };
     }
@@ -101,7 +155,10 @@ function buildResponse(action, summary) {
     const first = torneos[0];
     return {
       title: "Torneos abiertos",
+      eyebrow: "Competicion",
       text: `El siguiente es ${first.nombre} el ${formatDateTime(first.fecha_inicio, first.hora_inicio)}.`,
+      detail: "Revisa categoria, plazas y fecha antes de inscribirte.",
+      status: "Abierto",
       cta: { label: "Ir a torneos", to: "/torneos" },
     };
   }
@@ -111,24 +168,34 @@ function buildResponse(action, summary) {
     if (!meteo) {
       return {
         title: "Estado de pista",
+        eyebrow: "Condiciones",
         text: "Todavia no hay lectura del sensor XIAO disponible.",
+        detail: "Consulta la pagina completa para ver recomendaciones y prevision.",
+        status: "Sin lectura",
         cta: { label: "Ver pagina", to: "/estado-pista" },
       };
     }
 
     return {
       title: "Estado de pista",
+      eyebrow: "Condiciones",
       text: `${meteo.estado || "Lectura recibida"}. ${meteo.temperatura}°C y ${meteo.humedad}% de humedad.`,
+      detail: "Temperatura y humedad ayudan a decidir el mejor momento para jugar.",
+      status: meteo.estado || "Actualizado",
       cta: { label: "Ver estado completo", to: "/estado-pista" },
     };
   }
 
   return {
     title: "Ayuda",
+    eyebrow: "Guia rapida",
     text: guest
       ? "Puedes explorar clases, torneos, galeria y estado de pista. Si entras con tu cuenta, el asistente te dara datos personales."
       : "Usa los accesos rapidos para ver clases, reservas, torneos y estado de pista. Este MVP queda listo para crecer con avisos y recomendaciones.",
+    detail: "Elige una opcion para ir directo a lo que necesitas.",
+    status: "Listo",
     cta: { label: "Ir al inicio", to: "/" },
+    helpOptions: true,
   };
 }
 
@@ -176,28 +243,39 @@ export default function ClubAssistant() {
   }, [summary]);
 
   const response = summary ? buildResponse(selectedAction, summary) : null;
+  const selectedActionMeta = QUICK_ACTIONS.find((action) => action.key === selectedAction);
 
   return (
     <div className="clubAssistant">
       {open && (
         <section className="assistantPanel" aria-label="Asistente del club">
           <div className="assistantPanelHead">
-            <div>
-              <span className="assistantEyebrow">Asistente del club</span>
-              <h3>NaniPadel</h3>
+            <div className="assistantBrand">
+              <div className="assistantAvatar" aria-hidden="true">NP</div>
+              <div>
+                <span className="assistantEyebrow">Asistente del club</span>
+                <h3>NaniPadel</h3>
+                <span className="assistantOnline">
+                  <span aria-hidden="true" />
+                  Online
+                </span>
+              </div>
             </div>
             <button
               className="assistantCloseBtn"
               onClick={() => setOpen(false)}
               aria-label="Cerrar asistente"
             >
-              ×
+              <span aria-hidden="true">×</span>
             </button>
           </div>
 
           <div className="assistantWelcome">
-            <strong>Hola</strong>
-            <p>{welcomeText}</p>
+            <div className="assistantMessageAvatar" aria-hidden="true">NP</div>
+            <div className="assistantBubble">
+              <strong>Hola, soy el asistente de NaniPadel.</strong>
+              <p>{welcomeText}</p>
+            </div>
           </div>
 
           <div className="assistantActions" role="list" aria-label="Acciones rapidas">
@@ -208,19 +286,70 @@ export default function ClubAssistant() {
                 onClick={() => setSelectedAction(action.key)}
                 role="listitem"
               >
-                {action.label}
+                <span className="assistantActionIcon" aria-hidden="true">{action.icon}</span>
+                <span>
+                  <strong>{action.label}</strong>
+                  <small>{action.description}</small>
+                </span>
               </button>
             ))}
           </div>
 
           <div className="assistantBody">
-            {loading && <p className="assistantState">Cargando datos del club...</p>}
-            {!loading && error && <p className="assistantState assistantError">{error}</p>}
+            {loading && (
+              <div className="assistantSkeleton" aria-label="Cargando datos del club">
+                <span />
+                <span />
+                <span />
+              </div>
+            )}
+            {!loading && error && (
+              <div className="assistantState assistantError">
+                <strong>No he podido cargar la información ahora mismo.</strong>
+                <p>Prueba de nuevo en unos segundos.</p>
+              </div>
+            )}
+
+            {!loading && !error && summary && !response && (
+              <div className="assistantState assistantEmpty">
+                <strong>No tengo datos para mostrar todavía.</strong>
+                <p>Prueba con otro acceso rápido o vuelve a intentarlo en unos segundos.</p>
+              </div>
+            )}
 
             {!loading && !error && response && (
               <div className="assistantReplyCard">
-                <span className="assistantReplyTag">{response.title}</span>
+                <div className="assistantReplyTop">
+                  <span className="assistantReplyIcon" aria-hidden="true">
+                    {selectedActionMeta?.icon || "✓"}
+                  </span>
+                  <div>
+                    <span className="assistantReplyTag">{response.eyebrow || response.title}</span>
+                    <h4>{response.title}</h4>
+                  </div>
+                </div>
+                {response.status && <span className="assistantStatusBadge">{response.status}</span>}
                 <p>{response.text}</p>
+                {response.detail && <small className="assistantReplyDetail">{response.detail}</small>}
+                {response.helpOptions && (
+                  <div className="assistantHelpList" aria-label="Opciones de ayuda">
+                    {HELP_OPTIONS.map((option) =>
+                      option.action ? (
+                        <button
+                          type="button"
+                          key={option.label}
+                          onClick={() => setSelectedAction(option.action)}
+                        >
+                          {option.label}
+                        </button>
+                      ) : (
+                        <Link key={option.label} to={option.to} onClick={() => setOpen(false)}>
+                          {option.label}
+                        </Link>
+                      )
+                    )}
+                  </div>
+                )}
                 {response.cta && (
                   <Link className="assistantReplyLink" to={response.cta.to} onClick={() => setOpen(false)}>
                     {response.cta.label}
@@ -237,6 +366,7 @@ export default function ClubAssistant() {
         onClick={() => setOpen((value) => !value)}
         aria-label="Abrir asistente del club"
       >
+        <span className="assistantFabStatus" aria-hidden="true" />
         <span className="assistantFabInner">Club</span>
       </button>
     </div>

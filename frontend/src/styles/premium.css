@@ -1,0 +1,1067 @@
+/* NaniPadel premium visual refresh.
+   This file intentionally overrides presentation only: existing classes, markup and logic stay intact. */
+
+:where(button, input, select, textarea, a) {
+  font-family: var(--font-body);
+}
+
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 3px solid hsl(145 45% 45% / 0.35);
+  outline-offset: 3px;
+}
+
+.main {
+  background: transparent;
+}
+
+/* Header / footer */
+.headerWrap,
+.headerWrap.scrolled {
+  background: linear-gradient(180deg, var(--color-primary), hsl(222 43% 16%));
+  border-bottom: 1px solid hsl(145 45% 45% / 0.18);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
+}
+
+.header {
+  padding: 0.92rem 0;
+}
+
+.badge {
+  background: linear-gradient(145deg, var(--color-secondary), var(--color-secondary-dark));
+  box-shadow: 0 10px 24px hsl(145 45% 45% / 0.28);
+}
+
+.brandText strong {
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: 1.18rem;
+  letter-spacing: 0.02em;
+}
+
+.brandText span,
+.nav a {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.brand:hover .brandText strong,
+.nav a:hover {
+  color: #ffffff;
+}
+
+.nav a:hover {
+  background: hsl(145 45% 45% / 0.12);
+}
+
+.nav a::after {
+  background: var(--color-secondary);
+}
+
+.nav a.active {
+  background: var(--color-secondary);
+  color: #ffffff;
+  box-shadow: 0 10px 20px hsl(145 45% 45% / 0.24);
+}
+
+.nav a.active::after {
+  opacity: 0;
+}
+
+.loginBtn,
+.heroCtaBtn,
+.cardLoginCta,
+.btnPrimary,
+.staffPrimaryBtn,
+.modalActions button[type="submit"],
+.addStudentBar button,
+.reserveBtn.btnDisponible,
+.btnTorneo,
+.newsReadBtn,
+.newsMoreBtn,
+.tiendaFilter.isActive,
+.galleryFilterBtn.active {
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-secondary-dark));
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 12px 26px hsl(145 45% 45% / 0.24);
+}
+
+.loginBtn:hover,
+.heroCtaBtn:hover,
+.cardLoginCta:hover,
+.btnPrimary:hover:not(:disabled),
+.staffPrimaryBtn:hover,
+.modalActions button[type="submit"]:hover,
+.addStudentBar button:hover,
+.reserveBtn.btnDisponible:hover,
+.btnTorneo:hover:not(:disabled),
+.newsReadBtn:hover,
+.newsMoreBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px hsl(145 45% 45% / 0.32);
+  filter: none;
+}
+
+.loginBtnShimmer {
+  background: linear-gradient(108deg, transparent 28%, rgba(255, 255, 255, 0.26) 50%, transparent 72%);
+}
+
+.navUserInfo {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.navAvatar {
+  background: var(--color-secondary);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 0 0 3px hsl(145 45% 45% / 0.18);
+}
+
+.navUser {
+  color: #ffffff;
+}
+
+.logoutBtn {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(248, 113, 113, 0.28);
+  color: #fecaca;
+}
+
+.footer {
+  margin-top: 1rem;
+  padding: 2rem 0 2.4rem;
+  background: var(--color-primary);
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.footerInner {
+  border-top-color: rgba(255, 255, 255, 0.14);
+}
+
+.footer strong {
+  color: #ffffff;
+}
+
+/* Common surfaces */
+.heroCard,
+.clasesHero,
+.misClasesSection,
+.filtersBar,
+.claseCard,
+.quickCard,
+.platformIntro,
+.platformItem,
+.newsCard,
+.newsFeatured,
+.torneosHero,
+.torneosControlBar,
+.torneoCard,
+.torneosGallerySection,
+.galeriaHeroCopy,
+.galeriaHeroPanel,
+.galeriaControls,
+.galleryCard,
+.featuredCard,
+.tiendaHeroCopy,
+.tiendaHeroPanel,
+.tiendaFeatured,
+.tiendaControls,
+.shopCard,
+.estadoHeroMain,
+.estadoNowCard,
+.estadoPanel,
+.estadoForecastCard,
+.estadoModuleCard,
+.estadoPhotoCard,
+.loginCard,
+.staffHero,
+.staffToolbar,
+.staffFilters,
+.groupList,
+.groupDetail,
+.studentsPanel,
+.studentMiniCard,
+.studentRow,
+.staffModal,
+.reservasHeader,
+.toolbar,
+.courtHeader,
+.reservaCard,
+.modal {
+  border-radius: var(--radius-lg);
+}
+
+.clasesHero,
+.filtersBar,
+.claseCard,
+.quickCard,
+.platformIntro,
+.platformItem,
+.newsCard,
+.torneosControlBar,
+.torneoCard,
+.torneosGallerySection,
+.galeriaControls,
+.galleryCard,
+.featuredCard,
+.tiendaHeroPanel,
+.tiendaFeatured,
+.tiendaControls,
+.shopCard,
+.estadoNowCard,
+.estadoPanel,
+.estadoForecastCard,
+.estadoModuleCard,
+.estadoPhotoCard,
+.loginCard,
+.staffToolbar,
+.staffFilters,
+.groupList,
+.groupDetail,
+.studentsPanel,
+.studentMiniCard,
+.studentRow {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow);
+}
+
+.claseCard:hover,
+.platformItem:hover,
+.quickItem:hover,
+.newsCard:hover,
+.torneoCard:hover,
+.galleryCard:hover,
+.shopCard:hover,
+.studentMiniCard:hover,
+.studentRow:hover,
+.reservaCard.disponible:hover {
+  border-color: color-mix(in srgb, var(--color-secondary) 34%, var(--color-border));
+  box-shadow: var(--shadow-hover);
+}
+
+/* Dark page headers */
+.heroCard,
+.galeriaHeroCopy,
+.tiendaHeroCopy,
+.estadoHeroMain,
+.staffHero,
+.misClasesSection,
+.reservasHeader,
+.torneosMetricCard,
+.platformLeadCard {
+  background:
+    radial-gradient(circle at 82% 12%, hsl(145 45% 45% / 0.20), transparent 34%),
+    linear-gradient(135deg, var(--color-primary), var(--color-primary-soft));
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+}
+
+.heroLeft h2,
+.galeria h1,
+.tienda h1,
+.estadoHeroMain h1,
+.staffHero h1,
+.reservasTitle,
+.torneosTitle,
+.heroTitle,
+.sectionHeader h3,
+.platformIntro h3,
+.tiendaFeaturedBody h2,
+.tiendaControlsHead h3,
+.torneosControlHead h3,
+.torneosGalleryHead h3,
+.estadoNowTop h2,
+.estadoSectionHead h3,
+.estadoPanelHead h3,
+.sectionTitle,
+.groupDetailHeader h2,
+.panelSectionTitle h2,
+.weatherModal h3,
+.forecastSection h4 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.heroLeft h2,
+.reservasTitle,
+.galeria h1,
+.tienda h1,
+.estadoHeroMain h1,
+.staffHero h1 {
+  font-size: clamp(2.5rem, 8vw, 5.7rem);
+  line-height: 0.92;
+  max-width: 12ch;
+}
+
+.heroTitle,
+.sectionHeader h3,
+.platformIntro h3,
+.torneosControlHead h3,
+.torneosGalleryHead h3,
+.tiendaFeaturedBody h2,
+.tiendaControlsHead h3,
+.estadoNowTop h2,
+.estadoSectionHead h3,
+.estadoPanelHead h3,
+.sectionTitle {
+  font-size: clamp(1.7rem, 4vw, 2.65rem);
+  line-height: 0.98;
+}
+
+.heroTitleAccent,
+.sectionEyebrow,
+.torneosSectionEyebrow,
+.tiendaSectionEyebrow,
+.estadoSectionEyebrow,
+.reservasEyebrow,
+.weatherEyebrow,
+.galeriaEyebrow,
+.tiendaEyebrow,
+.torneosEyebrow,
+.staffEyebrow,
+.newsCategory,
+.weatherPageLink,
+.weatherTemp,
+.cardProximaHoy strong,
+.estadoNowLabel {
+  color: var(--color-secondary);
+}
+
+.pill,
+.galeriaEyebrow,
+.tiendaEyebrow,
+.torneosEyebrow,
+.staffEyebrow,
+.weatherBadge,
+.resultsBadge,
+.estadoBadge,
+.shopBadge,
+.torneoBadge,
+.levelPill,
+.accessBadge,
+.playerOpenAvailable,
+.badgeDisponible {
+  background: hsl(145 45% 45% / 0.12);
+  border-color: hsl(145 45% 45% / 0.28);
+  color: var(--color-secondary);
+}
+
+.dot,
+.eyebrowDot,
+.badgeDisponible::before {
+  background: var(--color-secondary);
+}
+
+.heroLeft p,
+.galeriaLead,
+.tiendaLead,
+.estadoHeroMain p,
+.staffHero p,
+.reservasIntro,
+.platformLeadCard span,
+.weatherHint,
+.weatherDesc {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.heroStatusItem,
+.weatherBox,
+.weatherStatusCard,
+.statCard,
+.tiendaHeroPanel .tiendaMiniStat,
+.modalInfo {
+  backdrop-filter: blur(12px);
+}
+
+.heroStatusItem,
+.weatherBox,
+.weatherStatusCard,
+.statCard {
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+}
+
+.heroLeft .btn-primary {
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-secondary-dark));
+  box-shadow: 0 14px 30px hsl(145 45% 45% / 0.35);
+}
+
+.heroLeft .btn-primary:hover {
+  background: linear-gradient(135deg, var(--color-secondary-dark), hsl(152 38% 34%));
+  box-shadow: 0 18px 38px hsl(145 45% 45% / 0.42);
+}
+
+.heroLeft .btn-ghost,
+.estadoGhostBtn,
+.weatherModalPageLink {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.weatherBoxClickable:hover {
+  border-color: hsl(145 45% 45% / 0.38);
+}
+
+.weatherTemp {
+  background: linear-gradient(135deg, #ffffff 35%, var(--color-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.weatherModal,
+.modal,
+.staffModal {
+  background: var(--color-card);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.24);
+}
+
+.weatherModalHead,
+.modalHead {
+  border-bottom-color: var(--color-border);
+}
+
+.weatherModalHead h3,
+.modalHead h3,
+.modalHeader h2,
+.modalInfoRow strong,
+.accessIntro strong {
+  color: var(--color-text);
+}
+
+.modalPrice {
+  color: var(--color-secondary-dark) !important;
+}
+
+.weatherDetailItem,
+.forecastDay,
+.modalInfo,
+.accessIntro,
+.staffEmpty {
+  background: hsl(220 20% 97%);
+  border: 1px solid var(--color-border);
+}
+
+.wdLabel,
+.fDayDesc,
+.fDayRain,
+.weatherUpdated,
+.modalSubtitle,
+.modalInfoLabel,
+.form label,
+.formGrid label,
+.accessIntro span {
+  color: var(--color-muted);
+}
+
+/* Forms */
+input,
+select,
+textarea,
+.field input,
+.searchInput,
+.select,
+.filters select,
+.searchHour,
+.datePicker,
+.datePicker input,
+.form input,
+.form textarea,
+.staffSearch input,
+.staffFilters select,
+.addStudentBar select,
+.formGrid input,
+.formGrid select {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  border-radius: 14px;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.field input:focus,
+.searchInput:focus,
+.select:focus,
+.filters select:focus,
+.searchHour:focus,
+.form input:focus,
+.form textarea:focus,
+.staffSearch input:focus,
+.staffFilters select:focus,
+.addStudentBar select:focus,
+.formGrid input:focus,
+.formGrid select:focus {
+  border-color: hsl(145 45% 45% / 0.72);
+  box-shadow: 0 0 0 3px hsl(145 45% 45% / 0.16);
+}
+
+input::placeholder,
+textarea::placeholder,
+.searchHour::placeholder,
+.staffSearch input::placeholder {
+  color: hsl(220 12% 45% / 0.58);
+}
+
+.btnGhost,
+.staffSecondaryBtn,
+.modalActions button[type="button"],
+.modalHeader button,
+.btnClear,
+.filterTab,
+.galleryFilterBtn,
+.tiendaFilter {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  color: var(--color-primary);
+}
+
+.btnGhost:hover,
+.staffSecondaryBtn:hover,
+.modalActions button[type="button"]:hover,
+.modalHeader button:hover,
+.btnClear:hover,
+.filterTab:hover,
+.galleryFilterBtn:hover,
+.tiendaFilter:hover {
+  background: hsl(145 45% 45% / 0.08);
+  border-color: hsl(145 45% 45% / 0.28);
+  color: var(--color-primary);
+}
+
+.staffDangerBtn,
+.miniDangerBtn,
+.btnCancel {
+  background: hsl(0 72% 51% / 0.10);
+  border: 1px solid hsl(0 72% 51% / 0.26);
+  color: var(--color-danger);
+}
+
+/* Home */
+.home,
+.clases,
+.torneos,
+.galeria,
+.tienda,
+.estadoPistaPage,
+.staffPanel,
+.reservas {
+  color: var(--color-text);
+}
+
+.home {
+  gap: 2.2rem;
+}
+
+.heroCard::before,
+.galeriaHeroCopy::before,
+.reservas::before {
+  opacity: 0.6;
+}
+
+.platformIntro {
+  background:
+    radial-gradient(circle at top left, hsl(145 45% 45% / 0.08), transparent 34%),
+    #ffffff;
+}
+
+.platformIcon,
+.qiIcon,
+.recIcon,
+.studentMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: hsl(145 45% 45% / 0.12);
+  color: var(--color-secondary);
+}
+
+.platformIcon,
+.qiIcon {
+  width: 52px;
+  height: 52px;
+}
+
+.quickCard {
+  background: #ffffff;
+}
+
+.quickItem {
+  border-color: var(--color-border);
+  border-radius: 22px;
+}
+
+.quickItem::before,
+.quickItem-green::before,
+.quickItem-blue::before,
+.quickItem-gold::before,
+.quickItem-slate::before {
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+}
+
+.qiAction,
+.newsCardLink,
+.tiendaFeaturedMeta strong,
+.shopCardFooter strong,
+.torneoPrice {
+  color: var(--color-secondary);
+}
+
+.newsFeaturedOverlay,
+.torneoMediaOverlay,
+.heroPanelOverlay {
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.35));
+}
+
+/* Reservas */
+.reservas {
+  min-height: auto;
+  padding-bottom: 4rem;
+  background:
+    radial-gradient(circle at 12% 0%, hsl(145 45% 45% / 0.10), transparent 30%),
+    var(--color-background);
+  overflow: visible;
+}
+
+.reservas::after {
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary), var(--color-primary));
+}
+
+.reservasHeader {
+  display: flex;
+  padding: 2rem 1.4rem;
+  margin-top: 0;
+}
+
+.summaryItem {
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.summaryGreen strong,
+.summaryBlue strong {
+  color: var(--color-secondary);
+  text-shadow: none;
+}
+
+.summaryRed strong {
+  color: #fca5a5;
+  text-shadow: none;
+}
+
+.toolbar {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow);
+}
+
+.pillBtn {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  color: var(--color-primary);
+}
+
+.pillBtn:hover,
+.pillBtn.active {
+  background: var(--color-secondary);
+  border-color: var(--color-secondary);
+  color: #ffffff;
+}
+
+.datePickerIcon,
+.check,
+.dayTitle span,
+.courtCount {
+  color: var(--color-muted);
+}
+
+.dayTitle {
+  border-bottom-color: var(--color-border);
+}
+
+.dayTitle strong,
+.courtName,
+.timeVal,
+.playerName {
+  color: var(--color-text);
+}
+
+.courtHeader {
+  position: sticky;
+  top: 82px;
+  background: var(--color-primary);
+  border-color: hsl(145 45% 45% / 0.28);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+}
+
+.courtHeader .courtName {
+  color: #ffffff;
+}
+
+.reservaCard {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow);
+  backdrop-filter: none;
+}
+
+.reservaCard.disponible {
+  background: #ffffff;
+  border-color: hsl(142 45% 36% / 0.28);
+  box-shadow: var(--shadow);
+}
+
+.reservaCard.disponible:hover {
+  transform: translateY(-2px);
+  border-color: hsl(145 45% 45% / 0.38);
+}
+
+.reservaCard.ocupada {
+  background: hsl(220 15% 94%);
+  border-color: hsl(0 72% 51% / 0.20);
+  opacity: 1;
+  filter: none;
+}
+
+.reservaCard.ocupada .timeVal {
+  color: hsl(220 12% 45% / 0.72);
+}
+
+.stripeAfternoon,
+.stripeMorning,
+.stripeEvening {
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+}
+
+.tagAfternoon,
+.tagMorning,
+.tagEvening {
+  background: hsl(145 45% 45% / 0.10);
+  border: 1px solid hsl(145 45% 45% / 0.26);
+  color: var(--color-secondary-dark);
+}
+
+.badgeDisponible,
+.playerOpenAvailable {
+  background: hsl(142 47% 34% / 0.10);
+  border-color: hsl(142 47% 34% / 0.22);
+  color: var(--color-success);
+}
+
+.badgeOcupada,
+.playerOpenBadge {
+  background: hsl(0 72% 51% / 0.09);
+  border-color: hsl(0 72% 51% / 0.22);
+  color: hsl(0 72% 42%);
+}
+
+.chip,
+.metaRow .chip {
+  background: hsl(220 20% 97%);
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+}
+
+.playerSlots {
+  background: hsl(220 20% 97%);
+  border: 1px solid var(--color-border);
+}
+
+.reservaCard.disponible .playerSlots {
+  background: hsl(142 47% 34% / 0.06);
+  border-color: hsl(142 47% 34% / 0.14);
+}
+
+.playerFilled {
+  background: var(--color-primary);
+  border-color: hsl(145 45% 45% / 0.35);
+}
+
+.playerEmpty,
+.playerEmpty svg {
+  color: hsl(220 12% 45% / 0.36);
+  border-color: hsl(220 15% 70%);
+}
+
+.btnOcupada {
+  background: hsl(220 12% 45% / 0.10);
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+}
+
+.toastSuccess {
+  background: var(--color-primary);
+  border-color: hsl(145 45% 45% / 0.42);
+  color: #ffffff;
+}
+
+/* Clases / admin */
+.misClasesSection {
+  padding: 1.9rem 2rem;
+}
+
+.miClaseCard {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.resultsBadge,
+.badgeInit,
+.occStatusFree {
+  background: hsl(145 45% 45% / 0.10);
+  color: var(--color-secondary-dark);
+  border-color: hsl(145 45% 45% / 0.20);
+}
+
+.claseCard[data-nivel="iniciacion"],
+.groupListItem[data-level="iniciacion"] {
+  --nivel-color: var(--color-secondary);
+  --nivel-color-bg: hsl(145 45% 45% / 0.08);
+}
+
+.miClaseCard[data-nivel="avanzado"],
+.claseCard[data-nivel="avanzado"] {
+  --nivel-color: var(--color-primary-soft);
+  --nivel-color-bg: hsl(222 38% 20% / 0.07);
+}
+
+.badgeAdv {
+  background: hsl(222 38% 20% / 0.08);
+  color: var(--color-primary-soft);
+}
+
+.occLow span {
+  background: linear-gradient(90deg, hsl(142 44% 56%), var(--color-success));
+}
+
+.staffPanel {
+  --staff-surface: #ffffff;
+  --staff-surface-2: hsl(220 20% 97%);
+  --staff-surface-3: hsl(220 18% 94%);
+  --staff-border: var(--color-border);
+  --staff-border-strong: hsl(220 15% 80%);
+  --staff-text: var(--color-text);
+  --staff-text-soft: hsl(222 24% 28%);
+  --staff-muted: var(--color-muted);
+  --staff-green: var(--color-secondary);
+  --staff-green-strong: var(--color-secondary-dark);
+  --staff-green-soft: hsl(145 45% 45% / 0.12);
+  color: var(--color-text);
+}
+
+.staffToolbar,
+.staffFilters,
+.groupList,
+.groupDetail,
+.studentsPanel {
+  background: #ffffff;
+}
+
+.staffTabs {
+  background: hsl(220 20% 97%);
+  border-color: var(--color-border);
+}
+
+.staffTabs button.active {
+  background: var(--color-secondary);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.groupListItem,
+.groupListItem.active,
+.groupMetaGrid div,
+.studentMiniCard,
+.studentRow {
+  background: #ffffff;
+}
+
+.groupListItem:hover,
+.groupListItem.active,
+.studentRow:hover {
+  border-color: hsl(145 45% 45% / 0.34);
+}
+
+.groupListItem[data-level="avanzado"]::before {
+  background: var(--color-primary-soft);
+}
+
+.groupListItem.active {
+  box-shadow: inset 4px 0 0 var(--color-secondary), var(--shadow);
+}
+
+.groupListTop strong,
+.groupDetailHeader h2,
+.groupMetaGrid strong,
+.studentMiniCard h3,
+.studentIdentity strong,
+.panelSectionTitle h2,
+.accessIntro strong {
+  color: var(--color-text);
+}
+
+.studentCell,
+.groupSubtitle,
+.studentMiniCard small,
+.studentIdentity small {
+  color: var(--color-muted);
+}
+
+.groupCapacity {
+  background: hsl(145 45% 45% / 0.10);
+  border-color: hsl(145 45% 45% / 0.24);
+}
+
+.groupCapacity strong {
+  color: var(--color-secondary-dark);
+}
+
+.accessOn {
+  background: hsl(142 47% 34% / 0.10);
+  color: var(--color-success);
+}
+
+.accessOff {
+  background: hsl(220 12% 45% / 0.10);
+  color: var(--color-muted);
+}
+
+.level-avanzado,
+.studentMiniCard[data-level="avanzado"] .studentMark,
+.studentMark[data-level="avanzado"] {
+  background: hsl(222 38% 20% / 0.08);
+  color: var(--color-primary-soft);
+}
+
+/* Torneos / galeria / tienda / estado */
+.torneos,
+.tienda,
+.estadoPistaPage {
+  background: transparent;
+}
+
+.torneosHero {
+  background: #ffffff;
+}
+
+.torneosTitle {
+  color: var(--color-primary);
+}
+
+.filterTabActive {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.categorySocial,
+.categoryLiga,
+.categoryTorneo,
+.categoryIntensivo {
+  --category-gradient: linear-gradient(180deg, var(--color-secondary), var(--color-secondary-dark));
+}
+
+.catLiga {
+  --category-gradient: linear-gradient(180deg, var(--color-secondary), var(--color-secondary-dark));
+  --category-glow: hsl(145 45% 45% / 0.14);
+}
+
+.torneoPrice {
+  background: hsl(145 45% 45% / 0.12);
+  border-color: hsl(145 45% 45% / 0.24);
+  color: var(--color-secondary-dark);
+}
+
+.galleryFilterBtn.active,
+.tiendaFilter.isActive {
+  background: var(--color-primary);
+  box-shadow: none;
+}
+
+.galeriaHeroCopy,
+.tiendaHeroCopy,
+.estadoHeroMain {
+  background:
+    radial-gradient(circle at top right, hsl(145 45% 45% / 0.18), transparent 34%),
+    linear-gradient(138deg, var(--color-primary), var(--color-primary-soft));
+}
+
+.estadoBadge:not(.estadoBadgeRisk) {
+  background: hsl(142 47% 34% / 0.10);
+  border-color: hsl(142 47% 34% / 0.22);
+  color: var(--color-success);
+}
+
+.estadoAdviceGood,
+.rec-bueno {
+  background: hsl(142 47% 34% / 0.10);
+  color: hsl(142 47% 25%);
+}
+
+.estadoAdviceWarn,
+.rec-precaucion {
+  background: hsl(40 90% 55% / 0.12);
+  color: hsl(40 85% 32%);
+}
+
+/* Login and assistant */
+.loginPage {
+  padding: 2rem 0 4rem;
+}
+
+.loginCard {
+  max-width: 460px;
+  padding: 1.8rem;
+  border-radius: 24px;
+  box-shadow: var(--shadow-hover);
+}
+
+.loginCard h2 {
+  margin-top: 0;
+  font-size: clamp(2rem, 6vw, 3rem);
+}
+
+.loginPage .loginBtn {
+  width: 100%;
+}
+
+.switchBtn {
+  color: var(--color-secondary-dark);
+}
+
+@media (max-width: 720px) {
+  .headerRight {
+    gap: 0.7rem;
+  }
+
+  .nav {
+    width: 100%;
+  }
+
+  .nav a {
+    padding: 0.5rem 0.66rem;
+  }
+
+  .heroLeft h2,
+  .reservasTitle,
+  .galeria h1,
+  .tienda h1,
+  .estadoHeroMain h1,
+  .staffHero h1 {
+    font-size: clamp(2.4rem, 15vw, 4.2rem);
+  }
+
+  .reservasHeader {
+    padding: 1.5rem 1rem;
+  }
+
+  .courtHeader {
+    top: 112px;
+  }
+}

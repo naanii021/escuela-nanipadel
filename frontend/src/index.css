@@ -1,25 +1,43 @@
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&display=swap");
+
 /* =========================
    NaniPadel · Estilos globales
-   Objetivo: look claro, limpio, moderno y atractivo
+   Sistema visual premium deportivo
    ========================= */
 
 /* Variables de diseño: colores, sombras, radios, etc. */
 :root {
-  --bg: #f6f8fb;
-  --surface: #ffffff;
-  --text: #0f172a;
-  --muted: #64748b;
+  --color-primary: hsl(222 47% 14%);
+  --color-primary-soft: hsl(222 38% 20%);
+  --color-secondary: hsl(145 45% 45%);
+  --color-secondary-dark: hsl(152 38% 38%);
+  --color-secondary-light: hsl(145 35% 92%);
+  --color-secondary-soft: hsl(145 45% 45% / 0.12);
+  --color-background: hsl(220 20% 97%);
+  --color-card: hsl(0 0% 100%);
+  --color-border: hsl(220 15% 88%);
+  --color-muted: hsl(220 12% 45%);
+  --color-text: hsl(222 30% 16%);
+  --color-danger: hsl(0 65% 55%);
+  --color-success: hsl(145 45% 45%);
+  --color-warning: hsl(40 90% 55%);
 
-  /* Verde marca (puedes ajustar a tu gusto) */
-  --brand: #16a34a;
-  --brand-600: #15803d;
+  --bg: var(--color-background);
+  --surface: var(--color-card);
+  --text: var(--color-text);
+  --muted: var(--color-muted);
+  --brand: var(--color-secondary);
+  --brand-600: var(--color-secondary-dark);
+  --border: var(--color-border);
 
-  --border: rgba(15, 23, 42, 0.10);
+  --font-display: "Bebas Neue", Impact, "Arial Narrow", sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 
-  --radius: 16px;
-  --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-
-  --container: 1100px;
+  --radius: 20px;
+  --radius-lg: 24px;
+  --shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  --shadow-hover: 0 18px 45px rgba(15, 23, 42, 0.12);
+  --container: 1160px;
 }
 
 /* Reset básico para que todo se vea consistente */
@@ -33,11 +51,29 @@ html, body {
 
 body {
   margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-  background: radial-gradient(1200px 600px at 20% -10%, rgba(22, 163, 74, 0.18), transparent 60%),
-              radial-gradient(900px 500px at 95% 0%, rgba(14, 165, 233, 0.10), transparent 55%),
-              var(--bg);
+  font-family: var(--font-body);
+  background:
+    radial-gradient(1000px 520px at 12% -10%, hsl(145 45% 45% / 0.10), transparent 58%),
+    radial-gradient(900px 500px at 96% 0%, hsl(222 47% 14% / 0.08), transparent 55%),
+    var(--bg);
   color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+.heroTitle,
+.reservasTitle,
+.torneosTitle,
+.galeria h1,
+.tienda h1,
+.estadoHeroMain h1,
+.staffHero h1 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
 /* Links limpios */
@@ -56,8 +92,15 @@ a {
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--color-secondary) 35%, var(--color-border));
+  box-shadow: var(--shadow-hover);
 }
 
 /* Botones */
@@ -69,9 +112,9 @@ a {
   border: 1px solid transparent;
   border-radius: 999px;
   padding: 0.8rem 1.1rem;
-  font-weight: 700;
+  font-weight: 900;
   cursor: pointer;
-  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
 }
 
 .btn:active {
@@ -79,16 +122,19 @@ a {
 }
 
 .btn-primary {
-  background: var(--brand);
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-secondary-dark));
   color: white;
+  box-shadow: 0 12px 24px hsl(145 45% 45% / 0.25);
 }
 
 .btn-primary:hover {
-  background: var(--brand-600);
+  background: linear-gradient(135deg, var(--color-secondary-dark), hsl(152 38% 34%));
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px hsl(145 45% 45% / 0.32);
 }
 
 .btn-ghost {
-  background: rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.74);
   border-color: var(--border);
 }
 
