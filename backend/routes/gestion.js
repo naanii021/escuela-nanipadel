@@ -109,6 +109,7 @@ function parseGroupRows(rows) {
         nombre: row.alumno_nombre,
         apellidos: row.alumno_apellidos,
         nivel: row.alumno_nivel,
+        nivel_juego: row.alumno_nivel_juego,
         email: row.alumno_email,
         telefono: row.alumno_telefono,
       });
@@ -127,10 +128,12 @@ router.get("/resumen", async (req, res) => {
     const alumnoTelefonoSelect = alumnoColumns.has("telefono") ? "a.telefono" : "NULL AS telefono";
     const alumnoActivoSelect = alumnoColumns.has("activo") ? "a.activo" : "1 AS activo";
     const alumnoUsuarioSelect = alumnoColumns.has("usuario_id") ? "a.usuario_id" : "NULL AS usuario_id";
+    const alumnoNivelJuegoSelect = alumnoColumns.has("nivel_juego") ? "a.nivel_juego" : "NULL AS nivel_juego";
     const alumnoGroupByEmail = alumnoColumns.has("email") ? ", a.email" : "";
     const alumnoGroupByTelefono = alumnoColumns.has("telefono") ? ", a.telefono" : "";
     const alumnoGroupByActivo = alumnoColumns.has("activo") ? ", a.activo" : "";
     const alumnoGroupByUsuario = alumnoColumns.has("usuario_id") ? ", a.usuario_id" : "";
+    const alumnoGroupByNivelJuego = alumnoColumns.has("nivel_juego") ? ", a.nivel_juego" : "";
 
     if (!isAdmin && !profesorId) {
       return res.json({
@@ -157,6 +160,7 @@ router.get("/resumen", async (req, res) => {
         ${alumnoTelefonoSelect},
         ${alumnoActivoSelect},
         ${alumnoUsuarioSelect},
+        ${alumnoNivelJuegoSelect},
         GROUP_CONCAT(DISTINCT g.id ORDER BY g.hora_inicio SEPARATOR ',') AS grupo_ids,
         GROUP_CONCAT(DISTINCT g.nombre ORDER BY g.hora_inicio SEPARATOR ' | ') AS grupos,
         GROUP_CONCAT(DISTINCT CONCAT_WS(' ', g.dia1, g.dia2, g.hora_inicio) ORDER BY g.hora_inicio SEPARATOR ' | ') AS horarios,
@@ -167,7 +171,7 @@ router.get("/resumen", async (req, res) => {
        ${alumnoJoinType} grupos g ON g.id = ga.grupo_id AND g.activo = 1 ${scopeWhere}
        LEFT JOIN profesores p ON p.id = g.profesor_id
        WHERE ${alumnoColumns.has("activo") ? "a.activo = 1" : "1 = 1"}
-       GROUP BY a.id, a.nombre, a.apellidos, a.nivel${alumnoGroupByEmail}${alumnoGroupByTelefono}${alumnoGroupByActivo}${alumnoGroupByUsuario}
+       GROUP BY a.id, a.nombre, a.apellidos, a.nivel${alumnoGroupByEmail}${alumnoGroupByTelefono}${alumnoGroupByActivo}${alumnoGroupByUsuario}${alumnoGroupByNivelJuego}
        ORDER BY a.apellidos, a.nombre`,
       scopeParams
     );
@@ -191,6 +195,7 @@ router.get("/resumen", async (req, res) => {
         a.nombre AS alumno_nombre,
         a.apellidos AS alumno_apellidos,
         a.nivel AS alumno_nivel,
+        ${alumnoColumns.has("nivel_juego") ? "a.nivel_juego" : "NULL"} AS alumno_nivel_juego,
         ${alumnoColumns.has("email") ? "a.email" : "NULL"} AS alumno_email,
         ${alumnoColumns.has("telefono") ? "a.telefono" : "NULL"} AS alumno_telefono
        FROM grupos g
@@ -222,6 +227,7 @@ router.get("/resumen", async (req, res) => {
         a.nombre,
         a.apellidos,
         a.nivel,
+        ${buildSelect("a", alumnoColumns, "nivel_juego")},
         ${buildSelect("a", alumnoColumns, "email")},
         ${buildSelect("a", alumnoColumns, "telefono")},
         ${alumnoColumns.has("activo") ? "a.activo" : "1 AS activo"},
@@ -397,6 +403,7 @@ router.post("/alumnos", requireAdmin, async (req, res) => {
       nombre: req.body.nombre?.trim(),
       apellidos: req.body.apellidos?.trim() || null,
       nivel: req.body.nivel || null,
+      nivel_juego: req.body.nivel_juego ?? null,
       telefono: req.body.telefono?.trim() || null,
       email: req.body.email?.trim() || null,
       activo: req.body.activo ?? 1,
@@ -408,7 +415,7 @@ router.post("/alumnos", requireAdmin, async (req, res) => {
       return res.status(400).json({ ok: false, message: "El nombre del alumno es obligatorio" });
     }
 
-    const allowed = ["nombre", "apellidos", "nivel", "telefono", "email", "activo", "observaciones", "usuario_id"];
+    const allowed = ["nombre", "apellidos", "nivel", "nivel_juego", "telefono", "email", "activo", "observaciones", "usuario_id"];
     const { fields, values } = pickWritableFields(payload, allowed, columns);
 
     const [result] = await query(
@@ -430,7 +437,7 @@ router.post("/alumnos", requireAdmin, async (req, res) => {
 router.put("/alumnos/:id", requireAdmin, async (req, res) => {
   try {
     const columns = await getTableColumns("alumnos");
-    const allowed = ["nombre", "apellidos", "nivel", "telefono", "email", "activo"];
+    const allowed = ["nombre", "apellidos", "nivel", "nivel_juego", "telefono", "email", "activo"];
     const { fields, values } = pickWritableFields(req.body, allowed, columns);
 
     if (!fields.length) {
@@ -441,6 +448,20 @@ router.put("/alumnos/:id", requireAdmin, async (req, res) => {
       `UPDATE alumnos SET ${fields.map((field) => `${field} = ?`).join(", ")} WHERE id = ?`,
       [...values, req.params.id]
     );
+
+    // Si el alumno ya tiene cuenta, sincronizamos tambien el nivel de juego del usuario.
+    if (columns.has("usuario_id") && fields.includes("nivel_juego")) {
+      const usuarioColumns = await getTableColumns("usuarios");
+      if (usuarioColumns.has("nivel_juego")) {
+        const [linked] = await query("SELECT usuario_id FROM alumnos WHERE id = ? LIMIT 1", [req.params.id]);
+        if (linked[0]?.usuario_id) {
+          await query("UPDATE usuarios SET nivel_juego = ? WHERE id = ?", [
+            req.body.nivel_juego === "" ? null : req.body.nivel_juego,
+            linked[0].usuario_id,
+          ]);
+        }
+      }
+    }
 
     res.json({ ok: true, message: "Alumno actualizado correctamente" });
   } catch (e) {
@@ -477,7 +498,7 @@ router.post("/alumnos/:id/crear-acceso", requireAdmin, async (req, res) => {
     await connection.beginTransaction();
 
     const [alumnos] = await connection.query(
-      `SELECT id, nombre, apellidos, usuario_id
+      `SELECT id, nombre, apellidos, usuario_id${alumnoColumns.has("nivel_juego") ? ", nivel_juego" : ""}
        FROM alumnos
        WHERE id = ?
        FOR UPDATE`,
@@ -515,11 +536,12 @@ router.post("/alumnos/:id/crear-acceso", requireAdmin, async (req, res) => {
       rol: "alumno",
       activo: 1,
       telefono: req.body.telefono?.trim() || null,
+      nivel_juego: alumno.nivel_juego ?? null,
     };
 
     const { fields, values } = pickWritableFields(
       payload,
-      ["nombre", "email", "telefono", "password_hash", "rol", "activo"],
+      ["nombre", "email", "telefono", "password_hash", "rol", "activo", "nivel_juego"],
       usuarioColumns
     );
 

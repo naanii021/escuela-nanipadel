@@ -7,6 +7,16 @@ import "./panelProfesor.css";
 const STAFF_ROLES = ["admin", "profesor", "profe"];
 const NIVELES = ["ninos", "iniciacion", "avanzado", "avanzado_plus", "competicion"];
 const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
+const GAME_LEVELS = [
+  { value: "", label: "Sin nivel de juego" },
+  { value: 0, label: "0 - Iniciacion" },
+  { value: 1, label: "1 - Principiante" },
+  { value: 2, label: "2 - Medio bajo" },
+  { value: 3, label: "3 - Medio" },
+  { value: 4, label: "4 - Medio alto" },
+  { value: 5, label: "5 - Avanzado" },
+  { value: 6, label: "6 - Competicion / profesional" },
+];
 const GROUP_QUICK_FILTERS = [
   { key: "todos", label: "Todos" },
   { key: "ninos", label: "Ninos" },
@@ -24,6 +34,35 @@ const STUDENT_QUICK_FILTERS = [
   { key: "activos", label: "Activos" },
   { key: "inactivos", label: "Inactivos" },
   ...NIVELES.map((item) => ({ key: `nivel:${item}`, label: nivelLabel(item) })),
+];
+const PANEL_SECTIONS = [
+  { key: "gestion", label: "Grupos y alumnos" },
+  { key: "horario", label: "Horario semanal" },
+  { key: "control", label: "Control de clases" },
+  { key: "recuperaciones", label: "Recuperaciones" },
+  { key: "seguimiento", label: "Seguimiento" },
+];
+const WEEK_DAYS = [
+  { key: "L", label: "Lunes" },
+  { key: "M", label: "Martes" },
+  { key: "X", label: "Miercoles" },
+  { key: "J", label: "Jueves" },
+  { key: "V", label: "Viernes" },
+  { key: "S", label: "Sabado" },
+];
+const ATTENDANCE_STATUS = [
+  { key: "presente", label: "Presente", tone: "positive" },
+  { key: "falta", label: "Falta", tone: "negative" },
+  { key: "justificada", label: "Falta justificada", tone: "warning" },
+  { key: "recuperar", label: "Pendiente recuperar", tone: "warning" },
+];
+const CLASS_STATUS = [
+  { key: "programada", label: "Programada", tone: "neutral" },
+  { key: "dada", label: "Clase dada", tone: "positive" },
+  { key: "lluvia", label: "Cancelada por lluvia", tone: "negative" },
+  { key: "profesor", label: "Cancelada por profesor", tone: "negative" },
+  { key: "festivo", label: "Cancelada por festivo", tone: "warning" },
+  { key: "recuperar", label: "Pendiente de recuperar", tone: "warning" },
 ];
 
 const emptyGroupForm = {
@@ -44,6 +83,7 @@ const emptyStudentForm = {
   nombre: "",
   apellidos: "",
   nivel: "iniciacion",
+  nivel_juego: "",
   telefono: "",
   email: "",
   activo: 1,
@@ -97,12 +137,21 @@ function nivelClass(nivel) {
   return `levelPill level-${String(nivel || "default").replace("_", "-")}`;
 }
 
+function gameLevelLabel(value) {
+  const found = GAME_LEVELS.find((item) => String(item.value) === String(value));
+  return found ? found.label : "Sin nivel de juego";
+}
+
 function initials(nombre, apellidos = "") {
   return `${String(nombre || "A").charAt(0)}${String(apellidos || "").charAt(0)}`.toUpperCase();
 }
 
 function normalize(value) {
   return String(value || "").toLowerCase();
+}
+
+function getGroupDays(group) {
+  return [group?.dia1, group?.dia2].filter(Boolean);
 }
 
 function toGroupForm(group) {
@@ -128,6 +177,7 @@ export default function PanelProfesor() {
   const userRole = user?.rol;
   const isAdmin = String(userRole || "").toLowerCase() === "admin";
 
+  const [activeSection, setActiveSection] = useState("gestion");
   const [activeView, setActiveView] = useState("grupos");
   const [alumnos, setAlumnos] = useState([]);
   const [grupos, setGrupos] = useState([]);
@@ -159,6 +209,11 @@ export default function PanelProfesor() {
   const [accessStudent, setAccessStudent] = useState(null);
   const [accessForm, setAccessForm] = useState(emptyAccessForm);
   const [studentToAdd, setStudentToAdd] = useState("");
+  const [controlGroupId, setControlGroupId] = useState("");
+  const [controlDate, setControlDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [classStatus, setClassStatus] = useState("programada");
+  const [attendanceDraft, setAttendanceDraft] = useState({});
+  const [trackingGroupId, setTrackingGroupId] = useState("");
 
   const loadPanel = useCallback(async () => {
     try {
@@ -172,6 +227,8 @@ export default function PanelProfesor() {
       setStats(data.stats || { totalAlumnos: 0, totalGrupos: 0, gruposActivos: 0 });
       setScope(data.scope || "profesor");
       setSelectedGroupId((current) => current || (data.grupos || [])[0]?.id || null);
+      setControlGroupId((current) => current || (data.grupos || [])[0]?.id || "");
+      setTrackingGroupId((current) => current || (data.grupos || [])[0]?.id || "");
     } catch (e) {
       const message = String(e.message || "");
       if (message.includes("401") || message.includes("No autorizado") || message.includes("Token")) {
@@ -292,9 +349,37 @@ export default function PanelProfesor() {
     };
   }, [alumnos, grupos, stats.totalAlumnos, stats.totalGrupos]);
 
+  const weeklySchedule = useMemo(() => {
+    const base = Object.fromEntries(WEEK_DAYS.map((day) => [day.key, []]));
+
+    grupos
+      .filter((item) => Number(item.activo ?? 1) === 1)
+      .forEach((group) => {
+        getGroupDays(group).forEach((day) => {
+          if (base[day]) base[day].push(group);
+        });
+      });
+
+    Object.values(base).forEach((dayGroups) => {
+      dayGroups.sort((a, b) => String(a.hora_inicio || "").localeCompare(String(b.hora_inicio || "")));
+    });
+
+    return base;
+  }, [grupos]);
+
   const selectedGroup = useMemo(
     () => filteredGrupos.find((item) => String(item.id) === String(selectedGroupId)) || filteredGrupos[0] || null,
     [filteredGrupos, selectedGroupId]
+  );
+
+  const controlGroup = useMemo(
+    () => grupos.find((item) => String(item.id) === String(controlGroupId)) || grupos[0] || null,
+    [controlGroupId, grupos]
+  );
+
+  const trackingGroup = useMemo(
+    () => grupos.find((item) => String(item.id) === String(trackingGroupId)) || selectedGroup || grupos[0] || null,
+    [grupos, selectedGroup, trackingGroupId]
   );
 
   const studentsAvailableForGroup = useMemo(() => {
@@ -420,6 +505,7 @@ export default function PanelProfesor() {
       nombre: student.nombre || "",
       apellidos: student.apellidos || "",
       nivel: student.nivel || "iniciacion",
+      nivel_juego: student.nivel_juego ?? "",
       telefono: student.telefono || "",
       email: student.email || "",
       activo: Number(student.activo ?? 1),
@@ -518,6 +604,21 @@ export default function PanelProfesor() {
 
       {notice && <div className="staffNotice">{notice}</div>}
 
+      <nav className="staffSectionNav" aria-label="Secciones de gestion">
+        {PANEL_SECTIONS.map((section) => (
+          <button
+            key={section.key}
+            type="button"
+            className={activeSection === section.key ? "active" : ""}
+            onClick={() => setActiveSection(section.key)}
+          >
+            {section.label}
+          </button>
+        ))}
+      </nav>
+
+      {activeSection === "gestion" && (
+        <>
       <div className="staffToolbar">
         <div className="staffTabs" aria-label="Vistas del panel">
           <button className={activeView === "grupos" ? "active" : ""} onClick={() => setActiveView("grupos")}>Grupos</button>
@@ -691,7 +792,7 @@ export default function PanelProfesor() {
 
           <div className="studentsTable">
             <div className={isAdmin ? "studentsTableHead studentsTableHeadAdmin" : "studentsTableHead"}>
-              <span>Alumno</span><span>Nivel</span><span>Acceso</span><span>Grupo</span><span>Profesor</span><span>Horario / pista</span><span>Acciones</span>
+              <span>Alumno</span><span>Nivel</span><span>Juego</span><span>Acceso</span><span>Grupo</span><span>Profesor</span><span>Horario / pista</span><span>Acciones</span>
             </div>
 
             {filteredAlumnos.map((alumno) => (
@@ -701,6 +802,7 @@ export default function PanelProfesor() {
                   <div><strong>{alumno.nombre} {alumno.apellidos}</strong><small>{alumno.telefono || alumno.email || "Sin contacto"}</small></div>
                 </div>
                 <span className={nivelClass(alumno.nivel)}>{nivelLabel(alumno.nivel)}</span>
+                <span className="studentCell">{gameLevelLabel(alumno.nivel_juego)}</span>
                 <span className={alumno.usuario_id ? "accessBadge accessOn" : "accessBadge accessOff"}>{alumno.usuario_id ? "Con acceso" : "Sin acceso"}</span>
                 <span className="studentCell">{alumno.grupos || "-"}</span>
                 <span className="studentCell">{alumno.profesores || "-"}</span>
@@ -720,6 +822,223 @@ export default function PanelProfesor() {
 
           {filteredAlumnos.length === 0 && <div className="staffEmpty">No hay alumnos con estos filtros.</div>}
         </div>
+      )}
+        </>
+      )}
+
+      {!loading && !error && activeSection === "horario" && (
+        <section className="schoolOpsPanel">
+          <div className="opsPanelHeader">
+            <div>
+              <span className="staffEyebrow">Agenda semanal</span>
+              <h2>Horario semanal</h2>
+              <p>Vista generada con los grupos activos que ya existen en la escuela.</p>
+            </div>
+            <span className="opsCounter">{grupos.filter((item) => Number(item.activo ?? 1) === 1).length} grupos activos</span>
+          </div>
+
+          <div className="weeklyGrid">
+            {WEEK_DAYS.map((day) => (
+              <article className="weekDayColumn" key={day.key}>
+                <div className="weekDayHeader">
+                  <strong>{day.label}</strong>
+                  <span>{weeklySchedule[day.key]?.length || 0}</span>
+                </div>
+
+                <div className="dayClassStack">
+                  {(weeklySchedule[day.key] || []).map((group) => (
+                    <button
+                      type="button"
+                      className="scheduleClassCard"
+                      data-level={group.nivel || "default"}
+                      key={`${day.key}-${group.id}`}
+                      onClick={() => {
+                        setSelectedGroupId(group.id);
+                        setControlGroupId(group.id);
+                        setActiveSection("control");
+                      }}
+                    >
+                      <span className="scheduleTime">{String(group.hora_inicio || "").slice(0, 5) || "-"}</span>
+                      <strong>{group.nombre}</strong>
+                      <span className={nivelClass(group.nivel)}>{nivelLabel(group.nivel)}</span>
+                      <small>{group.profesor || "Profesor sin asignar"}</small>
+                      <small>{group.pista_habitual || "Sin pista"} · {group.alumnos?.length || 0}/{group.cupo || "-"}</small>
+                    </button>
+                  ))}
+
+                  {(!weeklySchedule[day.key] || weeklySchedule[day.key].length === 0) && (
+                    <div className="emptyDay">Sin clases</div>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {!loading && !error && activeSection === "control" && (
+        <section className="schoolOpsPanel">
+          <div className="opsPanelHeader">
+            <div>
+              <span className="staffEyebrow">Sesion diaria</span>
+              <h2>Control de clases</h2>
+              <p>Preparado para pasar lista y registrar estados cuando exista persistencia.</p>
+            </div>
+            <span className="opsCounter">{controlGroup?.alumnos?.length || 0} alumnos</span>
+          </div>
+
+          <div className="controlLayout">
+            <aside className="sessionPanel">
+              <label>
+                Grupo
+                <select value={controlGroup?.id || ""} onChange={(e) => setControlGroupId(e.target.value)}>
+                  {gruposOptions.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+                </select>
+              </label>
+              <label>
+                Fecha
+                <input type="date" value={controlDate} onChange={(e) => setControlDate(e.target.value)} />
+              </label>
+
+              {controlGroup && (
+                <div className="sessionSummary">
+                  <span className={nivelClass(controlGroup.nivel)}>{nivelLabel(controlGroup.nivel)}</span>
+                  <h3>{controlGroup.nombre}</h3>
+                  <p>{formatDias(controlGroup.dia1, controlGroup.dia2)} · {formatHora(controlGroup.hora_inicio, controlGroup.duracion_min)}</p>
+                  <p>{controlGroup.profesor || "Profesor sin asignar"} · {controlGroup.pista_habitual || "Sin pista"}</p>
+                </div>
+              )}
+
+              <div className="statusChips" aria-label="Estado de clase">
+                {CLASS_STATUS.map((status) => (
+                  <button
+                    key={status.key}
+                    type="button"
+                    data-tone={status.tone}
+                    className={classStatus === status.key ? "statusChip active" : "statusChip"}
+                    onClick={() => setClassStatus(status.key)}
+                  >
+                    {status.label}
+                  </button>
+                ))}
+              </div>
+            </aside>
+
+            <main className="attendancePanel">
+              <div className="panelSectionTitle">
+                <h2>Asistencia</h2>
+                <span>UI preparada, sin guardar todavia</span>
+              </div>
+
+              <div className="attendanceList">
+                {(controlGroup?.alumnos || []).map((alumno) => {
+                  const current = attendanceDraft[alumno.id] || "presente";
+                  return (
+                    <article className="attendanceRow" key={alumno.id}>
+                      <div className="studentIdentity">
+                        <div className="studentMark" data-level={alumno.nivel || controlGroup.nivel || "default"}>{initials(alumno.nombre, alumno.apellidos)}</div>
+                        <div><strong>{alumno.nombre} {alumno.apellidos}</strong><small>{nivelLabel(alumno.nivel || controlGroup.nivel)}</small></div>
+                      </div>
+                      <div className="attendanceActions">
+                        {ATTENDANCE_STATUS.map((status) => (
+                          <button
+                            key={status.key}
+                            type="button"
+                            data-tone={status.tone}
+                            className={current === status.key ? "statusChip active" : "statusChip"}
+                            onClick={() => setAttendanceDraft((draft) => ({ ...draft, [alumno.id]: status.key }))}
+                          >
+                            {status.label}
+                          </button>
+                        ))}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {(!controlGroup?.alumnos || controlGroup.alumnos.length === 0) && <div className="staffEmpty">Este grupo no tiene alumnos para pasar lista.</div>}
+              <div className="preparedNotice">Para guardar este control harian falta tablas de sesiones y asistencia. La vista queda lista para conectar el backend sin cambiar el flujo.</div>
+            </main>
+          </div>
+        </section>
+      )}
+
+      {!loading && !error && activeSection === "recuperaciones" && (
+        <section className="schoolOpsPanel">
+          <div className="opsPanelHeader">
+            <div>
+              <span className="staffEyebrow">Clases pendientes</span>
+              <h2>Recuperaciones</h2>
+              <p>Espacio preparado para clases canceladas, faltas justificadas y sesiones pendientes.</p>
+            </div>
+          </div>
+
+          <div className="recoveryGrid">
+            <article className="recoveryCard">
+              <span className="statusDot warning" />
+              <div>
+                <strong>Sin recuperaciones registradas</strong>
+                <p>Cuando el backend guarde cancelaciones o faltas recuperables, apareceran aqui con alumno, fecha, motivo y estado.</p>
+              </div>
+              <button className="staffSecondaryBtn" type="button" disabled>Marcar como recuperada</button>
+            </article>
+            <article className="recoveryPlan">
+              <h3>Preparado para</h3>
+              <div className="trackingTags">
+                <span>Alumno o grupo</span>
+                <span>Fecha perdida</span>
+                <span>Motivo</span>
+                <span>Estado</span>
+                <span>Recuperada</span>
+              </div>
+            </article>
+          </div>
+        </section>
+      )}
+
+      {!loading && !error && activeSection === "seguimiento" && (
+        <section className="schoolOpsPanel">
+          <div className="opsPanelHeader">
+            <div>
+              <span className="staffEyebrow">Notas internas</span>
+              <h2>Seguimiento</h2>
+              <p>Vista preparada para observaciones, objetivos y ultimas clases por grupo.</p>
+            </div>
+            <select className="opsSelect" value={trackingGroup?.id || ""} onChange={(e) => setTrackingGroupId(e.target.value)}>
+              {gruposOptions.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+            </select>
+          </div>
+
+          <div className="trackingGrid">
+            <article className="trackingCard trackingCardWide">
+              <span className={nivelClass(trackingGroup?.nivel)}>{nivelLabel(trackingGroup?.nivel)}</span>
+              <h3>{trackingGroup?.nombre || "Selecciona un grupo"}</h3>
+              <p>{trackingGroup ? `${trackingGroup.profesor || "Profesor sin asignar"} · ${formatDias(trackingGroup.dia1, trackingGroup.dia2)} · ${formatHora(trackingGroup.hora_inicio, trackingGroup.duracion_min)}` : "No hay datos de grupo."}</p>
+            </article>
+            <article className="trackingCard">
+              <h3>Observaciones del grupo</h3>
+              <p>Bloque listo para notas internas del profesor o administracion.</p>
+            </article>
+            <article className="trackingCard">
+              <h3>Objetivos trabajados</h3>
+              <div className="trackingTags">
+                <span>Tecnica</span>
+                <span>Posicionamiento</span>
+                <span>Partido</span>
+              </div>
+            </article>
+            <article className="trackingCard">
+              <h3>Alumnos</h3>
+              <div className="trackingStudents">
+                {(trackingGroup?.alumnos || []).slice(0, 6).map((alumno) => (
+                  <span key={alumno.id}>{alumno.nombre} {alumno.apellidos}</span>
+                ))}
+                {(!trackingGroup?.alumnos || trackingGroup.alumnos.length === 0) && <span>Sin alumnos asignados</span>}
+              </div>
+            </article>
+          </div>
+        </section>
       )}
 
       {studentProfile && (
@@ -744,6 +1063,7 @@ export default function PanelProfesor() {
             <div className="profileInfoGrid">
               <div><span>Telefono</span><strong>{studentProfile.telefono || "No disponible"}</strong></div>
               <div><span>Email</span><strong>{studentProfile.email || "No disponible"}</strong></div>
+              <div><span>Nivel de juego</span><strong>{gameLevelLabel(studentProfile.nivel_juego)}</strong></div>
               <div><span>Acceso plataforma</span><strong>{studentProfile.usuario_id ? "Con acceso" : "Sin acceso"}</strong></div>
               <div><span>Grupo</span><strong>{studentProfile.grupos || "No disponible"}</strong></div>
               <div><span>Profesor</span><strong>{studentProfile.profesores || studentProfileGroup?.profesor || "No disponible"}</strong></div>
@@ -764,6 +1084,7 @@ export default function PanelProfesor() {
                   className="staffSecondaryBtn"
                   onClick={() => {
                     setSelectedGroupId(studentProfileGroup.id);
+                    setActiveSection("gestion");
                     setActiveView("grupos");
                     setStudentProfile(null);
                   }}
@@ -813,6 +1134,7 @@ export default function PanelProfesor() {
               <label>Nombre<input value={studentForm.nombre || ""} onChange={(e) => setStudentForm({ ...studentForm, nombre: e.target.value })} required /></label>
               <label>Apellidos<input value={studentForm.apellidos || ""} onChange={(e) => setStudentForm({ ...studentForm, apellidos: e.target.value })} /></label>
               <label>Nivel<select value={studentForm.nivel || ""} onChange={(e) => setStudentForm({ ...studentForm, nivel: e.target.value })}>{NIVELES.map((item) => <option key={item} value={item}>{nivelLabel(item)}</option>)}</select></label>
+              <label>Nivel de juego<select value={studentForm.nivel_juego ?? ""} onChange={(e) => setStudentForm({ ...studentForm, nivel_juego: e.target.value === "" ? null : Number(e.target.value) })}>{GAME_LEVELS.map((item) => <option key={String(item.value)} value={item.value}>{item.label}</option>)}</select></label>
               <label>Telefono<input value={studentForm.telefono || ""} onChange={(e) => setStudentForm({ ...studentForm, telefono: e.target.value })} /></label>
               <label>Email<input type="email" value={studentForm.email || ""} onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })} /></label>
               <label>Activo<select value={studentForm.activo ?? 1} onChange={(e) => setStudentForm({ ...studentForm, activo: Number(e.target.value) })}><option value={1}>Activo</option><option value={0}>Inactivo</option></select></label>
