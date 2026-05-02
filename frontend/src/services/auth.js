@@ -23,6 +23,14 @@ export function saveSession(token, user) {
   localStorage.setItem("user", JSON.stringify(user));
 }
 
+// Actualiza los datos visibles del usuario sin tocar el token de sesion.
+export function updateStoredUser(partialUser) {
+  const current = getUser() || {};
+  const next = { ...current, ...partialUser };
+  localStorage.setItem("user", JSON.stringify(next));
+  return next;
+}
+
 // Obtener token
 export function getToken() {
   return localStorage.getItem("token");

@@ -1120,6 +1120,292 @@
 }
 
 /* ============================================================
+   RESERVATION MODAL — refined light premium surface
+   ============================================================ */
+.modalBackdrop {
+  background: rgba(4, 13, 29, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.modal {
+  width: min(640px, calc(100vw - 2rem));
+  max-width: 640px;
+  max-height: min(92vh, 820px);
+  overflow: auto;
+  border-radius: 24px;
+  padding: 0;
+  background: #f8fafc;
+  color: #0f172a;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow:
+    0 32px 90px rgba(2, 6, 23, 0.46),
+    0 0 0 1px rgba(255, 255, 255, 0.58);
+}
+
+.modalHead {
+  align-items: center;
+  padding: 1.35rem 1.45rem 1.1rem;
+  margin: 0;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.96));
+}
+
+.modalHead h3 {
+  margin-bottom: 0.28rem;
+  color: #0f172a;
+  font-size: 1.45rem;
+  letter-spacing: 0;
+}
+
+.modalSubtitle {
+  color: #475569;
+  font-weight: 750;
+}
+
+.closeBtn {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: #ffffff;
+  color: #334155;
+  font-size: 1rem;
+  font-weight: 900;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.closeBtn:hover,
+.closeBtn:focus-visible {
+  background: #0f172a;
+  color: #ffffff;
+  outline: none;
+}
+
+.modalInfo {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1.15rem 1.45rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.modalInfoRow {
+  display: grid;
+  gap: 0.32rem;
+  align-items: start;
+  padding: 0.9rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+}
+
+.modalInfoLabel {
+  color: #64748b;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+.modalInfoRow strong {
+  color: #0f172a;
+  font-size: 0.98rem;
+  line-height: 1.25;
+}
+
+.modalPrice {
+  color: #15803d !important;
+}
+
+.reservationTypeGrid {
+  gap: 0.85rem;
+  margin: 0 1.45rem 1.15rem;
+}
+
+.reservationType {
+  position: relative;
+  min-height: 126px;
+  align-content: start;
+  gap: 0.48rem;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 18px;
+  padding: 1rem 1rem 1rem 3.1rem;
+  background: #ffffff;
+  color: #475569;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+}
+
+.reservationType::before {
+  content: "";
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(21, 128, 61, 0.1), rgba(34, 197, 94, 0.16));
+  border: 1px solid rgba(21, 128, 61, 0.18);
+}
+
+.reservationType::after {
+  content: "";
+  position: absolute;
+  left: 1.72rem;
+  top: 1.68rem;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #15803d;
+  opacity: 0.72;
+}
+
+.reservationType strong {
+  color: #0f172a;
+  font-size: 0.98rem;
+  line-height: 1.2;
+}
+
+.reservationType span {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.reservationType:hover,
+.reservationType:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(21, 128, 61, 0.35);
+  background: #f8fafc;
+  color: #334155;
+  outline: none;
+}
+
+.reservationType.active {
+  border-color: rgba(21, 128, 61, 0.56);
+  background: #f0fdf4;
+  color: #14532d;
+  box-shadow:
+    0 14px 34px rgba(21, 128, 61, 0.13),
+    0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+.reservationType.active::before {
+  background: #dcfce7;
+  border-color: rgba(21, 128, 61, 0.3);
+}
+
+.reservationType.active strong {
+  color: #0f172a;
+}
+
+.reservationType.active span {
+  color: #166534;
+}
+
+.form {
+  gap: 0.95rem;
+  padding: 0 1.45rem 1.45rem;
+}
+
+.form label {
+  gap: 0.5rem;
+  color: #334155;
+  font-weight: 850;
+}
+
+.form input,
+.form textarea,
+.form select,
+.levelRangeGrid select {
+  min-height: 46px;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.03);
+}
+
+.form textarea {
+  min-height: 96px;
+}
+
+.form input::placeholder,
+.form textarea::placeholder {
+  color: #94a3b8;
+}
+
+.form input:focus,
+.form textarea:focus,
+.form select:focus,
+.levelRangeGrid select:focus {
+  border-color: rgba(21, 128, 61, 0.65);
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.13);
+}
+
+.levelRangeGrid {
+  padding: 0.95rem;
+  border: 1px solid rgba(21, 128, 61, 0.18);
+  border-radius: 18px;
+  background: #f0fdf4;
+}
+
+.levelRangeGrid label {
+  color: #14532d;
+}
+
+.levelHelp {
+  color: #166534;
+}
+
+.modalActions {
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  margin-top: 0.2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.btnGhost,
+.btnPrimary {
+  min-height: 46px;
+  border-radius: 14px;
+  padding: 0.78rem 1.2rem;
+  font-weight: 900;
+}
+
+.btnGhost {
+  border-color: rgba(15, 23, 42, 0.14);
+  background: #ffffff;
+  color: #334155;
+}
+
+.btnGhost:hover,
+.btnGhost:focus-visible {
+  background: #e2e8f0;
+  color: #0f172a;
+  outline: none;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, #166534, #22c55e);
+  box-shadow: 0 12px 24px rgba(21, 128, 61, 0.24);
+}
+
+.btnPrimary:hover:not(:disabled),
+.btnPrimary:focus-visible:not(:disabled) {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.btnPrimary:disabled {
+  opacity: 0.62;
+  box-shadow: none;
+}
+
+/* ============================================================
    RESPONSIVE
    ============================================================ */
 @media (max-width: 800px) {
@@ -1139,9 +1425,15 @@
   .toolbar         { flex-direction: column; gap: 0.75rem; }
   .searchHour      { width: 120px; }
   .timeVal         { font-size: 1.4rem; }
-  .modal           { border-radius: 18px; padding: 1.2rem; }
+  .modal           { width: min(100vw - 1rem, 640px); border-radius: 18px; }
+  .modalHead,
+  .form            { padding-left: 1rem; padding-right: 1rem; }
+  .modalInfo,
+  .reservationTypeGrid { margin-left: 1rem; margin-right: 1rem; }
+  .modalInfo,
   .reservationTypeGrid,
   .levelRangeGrid  { grid-template-columns: 1fr; }
+  .modalActions    { display: grid; grid-template-columns: 1fr; }
 }
 
 /* ============================================================

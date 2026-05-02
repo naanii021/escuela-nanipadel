@@ -88,10 +88,10 @@ function Header() {
               </NavLink>
             ) : (
               <>
-                <div className="navUserInfo">
+                <NavLink to="/perfil" className="navUserInfo" aria-label="Ver mi perfil">
                   <div className="navAvatar">{inicial}</div>
                   <span className="navUser">{user?.nombre}</span>
-                </div>
+                </NavLink>
                 <button className="logoutBtn" onClick={handleLogout}>
                   Salir
                 </button>

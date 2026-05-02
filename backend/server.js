@@ -11,6 +11,7 @@ import clasesRouter from "./routes/Clases.js";
 import torneosRouter from "./routes/torneos.js";
 import asistenteRouter from "./routes/asistente.js";
 import gestionRouter from "./routes/gestion.js";
+import perfilRouter from "./routes/perfil.js";
 
 // Cargamos variables de entorno desde .env
 dotenv.config();
@@ -54,6 +55,9 @@ app.use("/api/asistente", asistenteRouter);
 
 // Rutas privadas de gestion para profesorado y administracion
 app.use("/api/gestion", gestionRouter);
+
+// Perfil privado del usuario autenticado
+app.use("/api/perfil", perfilRouter);
 
 // ======================================================
 // RUTAS BÁSICAS

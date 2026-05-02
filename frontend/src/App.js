@@ -11,6 +11,7 @@ import Galeria from "./pages/Galeria";
 import EstadoPista from "./pages/EstadoPista";
 import Login from "./pages/Login";
 import PanelProfesor from "./pages/PanelProfesor";
+import Perfil from "./pages/Perfil";
 import "./styles/premium.css";
 
 
@@ -26,6 +27,7 @@ function App() {
         <Route path="/galeria" element={<Galeria />} />
         <Route path="/estado-pista" element={<EstadoPista />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/perfil" element={<Perfil />} />
         <Route path="/panel/*" element={<PanelProfesor />} />
       </Routes>
     </Layout>
