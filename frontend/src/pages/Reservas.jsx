@@ -71,6 +71,27 @@ function levelLabel(value) {
   return found ? found.label.replace(/^\d - /, "") : "-";
 }
 
+function playerName(player) {
+  return `${player?.nombre || "Jugador"} ${player?.apellidos || ""}`.trim();
+}
+
+function slotStateLabel(slot) {
+  if (!slot) return "";
+  if (slot.status === "disponible") return "Libre";
+  if (slot.tipoReserva === "abierta") {
+    return Number(slot.plazasOcupadas) >= Number(slot.maxJugadores) ? "Partida completa" : "Partida abierta";
+  }
+  if (slot.reservaEstado === "cancelada") return "Cancelada";
+  return "Reserva privada";
+}
+
+function compatibilityText(slot) {
+  if (!slot || slot.tipoReserva !== "abierta") return null;
+  if (slot.motivoNoUnirse === "Ya estas en esta partida.") return "Ya formas parte de esta partida.";
+  if (slot.puedeUnirse) return "Tu nivel encaja con esta partida.";
+  return slot.motivoNoUnirse || "No puedes unirte a esta partida.";
+}
+
 const PlayerIcon = (
   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5" />
@@ -141,6 +162,7 @@ function Reservas() {
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [searchHour, setSearchHour] = useState("");
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [detailSlot, setDetailSlot] = useState(null);
   const [reserveType, setReserveType] = useState("completa");
   const [reserveName, setReserveName] = useState("");
   const [reservePhone, setReservePhone] = useState("");
@@ -168,13 +190,18 @@ function Reservas() {
 
   const slots = useMemo(() => {
     if (!courts.length) return [];
-    const reservaMap = new Map(reservas.map((r) => [`${r.pista_id}|${String(r.hora_inicio).slice(0, 5)}`, r]));
+    const reservaMap = new Map(
+      reservas
+        .filter((r) => r.estado !== "cancelada")
+        .filter((r) => r.tipo_reserva !== "abierta" || Number(r.plazas_ocupadas || 0) > 0)
+        .map((r) => [`${r.pista_id}|${String(r.hora_inicio).slice(0, 5)}`, r])
+    );
     const result = [];
 
     for (const hour of HOURS) {
       for (const court of courts) {
         const rData = reservaMap.get(`${court.id}|${hour}`) ?? null;
-        const isOpenMatch = rData?.tipo_reserva === "abierta";
+        const isOpenMatch = rData?.tipo_reserva === "abierta" && Number(rData?.plazas_ocupadas || 0) > 0;
         const isOpenWithSeats = isOpenMatch && rData?.estado === "abierta";
 
         result.push({
@@ -195,6 +222,7 @@ function Reservas() {
           nivelMin: rData?.nivel_min ?? null,
           nivelMax: rData?.nivel_max ?? null,
           participantes: rData?.participantes ?? [],
+          notas: rData?.notas ?? null,
           puedeUnirse: Boolean(rData?.puede_unirse),
           motivoNoUnirse: rData?.motivo_no_unirse ?? null,
           timeOfDay: getTimeOfDay(hour),
@@ -236,6 +264,14 @@ function Reservas() {
     }
     setReserveType("completa");
     setSelectedSlot(slot);
+  };
+
+  const openDetailModal = (slot) => {
+    setDetailSlot(slot);
+  };
+
+  const closeDetailModal = () => {
+    setDetailSlot(null);
   };
 
   const closeModal = () => {
@@ -310,6 +346,20 @@ function Reservas() {
     }
   };
 
+  const handleShareSlot = async (slot) => {
+    const text = `${slotStateLabel(slot)} en ${slot.courtName}: ${prettyDate(slot.dateISO)} de ${slot.start} a ${slot.end}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "NaniPadel", text, url: window.location.href });
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(`${text} - ${window.location.href}`);
+        showToast("Enlace de la partida copiado");
+      }
+    } catch {
+      showToast("No se pudo compartir la partida", "error");
+    }
+  };
+
   return (
     <section className="reservas">
       <header className="reservasHeader">
@@ -376,6 +426,15 @@ function Reservas() {
                       className={`reservaCard ${slot.status} tod${cap(slot.timeOfDay)}`}
                       style={{ "--i": idx }}
                       aria-label={`${slot.courtName} ${slot.start}-${slot.end} ${slot.status}`}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openDetailModal(slot)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openDetailModal(slot);
+                        }
+                      }}
                     >
                       <div className={`cardStripe stripe${cap(slot.timeOfDay)}`} aria-hidden="true" />
                       <div className="cardTop">
@@ -408,7 +467,8 @@ function Reservas() {
                       {slot.status === "disponible" ? (
                         <button
                           className="reserveBtn btnDisponible"
-                          onClick={() => {
+                          onClick={(event) => {
+                            event.stopPropagation();
                             if (!isLogged()) { navigate("/login"); return; }
                             openReservationModal(slot);
                           }}
@@ -418,15 +478,15 @@ function Reservas() {
                       ) : slot.tipoReserva === "abierta" ? (
                         <div className="openMatchActions">
                           {slot.puedeUnirse ? (
-                            <button className="reserveBtn btnJoin" onClick={() => handleJoinOpenMatch(slot)}>Unirme</button>
+                            <button className="reserveBtn btnJoin" onClick={(event) => { event.stopPropagation(); handleJoinOpenMatch(slot); }}>Unirme</button>
                           ) : slot.motivoNoUnirse === "Ya estas en esta partida." ? (
-                            <button className="reserveBtn btnCancel" onClick={() => handleLeaveOpenMatch(slot)}>Salir de partida</button>
+                            <button className="reserveBtn btnCancel" onClick={(event) => { event.stopPropagation(); handleLeaveOpenMatch(slot); }}>Salir de partida</button>
                           ) : (
                             <button className="reserveBtn btnOcupada" disabled>{slot.motivoNoUnirse || "No disponible"}</button>
                           )}
                         </div>
                       ) : slot.reservaUserId === getUser()?.id ? (
-                        <button className="reserveBtn btnCancel" onClick={() => handleCancel(slot)}>Cancelar mi reserva</button>
+                        <button className="reserveBtn btnCancel" onClick={(event) => { event.stopPropagation(); handleCancel(slot); }}>Cancelar mi reserva</button>
                       ) : (
                         <button className="reserveBtn btnOcupada" disabled>No disponible</button>
                       )}
@@ -440,6 +500,101 @@ function Reservas() {
       )}
 
       {toast.msg && <div className={`toast toast${cap(toast.type)}`} role="status" aria-live="polite">{toast.msg}</div>}
+
+      {detailSlot && (
+        <div className="modalBackdrop" onClick={closeDetailModal}>
+          <aside className="reservationDetail" onClick={(event) => event.stopPropagation()} aria-label="Detalle de reserva">
+            <div className="detailHero">
+              <div>
+                <span className={`detailState detailState${cap(detailSlot.status)}`}>{slotStateLabel(detailSlot)}</span>
+                <h3>{detailSlot.courtName}</h3>
+                <p>{prettyDate(detailSlot.dateISO)} · {detailSlot.start} - {detailSlot.end} · 90 min</p>
+              </div>
+              <button className="closeBtn" onClick={closeDetailModal} aria-label="Cerrar">x</button>
+            </div>
+
+            <div className="detailSummary">
+              <div><span>Precio</span><strong>{detailSlot.price}€</strong></div>
+              <div><span>Tipo</span><strong>{detailSlot.tipoReserva === "abierta" ? "Partida abierta" : detailSlot.status === "disponible" ? "Libre" : "Reserva privada"}</strong></div>
+              <div><span>Plazas</span><strong>{detailSlot.status === "disponible" ? "4 libres" : `${detailSlot.plazasOcupadas || 4}/${detailSlot.maxJugadores || 4}`}</strong></div>
+              <div><span>Nivel</span><strong>{detailSlot.tipoReserva === "abierta" ? `${detailSlot.nivelMin} - ${detailSlot.nivelMax}` : "Sin rango"}</strong></div>
+            </div>
+
+            {detailSlot.tipoReserva === "abierta" && (
+              <div className={`compatibilityBox ${detailSlot.puedeUnirse ? "ok" : "warn"}`}>
+                <strong>{Number(detailSlot.maxJugadores) - Number(detailSlot.plazasOcupadas)} plazas disponibles</strong>
+                <span>{compatibilityText(detailSlot)}</span>
+              </div>
+            )}
+
+            <section className="detailSection">
+              <div className="detailSectionHead">
+                <h4>Jugadores</h4>
+                <span>{detailSlot.tipoReserva === "abierta" ? "Partida normal" : "Reserva privada"}</span>
+              </div>
+              <div className="detailPlayers">
+                {Array.from({ length: Number(detailSlot.maxJugadores || 4) }).map((_, index) => {
+                  const player = detailSlot.tipoReserva === "abierta" ? detailSlot.participantes[index] : index === 0 ? { nombre: detailSlot.reservaNombreCliente || "Reserva privada" } : null;
+                  const name = playerName(player);
+                  return (
+                    <article key={index} className={player ? "detailPlayer filled" : "detailPlayer empty"}>
+                      {player?.foto_perfil_url ? (
+                        <img src={player.foto_perfil_url} alt="" className="detailAvatarImg" />
+                      ) : (
+                        <div className="detailAvatar" style={{ "--avatar-bg": getAvatarColor(name) }}>
+                          {player ? getInitials(name) : PlayerIcon}
+                        </div>
+                      )}
+                      <div>
+                        <strong>{player ? name : "Plaza libre"}</strong>
+                        {player ? (
+                          <>
+                            <span>{player.nivel_juego !== null && player.nivel_juego !== undefined ? `Nivel ${player.nivel_juego} · ${levelLabel(player.nivel_juego)}` : "Nivel no configurado"}</span>
+                            {(player.mano_dominante || player.lado_preferido || player.club_habitual) && (
+                              <small>
+                                {[player.mano_dominante, player.lado_preferido, player.club_habitual].filter(Boolean).join(" · ")}
+                              </small>
+                            )}
+                          </>
+                        ) : (
+                          <span>Disponible para otro jugador</span>
+                        )}
+                      </div>
+                      {player?.es_creador ? <em>Creador</em> : null}
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="detailSection">
+              <div className="detailSectionHead">
+                <h4>Notas</h4>
+                <span>{detailSlot.tipoReserva === "abierta" ? "Mensaje del creador" : "Informacion"}</span>
+              </div>
+              <p className="detailNotes">
+                {detailSlot.notas || (detailSlot.status === "disponible" ? "Hora libre para reservar pista completa o crear partida abierta." : "Sin notas añadidas.")}
+              </p>
+            </section>
+
+            <div className="detailActions">
+              {detailSlot.status === "disponible" ? (
+                <button className="btnPrimary" onClick={() => { closeDetailModal(); if (!isLogged()) { navigate("/login"); return; } openReservationModal(detailSlot); }}>Reservar esta hora</button>
+              ) : detailSlot.tipoReserva === "abierta" ? (
+                <>
+                  {detailSlot.puedeUnirse && <button className="btnPrimary" onClick={() => handleJoinOpenMatch(detailSlot)}>Unirme</button>}
+                  {detailSlot.motivoNoUnirse === "Ya estas en esta partida." && <button className="btnGhost" onClick={() => handleLeaveOpenMatch(detailSlot)}>Salir de la partida</button>}
+                  {detailSlot.reservaUserId === getUser()?.id && <button className="btnDanger" onClick={() => handleCancel(detailSlot)}>Cancelar partida</button>}
+                </>
+              ) : detailSlot.reservaUserId === getUser()?.id ? (
+                <button className="btnDanger" onClick={() => handleCancel(detailSlot)}>Cancelar reserva</button>
+              ) : null}
+              <button className="btnGhost" onClick={() => handleShareSlot(detailSlot)}>Compartir partida</button>
+              <button className="btnGhost" onClick={closeDetailModal}>Cerrar</button>
+            </div>
+          </aside>
+        </div>
+      )}
 
       {selectedSlot && (
         <div className="modalBackdrop" onClick={closeModal}>

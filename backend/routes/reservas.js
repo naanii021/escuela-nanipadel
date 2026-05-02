@@ -100,6 +100,11 @@ async function getParticipantsByReservation(reservaIds) {
     return new Map();
   }
 
+  const usuarioColumns = await getTableColumns("usuarios");
+  const alumnoColumns = await getTableColumns("alumnos");
+  const usuarioField = (field) => (usuarioColumns.has(field) ? `u.${field}` : "NULL");
+  const alumnoField = (field) => (alumnoColumns.has(field) ? `a.${field}` : "NULL");
+
   const [rows] = await query(
     `SELECT
       rp.reserva_id,
@@ -107,8 +112,13 @@ async function getParticipantsByReservation(reservaIds) {
       rp.alumno_id,
       rp.estado,
       rp.es_creador,
-      COALESCE(a.nombre, u.nombre) AS nombre,
-      a.apellidos
+      COALESCE(${alumnoField("nombre")}, ${usuarioField("nombre")}, 'Jugador') AS nombre,
+      COALESCE(${alumnoField("apellidos")}, ${usuarioField("apellidos")}) AS apellidos,
+      COALESCE(${alumnoField("foto_perfil_url")}, ${usuarioField("foto_perfil_url")}) AS foto_perfil_url,
+      COALESCE(${alumnoField("nivel_juego")}, ${usuarioField("nivel_juego")}) AS nivel_juego,
+      COALESCE(${alumnoField("mano_dominante")}, ${usuarioField("mano_dominante")}) AS mano_dominante,
+      COALESCE(${alumnoField("lado_preferido")}, ${usuarioField("lado_preferido")}) AS lado_preferido,
+      COALESCE(${alumnoField("club_habitual")}, ${usuarioField("club_habitual")}) AS club_habitual
      FROM reservas_pista_participantes rp
      LEFT JOIN usuarios u ON u.id = rp.usuario_id
      LEFT JOIN alumnos a ON a.id = rp.alumno_id
@@ -134,9 +144,16 @@ async function updateOpenReservationState(connection, reservaId) {
     [reservaId]
   );
   const total = Number(countRows[0]?.total || 0);
+  const [reservationRows] = await connection.query(
+    "SELECT max_jugadores FROM reservas_pista WHERE id = ? LIMIT 1",
+    [reservaId]
+  );
+  const maxPlayers = Number(reservationRows[0]?.max_jugadores || OPEN_MATCH_MAX_PLAYERS);
+  const nextStatus = total === 0 ? "cancelada" : total >= maxPlayers ? "confirmada" : "abierta";
+
   await connection.query(
     "UPDATE reservas_pista SET estado = ? WHERE id = ?",
-    [total >= OPEN_MATCH_MAX_PLAYERS ? "confirmada" : "abierta", reservaId]
+    [nextStatus, reservaId]
   );
   return total;
 }
