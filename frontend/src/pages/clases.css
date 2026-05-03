@@ -77,6 +77,34 @@
   box-shadow: 0 4px 16px rgba(22, 163, 74, 0.35);
 }
 
+.heroActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.heroSecondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--text);
+  font-weight: 750;
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+
+.publicHero,
+.staffHero {
+  background:
+    radial-gradient(circle at top right, rgba(22, 163, 74, 0.14), transparent 32%),
+    linear-gradient(135deg, #ffffff, #f8fafc);
+}
+
 .heroStats {
   display: flex;
   gap: 0.7rem;
@@ -284,6 +312,208 @@
 
 .misClasesEmpty strong {
   color: rgba(255, 255, 255, 0.9);
+}
+
+/* Public landing blocks for visitors and users without school profile. */
+.publicSection,
+.publicSplit,
+.clasesCta,
+.staffDashboard,
+.studentPanels,
+.accountNotice {
+  display: grid;
+  gap: 1rem;
+}
+
+.publicGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+}
+
+.publicInfoCard,
+.publicPanel,
+.clasesCta,
+.staffPanel,
+.studentPanel,
+.accountNotice {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 22px;
+  padding: 1.25rem;
+  box-shadow: 0 8px 26px rgba(15, 23, 42, 0.06);
+}
+
+.publicInfoCard span {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 0.75rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(22, 163, 74, 0.1);
+  color: var(--brand-600);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.publicInfoCard h3,
+.publicPanel h2,
+.clasesCta h2,
+.staffPanel h2,
+.studentPanel h2 {
+  margin: 0 0 0.55rem;
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.publicInfoCard p,
+.publicInfoCard small,
+.publicPanel p,
+.clasesCta p,
+.staffPanel p,
+.studentPanel p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.publicInfoCard small {
+  display: block;
+  margin-top: 0.7rem;
+  font-weight: 700;
+  color: #166534;
+}
+
+.publicSplit {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.chipList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chipList span {
+  padding: 0.38rem 0.72rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.clasesCta {
+  justify-items: start;
+  background:
+    radial-gradient(circle at right, rgba(34, 197, 94, 0.16), transparent 34%),
+    #0f172a;
+}
+
+.clasesCta h2,
+.clasesCta p {
+  color: #fff;
+}
+
+.clasesCta p {
+  color: rgba(226, 232, 240, 0.76);
+}
+
+.staffDashboard,
+.studentPanels {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.staffRow {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.staffRow:first-of-type {
+  border-top: 0;
+}
+
+.staffRow strong {
+  color: var(--text);
+}
+
+.staffRow span,
+.panelHint {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.miniMetric {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.miniMetric span {
+  color: var(--muted);
+}
+
+.miniMetric strong {
+  color: var(--brand-600);
+  font-size: 1.25rem;
+}
+
+.softEmpty,
+.positiveEmpty {
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  font-weight: 700;
+}
+
+.softEmpty {
+  background: #f8fafc;
+  border: 1px dashed rgba(15, 23, 42, 0.12);
+}
+
+.positiveEmpty {
+  background: #f0fdf4;
+  border: 1px solid rgba(22, 163, 74, 0.16);
+  color: #166534 !important;
+}
+
+.accountNotice {
+  gap: 0.25rem;
+  border-color: rgba(22, 163, 74, 0.18);
+  background: #f0fdf4;
+}
+
+.accountNotice strong {
+  color: #14532d;
+}
+
+.accountNotice p {
+  margin: 0;
+  color: #166534;
+  font-weight: 700;
+}
+
+.studentMiniRow {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.studentMiniRow:first-of-type {
+  border-top: 0;
+}
+
+.studentMiniRow strong {
+  color: var(--text);
+}
+
+.studentMiniRow span {
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 /* ─── Todos los grupos ───────────────────────────────────── */
@@ -787,6 +1017,12 @@
 
   .misClasesSection {
     padding: 1.4rem 1.5rem;
+  }
+
+  .publicSplit,
+  .staffDashboard,
+  .studentPanels {
+    grid-template-columns: 1fr;
   }
 
   .listaClases {

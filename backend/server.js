@@ -7,7 +7,7 @@ import { fileURLToPath } from "url";
 import { db } from "./db/connection.js";
 import reservasRouter from "./routes/reservas.js";
 import authRouter from "./routes/auth.js";
-import clasesRouter from "./routes/Clases.js";
+import clasesRouter from "./routes/clases.js";
 import torneosRouter from "./routes/torneos.js";
 import asistenteRouter from "./routes/asistente.js";
 import gestionRouter from "./routes/gestion.js";
