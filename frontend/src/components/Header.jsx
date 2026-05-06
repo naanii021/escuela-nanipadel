@@ -29,7 +29,7 @@ function Header() {
       <div className="container header">
         <NavLink to="/" className="brand" aria-label="Ir al inicio">
           <div className="badge">
-            <span>NP</span>
+            <img src={`${process.env.PUBLIC_URL}/fotosLogo/iconoweb.jpeg`} alt="" />
           </div>
           <div className="brandText">
             <strong>NaniPadel</strong>

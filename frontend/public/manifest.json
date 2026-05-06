@@ -3,9 +3,10 @@
   "name": "NaniPadel Escuela de Padel",
   "icons": [
     {
-      "src": "favicon.svg",
-      "sizes": "64x64",
-      "type": "image/svg+xml"
+      "src": "fotosLogo/iconoweb.jpeg",
+      "sizes": "1254x1254",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
     },
     {
       "src": "favicon.ico",

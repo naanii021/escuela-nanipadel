@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import "./tienda.css";
 
+const shopImage = (fileName) => `${process.env.PUBLIC_URL}/fotosTienda/${fileName}`;
+
 const SHOP_FILTERS = [
   { key: "todas", label: "Todas" },
   { key: "palas", label: "Palas" },
@@ -21,8 +23,7 @@ const SHOP_ITEMS = [
     typeLabel: "Producto",
     description: "Modelo equilibrado para alumnos que buscan control, comodidad y buena salida de bola.",
     price: "179 EUR",
-    image:
-      "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?auto=format&fit=crop&w=1200&q=80",
+    image: shopImage("pala-control.jpg"),
     featured: true,
     featuredLabel: "Recomendado por la escuela",
   },
@@ -35,8 +36,7 @@ const SHOP_ITEMS = [
     typeLabel: "Producto",
     description: "Pack de agarre comodo y duradero para mantener sensacion seca en entrenos y partidos.",
     price: "9 EUR",
-    image:
-      "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1200&q=80",
+    image: shopImage("overgrips.jpg"),
   },
   {
     id: 3,
@@ -47,8 +47,7 @@ const SHOP_ITEMS = [
     typeLabel: "Servicio",
     description: "Revision de desgaste, cambio de protector y puesta a punto para alargar la vida de tu pala.",
     price: "Consultar",
-    image:
-      "https://images.unsplash.com/photo-1547347298-4074fc3086f0?auto=format&fit=crop&w=1200&q=80",
+    image: shopImage("reparacion-pala.jpg"),
     featuredLabel: "Servicio mas solicitado",
   },
   {
@@ -60,8 +59,7 @@ const SHOP_ITEMS = [
     typeLabel: "Producto",
     description: "Prenda del club para entreno y uso diario con imagen limpia y comoda.",
     price: "42 EUR",
-    image:
-      "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80",
+    image: shopImage("sudadera-club.jpg"),
   },
   {
     id: 5,
@@ -72,8 +70,7 @@ const SHOP_ITEMS = [
     typeLabel: "Producto",
     description: "Espacio para pala, ropa y bote de bolas con formato comodo para venir al club.",
     price: "59 EUR",
-    image:
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
+    image: shopImage("mochila-padel.jpg"),
   },
   {
     id: 6,
@@ -84,8 +81,7 @@ const SHOP_ITEMS = [
     typeLabel: "Servicio",
     description: "Te ayudamos a elegir pala, grip y accesorios segun tu nivel, ritmo de juego y objetivos.",
     price: "Consultar",
-    image:
-      "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=1200&q=80",
+    image: shopImage("material-padel.jpg"),
   },
 ];
 
