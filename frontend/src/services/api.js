@@ -25,9 +25,10 @@ function buildApiUrl(path) {
 }
 
 function buildHeaders(options = {}) {
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
   const headers = {
     Accept: "application/json",
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(options.headers || {}),
   };
 
@@ -46,6 +47,10 @@ export async function apiGet(path, options = {}) {
 
 export async function apiPost(path, body, options = {}) {
   return apiRequest(path, { ...options, method: "POST", body: JSON.stringify(body) });
+}
+
+export async function apiUpload(path, formData, options = {}) {
+  return apiRequest(path, { ...options, method: "POST", body: formData });
 }
 
 export async function apiPut(path, body, options = {}) {
@@ -83,17 +88,17 @@ async function apiRequest(path, options = {}) {
 
     if (looksLikeHtml) {
       throw new Error(
-        `La ruta ${path} devolvio HTML en vez de JSON. Comprueba que el backend este activo y que REACT_APP_API_URL apunte al servidor Express.`
+        `No hemos podido leer la respuesta del club. Comprueba que la web este conectada correctamente.`
       );
     }
 
     throw new Error(
-      `La API no devolvio JSON valido. URL: ${path}. Respuesta recibida: ${text.slice(0, 120)}`
+      `La web ha recibido una respuesta inesperada. Intentalo de nuevo en unos segundos.`
     );
   }
 
   if (!res.ok) {
-    throw new Error(data.message || `Error HTTP ${res.status}`);
+    throw new Error(data.message || `No hemos podido completar la peticion (${res.status}).`);
   }
 
   return data;

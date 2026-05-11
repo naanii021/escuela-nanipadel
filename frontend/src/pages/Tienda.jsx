@@ -16,12 +16,12 @@ const SHOP_FILTERS = [
 const SHOP_ITEMS = [
   {
     id: 1,
-    name: "Pala de control club edition",
+    name: "Pala de control recomendada",
     category: "palas",
     categoryLabel: "Palas",
     type: "producto",
     typeLabel: "Producto",
-    description: "Modelo equilibrado para alumnos que buscan control, comodidad y buena salida de bola.",
+    description: "Una pala equilibrada para alumnos que buscan control, comodidad y buena salida de bola.",
     price: "179 EUR",
     image: shopImage("pala-control.jpg"),
     featured: true,
@@ -29,12 +29,12 @@ const SHOP_ITEMS = [
   },
   {
     id: 2,
-    name: "Pack overgrips rendimiento",
+    name: "Pack de overgrips",
     category: "overgrips",
     categoryLabel: "Overgrips",
     type: "producto",
     typeLabel: "Producto",
-    description: "Pack de agarre comodo y duradero para mantener sensacion seca en entrenos y partidos.",
+    description: "Agarre comodo para entrenos y partidos, con buena sensacion en la mano.",
     price: "9 EUR",
     image: shopImage("overgrips.jpg"),
   },
@@ -45,7 +45,7 @@ const SHOP_ITEMS = [
     categoryLabel: "Reparacion",
     type: "servicio",
     typeLabel: "Servicio",
-    description: "Revision de desgaste, cambio de protector y puesta a punto para alargar la vida de tu pala.",
+    description: "Revisamos desgaste, protector y pequenos ajustes para alargar la vida de tu pala.",
     price: "Consultar",
     image: shopImage("reparacion-pala.jpg"),
     featuredLabel: "Servicio mas solicitado",
@@ -57,18 +57,18 @@ const SHOP_ITEMS = [
     categoryLabel: "Ropa",
     type: "producto",
     typeLabel: "Producto",
-    description: "Prenda del club para entreno y uso diario con imagen limpia y comoda.",
+    description: "Prenda comoda del club para entrenar, venir a clase o usar en el dia a dia.",
     price: "42 EUR",
     image: shopImage("sudadera-club.jpg"),
   },
   {
     id: 5,
-    name: "Mochila de pista",
+    name: "Mochila para pista",
     category: "accesorios",
     categoryLabel: "Accesorios",
     type: "producto",
     typeLabel: "Producto",
-    description: "Espacio para pala, ropa y bote de bolas con formato comodo para venir al club.",
+    description: "Espacio para pala, ropa y bote de bolas en un formato comodo para venir al club.",
     price: "59 EUR",
     image: shopImage("mochila-padel.jpg"),
   },
@@ -79,7 +79,7 @@ const SHOP_ITEMS = [
     categoryLabel: "Otros servicios",
     type: "servicio",
     typeLabel: "Servicio",
-    description: "Te ayudamos a elegir pala, grip y accesorios segun tu nivel, ritmo de juego y objetivos.",
+    description: "Te orientamos para elegir pala, grip y accesorios segun tu nivel y forma de jugar.",
     price: "Consultar",
     image: shopImage("material-padel.jpg"),
   },
@@ -105,8 +105,8 @@ function Tienda() {
           <span className="tiendaEyebrow">Club y material</span>
           <h1>Tienda</h1>
           <p className="tiendaLead">
-            Un escaparate de productos y servicios de la escuela: material, ropa, accesorios y
-            soluciones utiles para alumnos y jugadores del club.
+            Material, ropa y servicios utiles para alumnos y jugadores del club. Si tienes dudas,
+            pregunta en la escuela antes de comprar.
           </p>
         </div>
 
@@ -121,7 +121,7 @@ function Tienda() {
           </div>
           <div className="tiendaMiniStat tiendaMiniStatWide">
             <span>Estilo NaniPadel</span>
-            <strong>Material, asesoramiento y club</strong>
+            <strong>Material y ayuda para elegir bien</strong>
           </div>
         </div>
       </section>
@@ -146,11 +146,10 @@ function Tienda() {
         <div className="tiendaControlsHead">
           <div>
             <span className="tiendaSectionEyebrow">Catalogo</span>
-            <h3>Productos y servicios del club</h3>
+            <h3>Material y servicios del club</h3>
           </div>
           <p>
-            Filtra rapido por categoria y distingue al momento entre material fisico y servicios de
-            la escuela.
+            Filtra por categoria para encontrar palas, grips, mochila o servicios de la escuela.
           </p>
         </div>
 

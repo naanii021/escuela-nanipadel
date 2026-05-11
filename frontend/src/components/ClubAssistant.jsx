@@ -33,7 +33,7 @@ const QUICK_ACTIONS = [
     key: "ayuda",
     label: "Ayuda",
     icon: "✨",
-    description: "Te guío por la plataforma.",
+    description: "Te ayudo a encontrar lo que necesitas.",
   },
 ];
 
@@ -75,8 +75,8 @@ function buildResponse(action, summary) {
       return {
         title: "Mis clases",
         eyebrow: "Entrenamientos",
-        text: "Inicia sesion para ver tu proxima clase y tus grupos asignados.",
-        detail: "Consulta horarios, profesor y grupo desde tu perfil.",
+        text: "Inicia sesion para ver tu proxima clase y tu grupo.",
+        detail: "Cuando entres, podras revisar horarios, profesor y avisos.",
         status: "Cuenta necesaria",
         cta: { label: "Entrar", to: "/login" },
       };
@@ -88,7 +88,7 @@ function buildResponse(action, summary) {
         title: "Mis clases",
         eyebrow: "Entrenamientos",
         text: "Ahora mismo no veo clases asignadas a tu perfil.",
-        detail: "Puedes revisar los grupos disponibles de la escuela.",
+        detail: "Si ya eres alumno, contacta con el club para vincular tu cuenta.",
         status: "Sin asignar",
         cta: { label: "Ver clases", to: "/clases" },
       };
@@ -98,7 +98,7 @@ function buildResponse(action, summary) {
       title: "Tu proxima clase",
       eyebrow: "Entrenamientos",
       text: `${nextClass.nombre}. ${formatClassDate(nextClass.nextDate)} con ${nextClass.profesor}.`,
-      detail: "Llegar con unos minutos de margen siempre ayuda a empezar mejor.",
+      detail: "Ven con unos minutos de margen para empezar la clase tranquilo.",
       status: "Activa",
       cta: { label: "Ir a clases", to: "/clases" },
     };
@@ -109,8 +109,8 @@ function buildResponse(action, summary) {
       return {
         title: "Mis reservas",
         eyebrow: "Pistas",
-        text: "Sin sesion solo puedo mostrar la zona general de reservas.",
-        detail: "Entra para consultar tus reservas personales.",
+        text: "Inicia sesion para ver tus reservas activas.",
+        detail: "Sin cuenta solo puedo llevarte a la zona general de reservas.",
         status: "Cuenta necesaria",
         cta: { label: "Entrar", to: "/login" },
       };
@@ -120,9 +120,9 @@ function buildResponse(action, summary) {
     if (!reservas.length) {
       return {
         title: "Mis reservas",
-        text: "No tienes reservas proximas ahora mismo.",
+        text: "No tienes reservas activas ahora mismo.",
         eyebrow: "Pistas",
-        detail: "Puedes buscar hueco por fecha, pista y hora.",
+        detail: "Puedes buscar hueco por fecha, pista y hora cuando quieras.",
         status: "Disponible",
         cta: { label: "Reservar pista", to: "/reservas" },
       };
@@ -133,7 +133,7 @@ function buildResponse(action, summary) {
       title: "Tu proxima reserva",
       eyebrow: "Pistas",
       text: `${first.pista_nombre} el ${formatDateTime(first.fecha, first.hora_inicio)}.`,
-      detail: "Revisa la reserva antes de venir al club.",
+      detail: "Revisa la hora antes de venir al club.",
       status: "Confirmada",
       cta: { label: "Ver reservas", to: "/reservas" },
     };
@@ -145,8 +145,8 @@ function buildResponse(action, summary) {
       return {
         title: "Torneos abiertos",
         eyebrow: "Competicion",
-        text: "No veo torneos abiertos o proximos ahora mismo.",
-        detail: "Puedes pasar por la seccion de torneos para ver novedades.",
+        text: "No veo torneos abiertos ahora mismo.",
+        detail: "Cuando el club publique uno nuevo, aparecera en la seccion de torneos.",
         status: "Sin abiertos",
         cta: { label: "Ver torneos", to: "/torneos" },
       };
@@ -157,7 +157,7 @@ function buildResponse(action, summary) {
       title: "Torneos abiertos",
       eyebrow: "Competicion",
       text: `El siguiente es ${first.nombre} el ${formatDateTime(first.fecha_inicio, first.hora_inicio)}.`,
-      detail: "Revisa categoria, plazas y fecha antes de inscribirte.",
+      detail: "Revisa categoria, plazas y fecha antes de apuntarte.",
       status: "Abierto",
       cta: { label: "Ir a torneos", to: "/torneos" },
     };
@@ -169,8 +169,8 @@ function buildResponse(action, summary) {
       return {
         title: "Estado de pista",
         eyebrow: "Condiciones",
-        text: "Todavia no hay lectura del sensor XIAO disponible.",
-        detail: "Consulta la pagina completa para ver recomendaciones y prevision.",
+        text: "Todavia no hay lectura de pista disponible.",
+        detail: "Puedes consultar la pagina de estado para ver la prevision.",
         status: "Sin lectura",
         cta: { label: "Ver pagina", to: "/estado-pista" },
       };
@@ -180,7 +180,7 @@ function buildResponse(action, summary) {
       title: "Estado de pista",
       eyebrow: "Condiciones",
       text: `${meteo.estado || "Lectura recibida"}. ${meteo.temperatura}°C y ${meteo.humedad}% de humedad.`,
-      detail: "Temperatura y humedad ayudan a decidir el mejor momento para jugar.",
+      detail: "Temperatura, viento y humedad ayudan a decidir si es buen momento para jugar.",
       status: meteo.estado || "Actualizado",
       cta: { label: "Ver estado completo", to: "/estado-pista" },
     };
@@ -190,8 +190,8 @@ function buildResponse(action, summary) {
     title: "Ayuda",
     eyebrow: "Guia rapida",
     text: guest
-      ? "Puedes explorar clases, torneos, galeria y estado de pista. Si entras con tu cuenta, el asistente te dara datos personales."
-      : "Usa los accesos rapidos para ver clases, reservas, torneos y estado de pista. Este MVP queda listo para crecer con avisos y recomendaciones.",
+      ? "Puedes ver clases, torneos, galeria y estado de pista. Si entras con tu cuenta, tambien podre ayudarte con tus datos del club."
+      : "Elige que quieres consultar: clases, reservas, torneos o estado de pista.",
     detail: "Elige una opcion para ir directo a lo que necesitas.",
     status: "Listo",
     cta: { label: "Ir al inicio", to: "/" },
@@ -218,7 +218,7 @@ export default function ClubAssistant() {
         const data = await getAssistantSummary();
         if (mounted) setSummary(data);
       } catch (err) {
-        if (mounted) setError(err.message || "No se pudo cargar el asistente");
+        if (mounted) setError(err.message || "No he podido cargar la informacion del club.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -233,12 +233,12 @@ export default function ClubAssistant() {
   const welcomeText = useMemo(() => {
     if (!summary) {
       return isLogged()
-        ? "Soy el asistente del club. Puedo ayudarte con clases, reservas, torneos y pista."
-        : "Soy el asistente del club. Puedo orientarte por la web y mostrar informacion general.";
+        ? "Puedo ayudarte con tus clases, reservas, torneos y avisos del club."
+        : "Puedo orientarte por la web y mostrar informacion general del club.";
     }
 
     return summary.logged
-      ? `Hola ${summary.user?.nombre?.split(" ")[0] || ""}. Ya puedo darte datos utiles del club y de tu cuenta.`
+      ? `Hola ${summary.user?.nombre?.split(" ")[0] || ""}. Que quieres consultar hoy?`
       : "Bienvenido. Sin iniciar sesion puedo darte informacion general del club.";
   }, [summary]);
 

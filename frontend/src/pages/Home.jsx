@@ -10,27 +10,27 @@ const CLUB_LON = -6.364445;
 const PLATFORM_ITEMS = [
   {
     icon: "🎾",
-    title: "Reservar pista con disponibilidad real",
+    title: "Reservar pista sin complicarte",
     description:
-      "Consulta horarios, encuentra el hueco que mejor encaja y confirma sin llamadas ni esperas innecesarias.",
+      "Mira los huecos libres, elige pista y confirma tu reserva en pocos pasos.",
   },
   {
     icon: "📚",
-    title: "Seguir clases por nivel y objetivo",
+    title: "Seguir tus clases de la escuela",
     description:
-      "La escuela organiza grupos, horarios y progresion para que cada alumno encuentre su sitio dentro del club.",
+      "Consulta grupos, horarios y avisos para entrenar siempre con la informacion clara.",
   },
   {
     icon: "🏆",
-    title: "Vivir torneos, liga y actividad de club",
+    title: "Estar al dia de torneos y liga",
     description:
-      "La competicion y la comunidad forman parte del dia a dia: torneos, jornadas y momentos que mantienen activo el club.",
+      "Revisa competiciones, jornadas y momentos del club sin perderte lo importante.",
   },
   {
     icon: "🌦️",
-    title: "Consultar condiciones de juego antes de salir",
+    title: "Comprobar la pista antes de salir",
     description:
-      "El estado de pista y el tiempo conectado al sensor XIAO aportan una capa util que diferencia el proyecto.",
+      "Consulta tiempo, viento y recomendacion de juego antes de venir al club.",
   },
 ];
 
@@ -45,21 +45,21 @@ const QUICK_LINKS = [
   {
     icon: "📘",
     title: "Clases por niveles",
-    description: "Busca el grupo que mejor encaja contigo.",
+    description: "Consulta niveles y horarios de la escuela.",
     to: "/clases",
     accent: "blue",
   },
   {
     icon: "🏆",
     title: "Torneos y liga",
-    description: "Sigue la actividad competitiva del club.",
+    description: "Mira torneos, plazas y fechas.",
     to: "/torneos",
     accent: "gold",
   },
   {
     icon: "📸",
     title: "Galeria del club",
-    description: "Revisa fotos de alumnos, jornadas y eventos.",
+    description: "Fotos de alumnos, clases y jornadas.",
     to: "/galeria",
     accent: "slate",
   },
@@ -70,9 +70,9 @@ const NEWS_ITEMS = [
     id: 1,
     category: "Liga",
     date: "26 abr 2026",
-    title: "La liga femenina firma otra jornada solida en casa",
+    title: "La liga femenina suma otra buena jornada en casa",
     summary:
-      "El equipo mantiene buenas sensaciones tras una nueva ronda con ritmo alto, buen ambiente y apoyo del club en pista.",
+      "El equipo compitio con buen ritmo y el ambiente del club se noto desde el primer partido.",
     image: `${process.env.PUBLIC_URL}/fotosLiga/ligafem.jpeg`,
     featured: true,
   },
@@ -80,27 +80,27 @@ const NEWS_ITEMS = [
     id: 2,
     category: "Clases",
     date: "24 abr 2026",
-    title: "Nueva sesion tecnica con foco en bandeja y juego de red",
+    title: "Sesion tecnica para mejorar bandeja y red",
     summary:
-      "Los grupos de clases siguen trabajando automatismos y lectura de punto con sesiones mas dinamicas y seguimiento por nivel.",
+      "Los grupos trabajan situaciones reales de partido para ganar confianza y ordenar mejor el juego.",
     image: `${process.env.PUBLIC_URL}/fotosClase/clases.jpeg`,
   },
   {
     id: 3,
     category: "Club",
     date: "22 abr 2026",
-    title: "Premios y momentos destacados tras el torneo del club",
+    title: "Premios y buen ambiente tras el torneo del club",
     summary:
-      "La entrega de premios refuerza el ambiente de escuela real, con alumnos, competicion y comunidad compartiendo pista y club.",
+      "Alumnos y familias compartieron pista, premios y una jornada de esas que hacen club.",
     image: `${process.env.PUBLIC_URL}/fotosAlumnos/premiodanipau.jpeg`,
   },
   {
     id: 4,
     category: "Alumnos",
     date: "19 abr 2026",
-    title: "Mas actividad social y partidos entre alumnos durante la semana",
+    title: "Mas partidos entre alumnos durante la semana",
     summary:
-      "La plataforma sigue ayudando a mover reservas, clases y partidos entre alumnos para que el club no se pare.",
+      "La escuela sigue creciendo con reservas, clases y partidos organizados entre alumnos.",
     image: `${process.env.PUBLIC_URL}/fotosAlumnos/nani.jpeg`,
   },
 ];
@@ -130,10 +130,10 @@ function Home() {
         setWeatherLoading(true);
         setWeatherError("");
         const data = await getWeatherForClub(CLUB_LAT, CLUB_LON);
-        if (!data.ok) throw new Error("No se pudo obtener el tiempo");
+        if (!data.ok) throw new Error("No hemos podido consultar el tiempo.");
         setWeather(data);
       } catch (err) {
-        setWeatherError(err.message || "Error obteniendo el tiempo");
+        setWeatherError(err.message || "No hemos podido consultar el tiempo.");
       } finally {
         setWeatherLoading(false);
       }
@@ -152,18 +152,18 @@ function Home() {
           <div className="heroLeft">
             <div className="pill">
               <span className="dot" aria-hidden="true" />
-              Escuela Norba Padel | Club, clases y reservas
+              Escuela Norba Padel | Clases, reservas y club
             </div>
 
             <h2>
               Tu escuela de padel,
               <br />
-              mejor organizada y mas viva.
+              mas facil de seguir.
             </h2>
 
             <p>
-              Una plataforma pensada para un club real: reservas rapidas, clases por nivel,
-              competicion activa y estado de pista conectado al proyecto con sensor <strong>XIAO</strong>.
+              Todo lo que necesitas para entrenar, reservar pista y estar al dia con la escuela,
+              tambien con el estado de pista conectado al sensor <strong>XIAO</strong>.
             </p>
 
             <div className="ctaRow">
@@ -201,16 +201,16 @@ function Home() {
             >
               <div className="weatherTop">
                 <div>
-                  <span className="weatherEyebrow">Sensor XIAO en pista</span>
-                  <h4>Tiempo y estado de juego</h4>
+                  <span className="weatherEyebrow">Tiempo en pista</span>
+                  <h4>Antes de venir a jugar</h4>
                 </div>
-                <span className="weatherBadge">Vista rapida</span>
+                <span className="weatherBadge">Ahora</span>
               </div>
 
               {weatherLoading && <p className="weatherHint">Cargando tiempo...</p>}
 
               {!weatherLoading && weatherError && (
-                <p className="weatherHint">Error: {weatherError}</p>
+                <p className="weatherHint">{weatherError}</p>
               )}
 
               {!weatherLoading && !weatherError && weather && (
@@ -240,12 +240,12 @@ function Home() {
                     <span className="chip">Viento: {weather.windSpeed} km/h</span>
                     <span className="chip">Lluvia: {weather.precipitationProbability}%</span>
                     <span className={`chip ${weather.pista === "RIESGO" ? "chipRisk" : "chipOk"}`}>
-                      Jugar: {weather.pista === "RIESGO" ? "Con cautela" : "Buen momento"}
+                      Pista: {weather.pista === "RIESGO" ? "Revisar antes" : "Buena para jugar"}
                     </span>
                   </div>
 
                   <p className="weatherHint">
-                    Pulsa para ver prevision semanal, humedad, UV y recomendaciones de juego.
+                    Pulsa para ver la prevision y recomendaciones antes de reservar.
                   </p>
                   <Link
                     className="weatherPageLink"
@@ -345,16 +345,15 @@ function Home() {
         <div className="platformBlock">
           <div className="platformIntro">
             <span className="sectionEyebrow">Que puedes hacer</span>
-            <h3>Una plataforma pensada para una escuela de padel real</h3>
+            <h3>Todo lo importante de la escuela en un mismo sitio</h3>
             <p>
-              Aqui no solo reservas: organizas tu juego, sigues la actividad del club y consultas
-              informacion util antes de entrar en pista.
+              Consulta tus clases, reserva pista, revisa torneos y mira si las condiciones acompanan
+              antes de venir al club.
             </p>
             <div className="platformLeadCard">
-              <strong>Todo gira alrededor de una experiencia mas util para alumnos y club.</strong>
+              <strong>Hecha para alumnos, familias y el equipo de la escuela.</strong>
               <span>
-                Reservas, clases, competicion y condiciones de juego conectadas en una misma
-                plataforma para que la escuela tenga mas ritmo y mejor organizacion.
+                Menos dudas, menos mensajes sueltos y mas informacion clara para entrenar y jugar.
               </span>
             </div>
           </div>
@@ -378,11 +377,10 @@ function Home() {
           <div className="sectionHeader sectionHeaderInline">
             <div>
               <span className="sectionEyebrow">Empieza aqui</span>
-              <h3>Accesos rapidos del club</h3>
+              <h3>Lo que mas se usa en el club</h3>
             </div>
             <p>
-              Las acciones que mas usa una escuela real: reservar, revisar clases, seguir torneos y
-              ver la actividad del club.
+              Atajos para reservar, consultar clases, ver torneos y seguir la vida de la escuela.
             </p>
           </div>
 

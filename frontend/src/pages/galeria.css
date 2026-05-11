@@ -109,6 +109,50 @@
   color: rgba(255, 255, 255, 0.52);
 }
 
+.galeriaHeroActions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-top: 1.3rem;
+}
+
+.galeriaHeroActions span {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.galleryUploadBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  border: none;
+  border-radius: 999px;
+  padding: 0.74rem 1.1rem;
+  background: linear-gradient(135deg, #15803d, #22c55e);
+  color: #fff;
+  font-family: inherit;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 14px 28px rgba(22, 163, 74, 0.28);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.galleryUploadBtn:hover {
+  transform: translateY(-1px);
+  filter: saturate(1.05);
+  box-shadow: 0 18px 34px rgba(22, 163, 74, 0.34);
+}
+
+.galleryUploadBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+  transform: none;
+}
+
 .galeriaHeroPanel {
   position: relative;
   min-height: 470px;
@@ -406,6 +450,251 @@
   line-height: 1.65;
 }
 
+.galleryModeration {
+  display: grid;
+  gap: 1rem;
+  padding: 1.15rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+}
+
+.moderationHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.moderationHeader .galeriaEyebrow {
+  margin-bottom: 0.55rem;
+  color: #166534;
+  background: rgba(22, 163, 74, 0.1);
+  border-color: rgba(22, 163, 74, 0.18);
+}
+
+.moderationHeader h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+}
+
+.moderationHeader > strong {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 1.3rem;
+}
+
+.pendingPhotoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.pendingPhotoCard {
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 20px;
+  background: #fff;
+}
+
+.pendingPhotoCard img {
+  width: 100%;
+  height: 210px;
+  object-fit: cover;
+  display: block;
+}
+
+.pendingPhotoCard > div {
+  display: grid;
+  gap: 0.55rem;
+  padding: 1rem;
+}
+
+.pendingPhotoCard h3,
+.pendingPhotoCard p {
+  margin: 0;
+}
+
+.pendingPhotoCard h3 {
+  color: #0f172a;
+}
+
+.pendingPhotoCard p,
+.pendingPhotoCard small {
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.statusBadge {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.32rem 0.68rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.statusPending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.pendingActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+}
+
+.pendingActions button {
+  border: 1px solid rgba(22, 163, 74, 0.18);
+  border-radius: 999px;
+  padding: 0.52rem 0.8rem;
+  background: rgba(22, 163, 74, 0.1);
+  color: #166534;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.pendingActions .rejectBtn {
+  border-color: rgba(220, 38, 38, 0.16);
+  background: rgba(220, 38, 38, 0.08);
+  color: #991b1b;
+}
+
+.pendingActions .deleteBtn {
+  border-color: rgba(15, 23, 42, 0.12);
+  background: #f8fafc;
+  color: #475569;
+}
+
+.galleryUploadOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 230;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(4, 10, 18, 0.78);
+  backdrop-filter: blur(10px);
+}
+
+.galleryUploadModal {
+  display: grid;
+  gap: 0.9rem;
+  width: min(540px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: 1.25rem;
+  border-radius: 24px;
+  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.32);
+}
+
+.uploadModalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.uploadModalHeader .galeriaEyebrow {
+  margin-bottom: 0.55rem;
+  color: #166534;
+  background: rgba(22, 163, 74, 0.1);
+  border-color: rgba(22, 163, 74, 0.18);
+}
+
+.uploadModalHeader h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+}
+
+.uploadModalHeader button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.galleryUploadModal label {
+  display: grid;
+  gap: 0.4rem;
+  color: #334155;
+  font-weight: 900;
+}
+
+.galleryUploadModal input,
+.galleryUploadModal select,
+.galleryUploadModal textarea {
+  width: 100%;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 14px;
+  padding: 0.74rem 0.85rem;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+}
+
+.galleryUploadModal input:focus,
+.galleryUploadModal select:focus,
+.galleryUploadModal textarea:focus {
+  outline: none;
+  border-color: rgba(22, 163, 74, 0.45);
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1);
+}
+
+.uploadLoginBox {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.uploadLoginBox p,
+.uploadStatus {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.uploadStatus {
+  padding: 0.8rem 0.9rem;
+  border-radius: 14px;
+  font-weight: 800;
+}
+
+.uploadStatus-success {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.uploadStatus-info {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.uploadStatus-error {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
 .galleryLightbox {
   position: fixed;
   inset: 0;
@@ -544,6 +833,11 @@
 
   .galeriaControls {
     padding: 0.9rem;
+  }
+
+  .galeriaHeroActions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .galleryToolbarNote {

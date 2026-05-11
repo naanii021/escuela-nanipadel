@@ -6,17 +6,18 @@ import { getUser, isLogged } from "../services/auth";
 
 const DAY_LABELS = { L: "Lunes", M: "Martes", X: "Miercoles", J: "Jueves", V: "Viernes", S: "Sabado", D: "Domingo" };
 const STAFF_ROLES = ["admin", "profesor", "profe"];
+const CONTACT_HREF = "mailto:info@nanipadel.com";
 
 const PUBLIC_LEVELS = [
-  { title: "Ninos", text: "Aprendizaje seguro y divertido.", target: "Para peques que empiezan o ya compiten.", goal: "Objetivo: coordinacion, tecnica base y juego en equipo." },
-  { title: "Iniciacion", text: "Golpes basicos y primeras situaciones reales.", target: "Para jugadores nuevos o con poca continuidad.", goal: "Objetivo: mantener peloteos y entender la pista." },
-  { title: "Medio", text: "Consistencia, colocacion y decisiones.", target: "Para alumnos que ya juegan partidos.", goal: "Objetivo: ordenar el juego y reducir errores." },
-  { title: "Avanzado", text: "Ritmo alto y patrones tacticos.", target: "Para jugadores con tecnica estable.", goal: "Objetivo: competir con mas intencion." },
-  { title: "Competicion", text: "Entrenamiento exigente y especifico.", target: "Para jugadores de torneo.", goal: "Objetivo: preparacion tactica, fisica y mental." },
+  { title: "Ninos", text: "Aprender jugando y con seguridad.", target: "Para peques que empiezan o ya compiten.", goal: "Trabajamos coordinacion, tecnica base y juego en equipo." },
+  { title: "Iniciacion", text: "Primeros golpes y primeras rutinas.", target: "Para jugadores nuevos o con poca continuidad.", goal: "Buscamos que mantengas peloteos y entiendas mejor la pista." },
+  { title: "Medio", text: "Mas control y mejores decisiones.", target: "Para alumnos que ya juegan partidos.", goal: "Ordenamos el juego y reducimos errores faciles." },
+  { title: "Avanzado", text: "Ritmo alto y trabajo tactico.", target: "Para jugadores con tecnica estable.", goal: "Entrenamos para competir con mas intencion." },
+  { title: "Competicion", text: "Entrenamiento exigente de partido.", target: "Para jugadores de torneo.", goal: "Preparamos tactica, fisico y mentalidad competitiva." },
 ];
 
 const CLASS_FORMATS = ["Grupos 1 dia/semana", "Grupos 2 dias/semana", "Clases particulares", "Tecnificacion", "Intensivos"];
-const ORIENTATIVE_SCHEDULES = ["Mananas bajo demanda", "Tardes por niveles", "Fines de semana segun grupo", "Grupos reducidos por edad y ritmo"];
+const ORIENTATIVE_SCHEDULES = ["Mananas bajo demanda", "Tardes de lunes a viernes", "Grupos por nivel", "Fines de semana segun grupo"];
 
 function formatDias(d1, d2) {
   if (!d2) return DAY_LABELS[d1] || d1 || "-";
@@ -85,9 +86,8 @@ const IcCourt = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none
 const IcUser = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
 const IcSearch = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>;
 const IcArrow = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>;
-const IcLock = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
 
-function GroupCard({ grupo, showLogin }) {
+function GroupCard({ grupo }) {
   const { a, c, pct, barCls, statusCls, label } = occupancyInfo(grupo.alumnos, grupo.cupo, grupo.nivel);
   const proxima = proximaDia(grupo.dia1, grupo.dia2);
 
@@ -113,65 +113,86 @@ function GroupCard({ grupo, showLogin }) {
             </div>
             <div className="occCount">{a}/{c || "-"} alumnos</div>
           </div>
-          {(proxima || showLogin) && (
-            <div className="cardBottomRow">
-              {proxima && <div className={`cardProxima${proxima === "Hoy" ? " cardProximaHoy" : ""}`}><IcClock />Proxima: <strong>{proxima}</strong></div>}
-              {showLogin && <Link to="/login" className="cardLoginCta"><IcLock />Iniciar sesion</Link>}
-            </div>
-          )}
+          {proxima && <div className={`cardProxima${proxima === "Hoy" ? " cardProximaHoy" : ""}`}><IcClock />Proxima: <strong>{proxima}</strong></div>}
         </div>
       </div>
     </article>
   );
 }
 
-export default function Clases() {
-  const [grupos, setGrupos] = useState([]);
-  const [classData, setClassData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
-  const [q, setQ] = useState("");
-  const [nivelFilt, setNivelFilt] = useState("");
-  const [dia, setDia] = useState("");
-  const [profesor, setProfesor] = useState("");
+function PublicClassesLanding({ publicData, notice }) {
+  const levels = publicData?.niveles?.length ? publicData.niveles : PUBLIC_LEVELS;
+  const formats = publicData?.formatos?.length ? publicData.formatos : CLASS_FORMATS;
+  const schedules = publicData?.horarios?.length ? publicData.horarios : ORIENTATIVE_SCHEDULES;
+  const prices = publicData?.precios?.length ? publicData.precios : [{ nombre: "Cuotas de escuela", precio: "Consultar" }];
 
-  const logged = isLogged();
-  const user = getUser();
-  const role = String(user?.rol || "").toLowerCase();
-  const isStaff = STAFF_ROLES.includes(role);
-  const misClases = classData?.clases || [];
+  return (
+    <section className="clases clasesPublicas">
+      <header className="clasesHero publicHero">
+        <div className="heroContent">
+          <div className="heroText">
+            <h1 className="heroTitle">Clases de padel para ninos y adultos</h1>
+            <p className="heroSub">Grupos por nivel, horarios orientativos y entrenamientos adaptados a cada alumno.</p>
+            <div className="heroActions">
+              <a href={CONTACT_HREF} className="heroCtaBtn">Solicitar informacion <IcArrow /></a>
+              <a href="#niveles" className="heroSecondaryBtn">Ver niveles</a>
+            </div>
+          </div>
+          <div className="heroStats">
+            <div className="statCard"><strong>{levels.length}</strong><span>niveles</span></div>
+            <div className="statCard"><strong>{formats.length}</strong><span>formatos</span></div>
+          </div>
+        </div>
+      </header>
+
+      {notice && (
+        <div className="accountNotice">
+          <strong>Tu cuenta aun no esta vinculada como alumno de la escuela.</strong>
+          <p>{notice}</p>
+          <a href={CONTACT_HREF} className="inlineHelpBtn">Contactar con el club</a>
+        </div>
+      )}
+
+      <section className="publicSection" id="niveles">
+        <div className="sectionHeaderRow"><h2 className="sectionTitle">Niveles disponibles</h2></div>
+        <div className="publicGrid">
+          {levels.map((item) => (
+            <article className="publicInfoCard" key={item.title}>
+              <span>{item.title}</span>
+              <h3>{item.text}</h3>
+              {item.target && <p>{item.target}</p>}
+              <small>{item.goal || item.price || "Consultar"}</small>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="publicSplit">
+        <div className="publicPanel"><h2>Formatos de clase</h2><div className="chipList">{formats.map((item) => <span key={item}>{item}</span>)}</div></div>
+        <div className="publicPanel"><h2>Precios orientativos</h2>{prices.map((item) => <p key={`${item.nombre}-${item.precio}`}><strong>{item.nombre}:</strong> {item.precio}</p>)}</div>
+        <div className="publicPanel"><h2>Horarios generales</h2><div className="chipList">{schedules.map((item) => <span key={item}>{item}</span>)}</div></div>
+      </section>
+
+      <section className="publicPanel">
+        <h2>Como trabajamos en la escuela</h2>
+        <p>Organizamos los grupos por nivel, edad y ritmo de aprendizaje. En pista mezclamos tecnica, tactica, movilidad y situaciones reales de partido.</p>
+      </section>
+
+      <section className="clasesCta">
+        <h2>Quieres apuntarte?</h2>
+        <p>Escribenos con tu nivel y disponibilidad. Te ayudamos a encontrar el grupo que mejor encaje contigo.</p>
+        <div className="heroActions">
+          <a href={CONTACT_HREF} className="heroCtaBtn">Contactar con la escuela</a>
+          <Link to="/login" className="heroSecondaryBtn">Entrar como alumno</Link>
+        </div>
+      </section>
+    </section>
+  );
+}
+
+function StaffClassesSummary({ classData, grupos, loading, err, q, setQ, nivelFilt, setNivelFilt, dia, setDia, profesor, setProfesor, clearFilters, hasFilters }) {
   const staffSummary = classData?.resumen_profesor || null;
-  const avisos = classData?.avisos || [];
-  const recuperaciones = classData?.recuperaciones || [];
-  const proximasSesiones = classData?.proximasSesiones || classData?.proximas_clases || [];
-  const asistenciaReciente = classData?.asistenciaReciente || classData?.asistencia || [];
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        setErr("");
-        const data = await apiGet("/api/grupos");
-        if (!data.ok) throw new Error(data.message || "No se pudieron cargar las clases");
-        setGrupos(data.grupos || []);
-
-        if (isLogged()) {
-          try {
-            const profile = await apiGet("/api/clases/mis-clases");
-            if (profile.ok) setClassData(profile);
-          } catch {
-            setClassData(null);
-          }
-        }
-      } catch (e) {
-        setErr(e.message || "Error desconocido");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
-
+  const hoy = staffSummary?.clases_hoy || [];
   const profesores = useMemo(() => {
     const map = new Map();
     grupos.forEach((g) => {
@@ -191,146 +212,84 @@ export default function Clases() {
     });
   }, [grupos, q, nivelFilt, dia, profesor]);
 
-  const hasFilters = q || nivelFilt || dia || profesor;
-  const clearFilters = () => { setQ(""); setNivelFilt(""); setDia(""); setProfesor(""); };
-
-  const groupExplorer = (title, showLogin = false) => (
-    <div className="todosGruposSection" id="niveles">
-      <div className="sectionHeaderRow">
-        <h2 className="sectionTitle">{title}</h2>
-        {!loading && hasFilters && <span className="resultsBadge">{filtered.length} resultados</span>}
-      </div>
-
-      <div className="filtersBar">
-        <div className="searchWrap">
-          <span className="searchIcon"><IcSearch /></span>
-          <input className="searchInput" type="text" placeholder="Buscar grupo, profe, pista, codigo..." value={q} onChange={(e) => setQ(e.target.value)} />
-          {q && <button className="searchClear" onClick={() => setQ("")} aria-label="Limpiar busqueda">x</button>}
+  return (
+    <section className="clases">
+      <header className="clasesHero staffHero">
+        <div className="heroContent">
+          <div className="heroText">
+            <h1 className="heroTitle">Resumen de clases</h1>
+            <p className="heroSub">Un vistazo rapido a los grupos, alumnos y tareas pendientes de la escuela.</p>
+            <Link to="/panel" className="heroCtaBtn">Ir al panel <IcArrow /></Link>
+          </div>
+          <div className="heroStats">
+            <div className="statCard"><strong>{staffSummary?.stats?.clases_hoy || 0}</strong><span>hoy</span></div>
+            <div className="statCard"><strong>{staffSummary?.stats?.grupos || 0}</strong><span>grupos</span></div>
+            <div className="statCard"><strong>{staffSummary?.stats?.alumnos || 0}</strong><span>alumnos</span></div>
+          </div>
         </div>
-        <select className="select" value={nivelFilt} onChange={(e) => setNivelFilt(e.target.value)}>
-          <option value="">Nivel</option>
-          <option value="ninos">Ninos</option>
-          <option value="iniciacion">Iniciacion</option>
-          <option value="medio">Medio</option>
-          <option value="avanzado">Avanzado</option>
-          <option value="avanzado_plus">Avanzado +</option>
-          <option value="competicion">Competicion</option>
-        </select>
-        <select className="select" value={dia} onChange={(e) => setDia(e.target.value)}>
-          <option value="">Dia</option>
-          {Object.entries(DAY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
-        <select className="select" value={profesor} onChange={(e) => setProfesor(e.target.value)}>
-          <option value="">Profesor</option>
-          {profesores.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
-        {hasFilters && <button className="btnClear" onClick={clearFilters}>Limpiar</button>}
-      </div>
+      </header>
 
-      {loading && <div className="skeletonGrid">{Array.from({ length: 6 }).map((_, i) => <div className="skeletonCard" key={i} />)}</div>}
-      {!loading && err && <div className="errorBox"><strong>Error al cargar</strong><p>{err}</p></div>}
-      {!loading && !err && filtered.length === 0 && <div className="emptyBox"><IcSearch /><strong>Sin resultados</strong><p>Prueba quitando algun filtro o busca por pista, nivel o profesor.</p></div>}
-      {!loading && !err && filtered.length > 0 && <div className="listaClases">{filtered.map((g) => <GroupCard key={g.id} grupo={g} showLogin={showLogin} />)}</div>}
-    </div>
+      <section className="staffDashboard">
+        <div className="staffPanel">
+          <h2>Clases de hoy</h2>
+          {hoy.length ? hoy.map((g) => <article className="staffRow" key={g.id}><strong>{g.nombre}</strong><span>{formatHora(g.hora_inicio, g.duracion_min)} - {g.pista_habitual || "Pista pendiente"} - {g.alumnos || 0} alumnos</span></article>) : <p className="softEmpty">No hay clases programadas para hoy.</p>}
+        </div>
+        <div className="staffPanel">
+          <h2>Seguimiento</h2>
+          <div className="miniMetric"><span>Avisos activos</span><strong>{staffSummary?.stats?.avisos || 0}</strong></div>
+          <div className="miniMetric"><span>Recuperaciones pendientes</span><strong>{staffSummary?.stats?.recuperaciones || 0}</strong></div>
+          <p className="panelHint">Para editar grupos, alumnos o avisos, entra en el panel.</p>
+        </div>
+      </section>
+
+      <section className="todosGruposSection">
+        <div className="sectionHeaderRow">
+          <h2 className="sectionTitle">Grupos asignados</h2>
+          {!loading && hasFilters && <span className="resultsBadge">{filtered.length} resultados</span>}
+        </div>
+        <div className="filtersBar">
+          <div className="searchWrap">
+            <span className="searchIcon"><IcSearch /></span>
+            <input className="searchInput" type="text" placeholder="Buscar grupo, profe, pista, codigo..." value={q} onChange={(e) => setQ(e.target.value)} />
+            {q && <button className="searchClear" onClick={() => setQ("")} aria-label="Limpiar busqueda">x</button>}
+          </div>
+          <select className="select" value={nivelFilt} onChange={(e) => setNivelFilt(e.target.value)}>
+            <option value="">Nivel</option>
+            <option value="ninos">Ninos</option>
+            <option value="iniciacion">Iniciacion</option>
+            <option value="medio">Medio</option>
+            <option value="avanzado">Avanzado</option>
+            <option value="avanzado_plus">Avanzado +</option>
+            <option value="competicion">Competicion</option>
+          </select>
+          <select className="select" value={dia} onChange={(e) => setDia(e.target.value)}>
+            <option value="">Dia</option>
+            {Object.entries(DAY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          <select className="select" value={profesor} onChange={(e) => setProfesor(e.target.value)}>
+            <option value="">Profesor</option>
+            {profesores.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          {hasFilters && <button className="btnClear" onClick={clearFilters}>Limpiar</button>}
+        </div>
+
+        {loading && <div className="skeletonGrid">{Array.from({ length: 4 }).map((_, i) => <div className="skeletonCard" key={i} />)}</div>}
+        {!loading && err && <div className="errorBox"><strong>No hemos podido cargar la informacion.</strong><p>{err}</p></div>}
+        {!loading && !err && filtered.length === 0 && <div className="emptyBox"><IcSearch /><strong>Sin resultados</strong><p>No hay grupos para los filtros seleccionados.</p></div>}
+        {!loading && !err && filtered.length > 0 && <div className="listaClases">{filtered.map((g) => <GroupCard key={g.id} grupo={g} />)}</div>}
+      </section>
+    </section>
   );
+}
 
-  if (!logged || (!isStaff && classData?.tipo === "usuario")) {
-    return (
-      <section className="clases clasesPublicas">
-        <header className="clasesHero publicHero">
-          <div className="heroContent">
-            <div className="heroText">
-              <h1 className="heroTitle">Clases de padel para todos los niveles</h1>
-              <p className="heroSub">Entrena en grupos reducidos, mejora tu juego y encuentra tu horario ideal.</p>
-              <div className="heroActions">
-                <Link to="/contacto" className="heroCtaBtn">Solicitar informacion <IcArrow /></Link>
-                <a href="#niveles" className="heroSecondaryBtn">Ver niveles</a>
-              </div>
-            </div>
-            <div className="heroStats">
-              <div className="statCard"><strong>{loading ? "-" : grupos.length}</strong><span>grupos activos</span></div>
-              <div className="statCard"><strong>5</strong><span>niveles</span></div>
-            </div>
-          </div>
-        </header>
-
-        {logged && classData?.mensaje && (
-          <div className="accountNotice">
-            <strong>Cuenta sin ficha de alumno vinculada</strong>
-            <p>{classData.mensaje}</p>
-          </div>
-        )}
-
-        <section className="publicSection">
-          <div className="sectionHeaderRow"><h2 className="sectionTitle">Niveles de escuela</h2></div>
-          <div className="publicGrid">
-            {PUBLIC_LEVELS.map((item) => (
-              <article className="publicInfoCard" key={item.title}>
-                <span>{item.title}</span>
-                <h3>{item.text}</h3>
-                <p>{item.target}</p>
-                <small>{item.goal}</small>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="publicSplit">
-          <div className="publicPanel"><h2>Formatos de clase</h2><div className="chipList">{CLASS_FORMATS.map((item) => <span key={item}>{item}</span>)}</div></div>
-          <div className="publicPanel"><h2>Precios orientativos</h2><p>Las cuotas dependen del formato, edad y frecuencia. Cerramos precio al solicitar plaza.</p><strong>Consultar con la escuela</strong></div>
-          <div className="publicPanel"><h2>Horarios orientativos</h2><div className="chipList">{ORIENTATIVE_SCHEDULES.map((item) => <span key={item}>{item}</span>)}</div></div>
-        </section>
-
-        {groupExplorer("Explora grupos y horarios", true)}
-
-        <section className="clasesCta">
-          <h2>Quieres apuntarte?</h2>
-          <p>Cuentanos tu nivel y disponibilidad y buscamos el grupo que mejor encaje contigo.</p>
-          <div className="heroActions">
-            <Link to="/contacto" className="heroCtaBtn">Contactar con la escuela</Link>
-            <Link to="/login" className="heroSecondaryBtn">Solicitar plaza</Link>
-          </div>
-        </section>
-      </section>
-    );
-  }
-
-  if (isStaff) {
-    const hoy = staffSummary?.clases_hoy || [];
-    return (
-      <section className="clases">
-        <header className="clasesHero staffHero">
-          <div className="heroContent">
-            <div className="heroText">
-              <h1 className="heroTitle">Resumen de clases</h1>
-              <p className="heroSub">Vista rapida para profesores y administracion. El trabajo completo sigue en el panel interno.</p>
-              <Link to="/gestion" className="heroCtaBtn">Ir al panel de profesor <IcArrow /></Link>
-            </div>
-            <div className="heroStats">
-              <div className="statCard"><strong>{staffSummary?.stats?.clases_hoy || 0}</strong><span>hoy</span></div>
-              <div className="statCard"><strong>{staffSummary?.stats?.grupos || 0}</strong><span>grupos</span></div>
-              <div className="statCard"><strong>{staffSummary?.stats?.alumnos || 0}</strong><span>alumnos</span></div>
-            </div>
-          </div>
-        </header>
-
-        <section className="staffDashboard">
-          <div className="staffPanel">
-            <h2>Clases de hoy</h2>
-            {hoy.length ? hoy.map((g) => <article className="staffRow" key={g.id}><strong>{g.nombre}</strong><span>{formatHora(g.hora_inicio, g.duracion_min)} - {g.pista_habitual || "Pista pendiente"} - {g.alumnos || 0} alumnos</span></article>) : <p className="softEmpty">No hay clases programadas para hoy.</p>}
-          </div>
-          <div className="staffPanel">
-            <h2>Seguimiento</h2>
-            <div className="miniMetric"><span>Avisos activos</span><strong>{staffSummary?.stats?.avisos || 0}</strong></div>
-            <div className="miniMetric"><span>Recuperaciones pendientes</span><strong>{staffSummary?.stats?.recuperaciones || 0}</strong></div>
-            <p className="panelHint">Los avisos y recuperaciones ya se leen desde MySQL si las tablas existen.</p>
-          </div>
-        </section>
-
-        {groupExplorer("Grupos de referencia")}
-      </section>
-    );
-  }
+function StudentClassesDashboard({ classData, user, loading }) {
+  const alumno = classData?.alumno || {};
+  const grupo = classData?.grupo || null;
+  const misClases = classData?.clases || [];
+  const avisos = classData?.avisos || [];
+  const recuperaciones = classData?.recuperaciones || [];
+  const proximasSesiones = classData?.proximasSesiones || classData?.proximas_clases || [];
+  const asistenciaReciente = classData?.asistenciaReciente || classData?.asistencia || [];
 
   return (
     <section className="clases">
@@ -338,35 +297,40 @@ export default function Clases() {
         <div className="heroContent">
           <div className="heroText">
             <h1 className="heroTitle">Mis clases</h1>
-            <p className="heroSub">Bienvenido, {classData?.alumno?.nombre || user?.nombre?.split(" ")[0] || "alumno"}. Consulta tus horarios, grupo, profesor y seguimiento.</p>
+            <p className="heroSub">Aqui puedes consultar tu grupo, tus horarios y los avisos del profesor.</p>
           </div>
           <div className="heroStats">
-            <div className="statCard"><strong>{loading ? "-" : misClases.length}</strong><span>grupos asignados</span></div>
+            <div className="statCard"><strong>{loading ? "-" : misClases.length}</strong><span>grupos</span></div>
             <div className="statCard"><strong>{recuperaciones.length}</strong><span>recuperaciones</span></div>
           </div>
         </div>
       </header>
 
-      <section className="misClasesSection">
-        <div className="misClasesHeader">
-          <h2 className="misClasesTitle">Zona personal de clases</h2>
-          <p className="misClasesSub">{loading ? "Cargando..." : misClases.length ? `Tienes ${misClases.length} grupo${misClases.length !== 1 ? "s" : ""} asignado${misClases.length !== 1 ? "s" : ""}` : "Aun no tienes clases asignadas"}</p>
+      <section className="studentProfileCard">
+        <div>
+          <span className={`badge ${nivelBadgeClass(alumno.nivel_juego || alumno.nivel || grupo?.nivel)}`}>{nivelLabel(alumno.nivel_juego || alumno.nivel || grupo?.nivel)}</span>
+          <h2>{[alumno.nombre, alumno.apellidos].filter(Boolean).join(" ") || "Alumno"}</h2>
+          <p>{classData?.mensaje || "Estos son los datos principales de tu clase en la escuela."}</p>
         </div>
-        {loading && <div className="misClasesSkeleton">{[1, 2].map((i) => <div className="misClaseSkeletonCard" key={i} />)}</div>}
-        {!loading && misClases.length > 0 && <div className="misClasesGrid">{misClases.map((c) => <div className="miClaseCard" key={c.id} data-nivel={c.nivel || "default"}><div className="miClaseTop"><span className={`badge ${nivelBadgeClass(c.nivel)}`}>{nivelLabel(c.nivel)}</span><span className="codeTag">{c.codigo}</span></div><h3 className="miClaseNombre">{c.nombre}</h3><ul className="miClaseMeta"><li><IcCalendar /><span>{formatDias(c.dia1, c.dia2)}</span></li><li><IcClock /><span>{formatHora(c.hora_inicio, c.duracion_min)}</span></li><li><IcCourt /><span>Pista {c.pista_habitual || "-"}</span></li><li><IcUser /><span>{c.profesor}</span></li></ul><div className={`miClaseProxima${proximaDia(c.dia1, c.dia2) === "Hoy" ? " proximaHoy" : ""}`}><IcClock />Proxima: <strong>{proximaDia(c.dia1, c.dia2) || "Pendiente"}</strong></div></div>)}</div>}
-        {!loading && misClases.length === 0 && <div className="misClasesEmpty"><IcCalendar /><p>Aun no tienes grupo asignado. <strong>Contacta con la escuela</strong> para que te asignen horario.</p></div>}
+        <div className="studentInfoGrid">
+          <div><span>Grupo</span><strong>{grupo?.nombre || "Aun sin grupo asignado"}</strong></div>
+          <div><span>Profesor</span><strong>{classData?.profesor?.nombre || grupo?.profesor || "No disponible"}</strong></div>
+          <div><span>Dias</span><strong>{grupo ? formatDias(grupo.dia1, grupo.dia2) : "No disponible"}</strong></div>
+          <div><span>Horario</span><strong>{grupo ? formatHora(grupo.hora_inicio, grupo.duracion_min) : "No disponible"}</strong></div>
+          <div><span>Pista</span><strong>{classData?.pista || grupo?.pista_habitual || "No disponible"}</strong></div>
+          <div><span>Estado</span><strong>{Number(alumno.activo ?? 1) ? "Activo" : "Inactivo"}</strong></div>
+        </div>
       </section>
 
       <section className="studentPanels">
         <div className="studentPanel">
-          <h2>Proxima clase</h2>
-          {proximasSesiones[0] ? (
-            <p><strong>{proximasSesiones[0].fecha}</strong> - {formatHora(proximasSesiones[0].hora_inicio, proximasSesiones[0].duracion_min || 60)} - {proximasSesiones[0].pista_habitual || "Pista pendiente"} - {proximasSesiones[0].profesor || "Profesor pendiente"}</p>
-          ) : misClases[0] ? (
-            <p><strong>{proximaDia(misClases[0].dia1, misClases[0].dia2) || "Pendiente"}</strong> - {formatHora(misClases[0].hora_inicio, misClases[0].duracion_min)} - {misClases[0].pista_habitual || "Pista pendiente"} - {misClases[0].profesor}</p>
-          ) : (
-            <p className="softEmpty">Todavia no hay proximas clases registradas.</p>
-          )}
+          <h2>Proximas clases</h2>
+          {proximasSesiones.length ? proximasSesiones.map((sesion) => (
+            <article className="studentMiniRow" key={sesion.id}>
+              <strong>{sesion.fecha || "Fecha pendiente"}</strong>
+              <span>{formatHora(sesion.hora_inicio, sesion.duracion_min || grupo?.duracion_min || 60)} - {sesion.pista_habitual || grupo?.pista_habitual || "Pista pendiente"} - {sesion.estado || "programada"}</span>
+            </article>
+          )) : <p className="softEmpty">Todavia no hay proximas clases registradas.</p>}
         </div>
         <div className="studentPanel">
           <h2>Avisos del profesor</h2>
@@ -387,7 +351,7 @@ export default function Clases() {
           )) : <p className="positiveEmpty">No tienes clases pendientes de recuperar.</p>}
         </div>
         <div className="studentPanel">
-          <h2>Historial y asistencia</h2>
+          <h2>Asistencia reciente</h2>
           {asistenciaReciente.length ? asistenciaReciente.map((asistencia) => (
             <article className="studentMiniRow" key={asistencia.id}>
               <strong>{asistencia.grupo || "Clase"}</strong>
@@ -396,6 +360,109 @@ export default function Clases() {
           )) : <p className="softEmpty">Todavia no hay asistencia registrada.</p>}
         </div>
       </section>
+
+      <section className="studentHelpPanel">
+        <div>
+          <h2>Necesitas ayuda con tus clases?</h2>
+          <p>Contacta con el club o consulta con tu profesor para cambios de grupo, recuperaciones o dudas de horario.</p>
+        </div>
+        <div className="heroActions">
+          <a href={CONTACT_HREF} className="heroCtaBtn">Contactar con el club</a>
+          <a href={CONTACT_HREF} className="heroSecondaryBtn">Necesito ayuda con mis clases</a>
+        </div>
+      </section>
     </section>
   );
+}
+
+export default function Clases() {
+  const [publicData, setPublicData] = useState(null);
+  const [classData, setClassData] = useState(null);
+  const [grupos, setGrupos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+  const [q, setQ] = useState("");
+  const [nivelFilt, setNivelFilt] = useState("");
+  const [dia, setDia] = useState("");
+  const [profesor, setProfesor] = useState("");
+
+  const logged = isLogged();
+  const user = getUser();
+  const role = String(user?.rol || "").toLowerCase();
+  const isLocalStaff = STAFF_ROLES.includes(role);
+  const tipoVista = classData?.tipoVista || (logged ? null : "publica");
+  const hasFilters = q || nivelFilt || dia || profesor;
+  const clearFilters = () => { setQ(""); setNivelFilt(""); setDia(""); setProfesor(""); };
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        setErr("");
+
+        if (!isLogged()) {
+          const data = await apiGet("/api/clases/publica");
+          setPublicData(data);
+          setClassData({ tipoVista: "publica" });
+          return;
+        }
+
+        // Con sesion, el backend decide la vista y filtra los datos autorizados.
+        const profile = await apiGet("/api/clases/mis-clases");
+        setClassData(profile);
+        if (profile.tipoVista === "profesor" || profile.tipoVista === "admin") {
+          setGrupos(profile.resumen_profesor?.grupos || profile.resumen?.gruposAsignados || []);
+        }
+        if (profile.tipoVista === "sin_vincular") {
+          const data = await apiGet("/api/clases/publica");
+          setPublicData(data);
+        }
+      } catch (e) {
+        setErr(e.message || "Intentalo de nuevo en unos segundos.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  if (loading && !classData) {
+    return (
+      <section className="clases">
+        <header className="clasesHero"><div className="skeletonCard" /></header>
+        <div className="skeletonGrid">{Array.from({ length: 4 }).map((_, i) => <div className="skeletonCard" key={i} />)}</div>
+      </section>
+    );
+  }
+
+  if (err && !classData) {
+    return <section className="clases"><div className="errorBox"><strong>No hemos podido cargar tus clases.</strong><p>{err}</p></div></section>;
+  }
+
+  if (tipoVista === "publica" || tipoVista === "sin_vincular") {
+    return <PublicClassesLanding publicData={publicData} notice={tipoVista === "sin_vincular" ? classData?.mensaje : null} />;
+  }
+
+  if (tipoVista === "profesor" || tipoVista === "admin" || isLocalStaff) {
+    return (
+      <StaffClassesSummary
+        classData={classData}
+        grupos={grupos}
+        loading={loading}
+        err={err}
+        q={q}
+        setQ={setQ}
+        nivelFilt={nivelFilt}
+        setNivelFilt={setNivelFilt}
+        dia={dia}
+        setDia={setDia}
+        profesor={profesor}
+        setProfesor={setProfesor}
+        clearFilters={clearFilters}
+        hasFilters={hasFilters}
+      />
+    );
+  }
+
+  return <StudentClassesDashboard classData={classData} user={user} loading={loading} />;
 }

@@ -168,8 +168,8 @@ function getRecomendacion({ temperature, precipitationProbability, windSpeed, hu
   if (temperature >= 18 && temperature <= 28 && windSpeed < 15) {
     return {
       nivel: "excelente",
-      titulo: "Condiciones perfectas",
-      mensaje: "Temperatura ideal y poco viento. ¡Es el momento perfecto para jugar!",
+      titulo: "Muy buen momento para jugar",
+      mensaje: "Temperatura comoda y poco viento. Buenas condiciones para entrar en pista.",
       icono: "🎾",
     };
   }
@@ -177,8 +177,8 @@ function getRecomendacion({ temperature, precipitationProbability, windSpeed, hu
   // Buenas condiciones
   return {
     nivel: "bueno",
-    titulo: "Buenas condiciones",
-    mensaje: "Las condiciones son favorables para jugar al pádel.",
+    titulo: "Buen momento para jugar",
+    mensaje: "Las condiciones acompanan para jugar al padel.",
     icono: "✅",
   };
 }

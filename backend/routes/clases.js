@@ -319,6 +319,7 @@ router.get("/schema-status", requireAuth, requireRoles(["admin"]), async (_req, 
 router.get("/mis-clases", optionalAuth, async (req, res) => {
   try {
     if (!req.user) {
+      // Los visitantes solo reciben una señal de vista pública, nunca grupos reales.
       return res.json({ ok: true, tipoVista: "publica", tipo: "publico", clases: [] });
     }
 
@@ -332,7 +333,7 @@ router.get("/mis-clases", optionalAuth, async (req, res) => {
 
       return res.json({
         ok: true,
-        tipoVista: "profesor",
+        tipoVista: isAdmin(req.user) ? "admin" : "profesor",
         tipo: "staff",
         resumen: {
           clasesHoy,
@@ -361,7 +362,8 @@ router.get("/mis-clases", optionalAuth, async (req, res) => {
     if (!alumno) {
       return res.json({
         ok: true,
-        tipoVista: "publica",
+        // Usuario autenticado sin alumno vinculado: no exponemos datos internos.
+        tipoVista: "sin_vincular",
         tipo: "usuario",
         alumno: null,
         clases: [],

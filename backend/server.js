@@ -12,6 +12,8 @@ import torneosRouter from "./routes/torneos.js";
 import asistenteRouter from "./routes/asistente.js";
 import gestionRouter from "./routes/gestion.js";
 import perfilRouter from "./routes/perfil.js";
+import galeriaRouter from "./routes/galeria.js";
+import { requireAuth, requireRoles } from "./middleware/auth.js";
 
 // Cargamos variables de entorno desde .env
 dotenv.config();
@@ -21,6 +23,10 @@ const app = express();
 
 // Puerto del backend
 const PORT = process.env.PORT || 4000;
+
+// Necesario para rutas de uploads y frontend estatico en modulos ES.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ======================================================
 // MIDDLEWARES
@@ -33,6 +39,9 @@ app.use(cors());
 
 // Permite leer JSON que llegue en el body de las peticiones
 app.use(express.json());
+
+// Servimos subidas moderadas desde una carpeta controlada por el backend.
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ======================================================
 // ROUTERS
@@ -58,6 +67,9 @@ app.use("/api/gestion", gestionRouter);
 
 // Perfil privado del usuario autenticado
 app.use("/api/perfil", perfilRouter);
+
+// Rutas de galeria con subida y moderacion
+app.use("/api/galeria", galeriaRouter);
 
 // ======================================================
 // RUTAS BÁSICAS
@@ -96,8 +108,8 @@ app.get("/api/db-test", async (_req, res) => {
 // ALUMNOS
 // ======================================================
 
-// Devuelve todos los alumnos ordenados por id
-app.get("/api/alumnos", async (_req, res) => {
+// Devuelve alumnos solo a staff; los visitantes nunca deben recibir nombres de alumnos.
+app.get("/api/alumnos", requireAuth, requireRoles(["admin", "profesor", "profe"]), async (_req, res) => {
   try {
     const [rows] = await db.promise().query(
       "SELECT * FROM alumnos ORDER BY id"
@@ -121,8 +133,8 @@ app.get("/api/alumnos", async (_req, res) => {
 // GRUPOS / CLASES
 // ======================================================
 
-// Devuelve grupos con filtros opcionales y número de alumnos
-app.get("/api/grupos", async (req, res) => {
+// Devuelve grupos reales solo a profesorado/administracion. La vista publica usa /api/clases/publica.
+app.get("/api/grupos", requireAuth, requireRoles(["admin", "profesor", "profe"]), async (req, res) => {
   console.log("🔎 GET /api/grupos");
 
   try {
@@ -314,10 +326,6 @@ app.get("/api/meteo-xiao/latest", async (_req, res) => {
 // ======================================================
 // FRONTEND ESTÁTICO
 // ======================================================
-
-// Necesario para obtener la ruta real del proyecto al usar módulos ES
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Ruta a la carpeta build del frontend
 const buildPath = path.join(__dirname, "..", "frontend", "build");

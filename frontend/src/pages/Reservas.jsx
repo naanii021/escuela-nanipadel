@@ -302,12 +302,12 @@ function Reservas() {
         notas: reserveNote.trim() || null,
       });
 
-      if (!data.ok) { showToast(data.message || "Error al reservar", "error"); return; }
-      showToast(reserveType === "abierta" ? "Partida abierta creada" : `Reserva creada: ${selectedSlot.courtName} · ${selectedSlot.start}-${selectedSlot.end}`);
+      if (!data.ok) { showToast(data.message || "No hemos podido crear la reserva.", "error"); return; }
+      showToast(reserveType === "abierta" ? "Partida abierta creada. Otros jugadores ya pueden apuntarse." : `Reserva confirmada: ${selectedSlot.courtName} · ${selectedSlot.start}-${selectedSlot.end}`);
       closeModal();
       loadReservas();
     } catch (e) {
-      showToast(e.message || "Error de conexion con el servidor", "error");
+      showToast(e.message || "No hemos podido conectar con el club. Intentalo de nuevo.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -317,32 +317,32 @@ function Reservas() {
     if (!isLogged()) { navigate("/login"); return; }
     try {
       await apiPost(`/api/reservas/${slot.reservaId}/unirse`, {});
-      showToast("Te has unido a la partida");
+      showToast("Ya estas apuntado a la partida.");
       loadReservas();
     } catch (e) {
-      showToast(e.message || "No puedes unirte a esta partida", "error");
+      showToast(e.message || "Ahora mismo no puedes unirte a esta partida.", "error");
     }
   };
 
   const handleLeaveOpenMatch = async (slot) => {
-    if (!window.confirm("Seguro que quieres salir de esta partida?")) return;
+    if (!window.confirm("Quieres salir de esta partida?")) return;
     try {
       await apiDelete(`/api/reservas/${slot.reservaId}/participantes/me`);
-      showToast("Has salido de la partida");
+      showToast("Has salido de la partida.");
       loadReservas();
     } catch (e) {
-      showToast(e.message || "No se pudo salir de la partida", "error");
+      showToast(e.message || "No hemos podido sacarte de la partida.", "error");
     }
   };
 
   const handleCancel = async (slot) => {
-    if (!window.confirm("Seguro que quieres cancelar esta reserva?")) return;
+    if (!window.confirm("Quieres cancelar esta reserva?")) return;
     try {
       const data = await apiPatch(`/api/reservas/${slot.reservaId}/cancelar`);
       if (data.ok) { showToast("Reserva cancelada"); loadReservas(); }
-      else showToast(data.message, "error");
+      else showToast(data.message || "No hemos podido cancelar la reserva.", "error");
     } catch (e) {
-      showToast(e.message || "Error de conexion", "error");
+      showToast(e.message || "No hemos podido conectar con el club.", "error");
     }
   };
 
@@ -356,7 +356,7 @@ function Reservas() {
         showToast("Enlace de la partida copiado");
       }
     } catch {
-      showToast("No se pudo compartir la partida", "error");
+      showToast("No hemos podido compartir la partida.", "error");
     }
   };
 
@@ -365,8 +365,8 @@ function Reservas() {
       <header className="reservasHeader">
         <div className="headerText">
           <span className="reservasEyebrow">Club NaniPadel</span>
-          <h2 className="reservasTitle">Reserva tu pista</h2>
-          <p className="reservasIntro">Elige dia, pista y hora. Ahora tambien puedes crear partidas abiertas.</p>
+          <h2 className="reservasTitle">Reserva pista</h2>
+          <p className="reservasIntro">Elige dia, pista y hora. Puedes reservar la pista completa o crear una partida abierta.</p>
         </div>
         <div className="summary">
           <div className="summaryItem summaryGreen"><strong>{counts.disponibles}</strong><span>Disponibles</span></div>
@@ -400,7 +400,7 @@ function Reservas() {
 
       <div className="dayTitle">
         <strong>{prettyDate(selectedDateISO)}</strong>
-        <span>Toca un hueco verde para reservar o una partida abierta para unirte</span>
+        <span>Toca una hora libre para reservar o una partida abierta para unirte.</span>
       </div>
 
       {loading ? (
@@ -573,7 +573,7 @@ function Reservas() {
                 <span>{detailSlot.tipoReserva === "abierta" ? "Mensaje del creador" : "Informacion"}</span>
               </div>
               <p className="detailNotes">
-                {detailSlot.notas || (detailSlot.status === "disponible" ? "Hora libre para reservar pista completa o crear partida abierta." : "Sin notas añadidas.")}
+                {detailSlot.notas || (detailSlot.status === "disponible" ? "Hora libre para reservar pista completa o abrir partida." : "Sin notas anadidas.")}
               </p>
             </section>
 
@@ -620,7 +620,7 @@ function Reservas() {
               </button>
               <button type="button" className={reserveType === "abierta" ? "reservationType active" : "reservationType"} onClick={() => setReserveType("abierta")}>
                 <strong>Crear partida abierta</strong>
-                <span>Reserva tu plaza y permite que otros jugadores se unan.</span>
+                <span>Te apuntas tu y dejas plazas libres para otros jugadores.</span>
               </button>
             </div>
 
@@ -634,11 +634,11 @@ function Reservas() {
                 <div className="levelRangeGrid">
                   <label>Nivel minimo<select value={levelMin} onChange={(e) => setLevelMin(Number(e.target.value))}>{GAME_LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}</select></label>
                   <label>Nivel maximo<select value={levelMax} onChange={(e) => setLevelMax(Number(e.target.value))}>{GAME_LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}</select></label>
-                  <p className="levelHelp">Jugadores recomendados: nivel {levelMin} - {levelMax} ({levelLabel(levelMin)} - {levelLabel(levelMax)}).</p>
+                  <p className="levelHelp">Rango recomendado: nivel {levelMin} - {levelMax} ({levelLabel(levelMin)} - {levelLabel(levelMax)}).</p>
                 </div>
               )}
 
-              <label>Nota (opcional)<textarea value={reserveNote} onChange={(e) => setReserveNote(e.target.value)} placeholder="Ej: preferencia de pista, bolas, observaciones..." rows={3} /></label>
+              <label>Nota (opcional)<textarea value={reserveNote} onChange={(e) => setReserveNote(e.target.value)} placeholder="Ej: preferencia de pista o comentario para los jugadores..." rows={3} /></label>
 
               <div className="modalActions">
                 <button className="btnGhost" onClick={closeModal}>Cancelar</button>

@@ -236,7 +236,7 @@ export default function PanelProfesor() {
         navigate("/login", { replace: true });
         return;
       }
-      setError(message || "No se pudo cargar la zona privada");
+      setError(message || "No hemos podido cargar el panel de la escuela.");
     } finally {
       setLoading(false);
     }
@@ -431,17 +431,17 @@ export default function PanelProfesor() {
       setSaving(true);
       if (editingGroup) {
         await apiPut(`/api/gestion/grupos/${editingGroup.id}`, groupForm);
-        showNotice("Grupo actualizado");
+        showNotice("Grupo guardado.");
       } else {
         const data = await apiPost("/api/gestion/grupos", groupForm);
         setSelectedGroupId(data.id);
-        showNotice("Grupo creado");
+        showNotice("Grupo creado.");
       }
 
       setGroupFormOpen(false);
       await loadPanel();
     } catch (e) {
-      setError(e.message || "No se pudo guardar el grupo");
+      setError(e.message || "No hemos podido guardar el grupo.");
     } finally {
       setSaving(false);
     }
@@ -449,17 +449,17 @@ export default function PanelProfesor() {
 
   const deactivateGroup = async (group) => {
     if (!isAdmin || !group) return;
-    const confirmed = window.confirm(`Desactivar el grupo "${group.nombre}"?`);
+    const confirmed = window.confirm(`Quieres desactivar el grupo "${group.nombre}"?`);
     if (!confirmed) return;
 
     try {
       setSaving(true);
       await apiDelete(`/api/gestion/grupos/${group.id}`);
       setSelectedGroupId(null);
-      showNotice("Grupo desactivado");
+      showNotice("Grupo desactivado.");
       await loadPanel();
     } catch (e) {
-      setError(e.message || "No se pudo desactivar el grupo");
+      setError(e.message || "No hemos podido desactivar el grupo.");
     } finally {
       setSaving(false);
     }
@@ -472,10 +472,10 @@ export default function PanelProfesor() {
       setSaving(true);
       await apiPost(`/api/gestion/grupos/${selectedGroup.id}/alumnos`, { alumno_id: studentToAdd });
       setStudentToAdd("");
-      showNotice("Alumno anadido al grupo");
+      showNotice("Alumno anadido al grupo.");
       await loadPanel();
     } catch (e) {
-      setError(e.message || "No se pudo anadir el alumno");
+      setError(e.message || "No hemos podido anadir el alumno al grupo.");
     } finally {
       setSaving(false);
     }
@@ -483,16 +483,16 @@ export default function PanelProfesor() {
 
   const removeStudentFromGroup = async (alumno) => {
     if (!isAdmin || !selectedGroup || !alumno) return;
-    const confirmed = window.confirm(`Quitar a ${alumno.nombre} ${alumno.apellidos} del grupo?`);
+    const confirmed = window.confirm(`Quieres quitar a ${alumno.nombre} ${alumno.apellidos} de este grupo?`);
     if (!confirmed) return;
 
     try {
       setSaving(true);
       await apiDelete(`/api/gestion/grupos/${selectedGroup.id}/alumnos/${alumno.id}`);
-      showNotice("Alumno quitado del grupo");
+      showNotice("Alumno quitado del grupo.");
       await loadPanel();
     } catch (e) {
-      setError(e.message || "No se pudo quitar el alumno");
+      setError(e.message || "No hemos podido quitar el alumno del grupo.");
     } finally {
       setSaving(false);
     }
@@ -536,16 +536,16 @@ export default function PanelProfesor() {
           await apiPost(`/api/gestion/grupos/${studentForm.grupo_id}/alumnos`, { alumno_id: data.id });
         }
 
-        showNotice(studentForm.grupo_id ? "Alumno creado y asignado al grupo" : "Alumno creado");
+        showNotice(studentForm.grupo_id ? "Alumno creado y asignado al grupo." : "Alumno creado.");
       } else if (selectedStudent) {
         await apiPut(`/api/gestion/alumnos/${selectedStudent.id}`, studentForm);
-        showNotice("Alumno actualizado");
+        showNotice("Alumno guardado.");
       }
 
       setStudentFormOpen(false);
       await loadPanel();
     } catch (e) {
-      setError(e.message || "No se pudo guardar el alumno");
+      setError(e.message || "No hemos podido guardar el alumno.");
     } finally {
       setSaving(false);
     }
@@ -568,10 +568,10 @@ export default function PanelProfesor() {
       setSaving(true);
       await apiPost(`/api/gestion/alumnos/${accessStudent.id}/crear-acceso`, accessForm);
       setAccessFormOpen(false);
-      showNotice("Acceso creado para el alumno");
+      showNotice("Acceso creado para el alumno.");
       await loadPanel();
     } catch (e) {
-      setError(e.message || "No se pudo crear el acceso");
+      setError(e.message || "No hemos podido crear el acceso del alumno.");
     } finally {
       setSaving(false);
     }
@@ -585,12 +585,12 @@ export default function PanelProfesor() {
     <section className="staffPanel">
       <header className="staffHero">
         <div className="staffHeroText">
-          <span className="staffEyebrow">Zona privada</span>
-          <h1>Gestion de escuela</h1>
+          <span className="staffEyebrow">Panel de escuela</span>
+          <h1>Gestion de la escuela</h1>
           <p>
             {scope === "admin"
-              ? "Vista completa y editable de alumnos, grupos y profesorado."
-              : "Tus grupos asignados y los alumnos vinculados a tus clases."}
+              ? "Organiza grupos, alumnos, horarios y accesos desde un mismo sitio."
+              : "Consulta tus grupos, alumnos y tareas de clase."}
           </p>
         </div>
 
@@ -632,8 +632,8 @@ export default function PanelProfesor() {
 
         {isAdmin && (
           <div className="staffActions">
-            <button className="staffSecondaryBtn" onClick={openNewStudent}>Nuevo alumno</button>
-            <button className="staffPrimaryBtn" onClick={openNewGroup}>Nuevo grupo</button>
+            <button className="staffSecondaryBtn" onClick={openNewStudent}>Crear alumno</button>
+            <button className="staffPrimaryBtn" onClick={openNewGroup}>Crear grupo</button>
           </div>
         )}
       </div>
@@ -677,7 +677,7 @@ export default function PanelProfesor() {
 
       {!loading && error && (
         <div className="staffError">
-          <strong>No se pudo cargar el panel</strong>
+          <strong>No hemos podido cargar el panel</strong>
           <p>{error}</p>
           <Link to="/login">Volver a iniciar sesion</Link>
         </div>
@@ -711,7 +711,7 @@ export default function PanelProfesor() {
               </div>
             ))}
 
-            {filteredGrupos.length === 0 && <div className="staffEmpty">No hay grupos con estos filtros.</div>}
+            {filteredGrupos.length === 0 && <div className="staffEmpty">No hay grupos que coincidan con estos filtros.</div>}
           </aside>
 
           <main className="groupDetail">
@@ -777,10 +777,10 @@ export default function PanelProfesor() {
                   ))}
                 </div>
 
-                {(!selectedGroup.alumnos || selectedGroup.alumnos.length === 0) && <div className="staffEmpty">Este grupo no tiene alumnos asignados.</div>}
+                {(!selectedGroup.alumnos || selectedGroup.alumnos.length === 0) && <div className="staffEmpty">Este grupo todavia no tiene alumnos asignados.</div>}
               </>
             ) : (
-              <div className="staffEmpty">Selecciona un grupo para ver el detalle.</div>
+              <div className="staffEmpty">Selecciona un grupo para ver su detalle.</div>
             )}
           </main>
         </div>
@@ -820,7 +820,7 @@ export default function PanelProfesor() {
             ))}
           </div>
 
-          {filteredAlumnos.length === 0 && <div className="staffEmpty">No hay alumnos con estos filtros.</div>}
+          {filteredAlumnos.length === 0 && <div className="staffEmpty">No hay alumnos que coincidan con estos filtros.</div>}
         </div>
       )}
         </>
@@ -832,7 +832,7 @@ export default function PanelProfesor() {
             <div>
               <span className="staffEyebrow">Agenda semanal</span>
               <h2>Horario semanal</h2>
-              <p>Vista generada con los grupos activos que ya existen en la escuela.</p>
+              <p>Organiza la semana con los grupos activos de la escuela.</p>
             </div>
             <span className="opsCounter">{grupos.filter((item) => Number(item.activo ?? 1) === 1).length} grupos activos</span>
           </div>
@@ -882,7 +882,7 @@ export default function PanelProfesor() {
             <div>
               <span className="staffEyebrow">Sesion diaria</span>
               <h2>Control de clases</h2>
-              <p>Preparado para pasar lista y registrar estados cuando exista persistencia.</p>
+              <p>Pasa lista y revisa el estado de la clase desde una vista clara.</p>
             </div>
             <span className="opsCounter">{controlGroup?.alumnos?.length || 0} alumnos</span>
           </div>
@@ -927,7 +927,7 @@ export default function PanelProfesor() {
             <main className="attendancePanel">
               <div className="panelSectionTitle">
                 <h2>Asistencia</h2>
-                <span>UI preparada, sin guardar todavia</span>
+                <span>Pendiente de guardar</span>
               </div>
 
               <div className="attendanceList">
@@ -957,8 +957,8 @@ export default function PanelProfesor() {
                 })}
               </div>
 
-              {(!controlGroup?.alumnos || controlGroup.alumnos.length === 0) && <div className="staffEmpty">Este grupo no tiene alumnos para pasar lista.</div>}
-              <div className="preparedNotice">Para guardar este control harian falta tablas de sesiones y asistencia. La vista queda lista para conectar el backend sin cambiar el flujo.</div>
+              {(!controlGroup?.alumnos || controlGroup.alumnos.length === 0) && <div className="staffEmpty">Este grupo todavia no tiene alumnos para pasar lista.</div>}
+              <div className="preparedNotice">La asistencia se podra guardar cuando actives el registro de sesiones.</div>
             </main>
           </div>
         </section>
@@ -970,7 +970,7 @@ export default function PanelProfesor() {
             <div>
               <span className="staffEyebrow">Clases pendientes</span>
               <h2>Recuperaciones</h2>
-              <p>Espacio preparado para clases canceladas, faltas justificadas y sesiones pendientes.</p>
+              <p>Revisa clases canceladas, faltas justificadas y sesiones pendientes.</p>
             </div>
           </div>
 
@@ -979,12 +979,12 @@ export default function PanelProfesor() {
               <span className="statusDot warning" />
               <div>
                 <strong>Sin recuperaciones registradas</strong>
-                <p>Cuando el backend guarde cancelaciones o faltas recuperables, apareceran aqui con alumno, fecha, motivo y estado.</p>
+                <p>Cuando registres una clase pendiente, aparecera aqui con alumno, fecha, motivo y estado.</p>
               </div>
               <button className="staffSecondaryBtn" type="button" disabled>Marcar como recuperada</button>
             </article>
             <article className="recoveryPlan">
-              <h3>Preparado para</h3>
+              <h3>Datos de cada recuperacion</h3>
               <div className="trackingTags">
                 <span>Alumno o grupo</span>
                 <span>Fecha perdida</span>
@@ -1003,7 +1003,7 @@ export default function PanelProfesor() {
             <div>
               <span className="staffEyebrow">Notas internas</span>
               <h2>Seguimiento</h2>
-              <p>Vista preparada para observaciones, objetivos y ultimas clases por grupo.</p>
+              <p>Anota objetivos, observaciones y evolucion por grupo.</p>
             </div>
             <select className="opsSelect" value={trackingGroup?.id || ""} onChange={(e) => setTrackingGroupId(e.target.value)}>
               {gruposOptions.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
@@ -1018,7 +1018,7 @@ export default function PanelProfesor() {
             </article>
             <article className="trackingCard">
               <h3>Observaciones del grupo</h3>
-              <p>Bloque listo para notas internas del profesor o administracion.</p>
+              <p>Espacio para notas internas del profesor o la administracion.</p>
             </article>
             <article className="trackingCard">
               <h3>Objetivos trabajados</h3>
@@ -1034,7 +1034,7 @@ export default function PanelProfesor() {
                 {(trackingGroup?.alumnos || []).slice(0, 6).map((alumno) => (
                   <span key={alumno.id}>{alumno.nombre} {alumno.apellidos}</span>
                 ))}
-                {(!trackingGroup?.alumnos || trackingGroup.alumnos.length === 0) && <span>Sin alumnos asignados</span>}
+                {(!trackingGroup?.alumnos || trackingGroup.alumnos.length === 0) && <span>Este grupo todavia no tiene alumnos.</span>}
               </div>
             </article>
           </div>
@@ -1106,7 +1106,7 @@ export default function PanelProfesor() {
       {isAdmin && groupFormOpen && (
         <div className="staffModalBackdrop">
           <form className="staffModal" onSubmit={saveGroup}>
-            <div className="modalHeader"><h2>{editingGroup ? "Editar grupo" : "Nuevo grupo"}</h2><button type="button" onClick={() => setGroupFormOpen(false)}>Cerrar</button></div>
+            <div className="modalHeader"><h2>{editingGroup ? "Editar grupo" : "Crear grupo"}</h2><button type="button" onClick={() => setGroupFormOpen(false)}>Cerrar</button></div>
             <div className="formGrid">
               <label>Nombre<input value={groupForm.nombre} onChange={(e) => setGroupForm({ ...groupForm, nombre: e.target.value })} required /></label>
               <label>Codigo<input value={groupForm.codigo} onChange={(e) => setGroupForm({ ...groupForm, codigo: e.target.value })} /></label>
@@ -1129,7 +1129,7 @@ export default function PanelProfesor() {
       {isAdmin && studentFormOpen && (
         <div className="staffModalBackdrop">
           <form className="staffModal" onSubmit={saveStudent}>
-            <div className="modalHeader"><h2>{creatingStudent ? "Nuevo alumno" : "Editar alumno"}</h2><button type="button" onClick={() => setStudentFormOpen(false)}>Cerrar</button></div>
+            <div className="modalHeader"><h2>{creatingStudent ? "Crear alumno" : "Editar alumno"}</h2><button type="button" onClick={() => setStudentFormOpen(false)}>Cerrar</button></div>
             <div className="formGrid">
               <label>Nombre<input value={studentForm.nombre || ""} onChange={(e) => setStudentForm({ ...studentForm, nombre: e.target.value })} required /></label>
               <label>Apellidos<input value={studentForm.apellidos || ""} onChange={(e) => setStudentForm({ ...studentForm, apellidos: e.target.value })} /></label>
@@ -1154,7 +1154,7 @@ export default function PanelProfesor() {
             <div className="modalHeader"><h2>Crear acceso</h2><button type="button" onClick={() => setAccessFormOpen(false)}>Cerrar</button></div>
             <div className="accessIntro">
               <strong>{accessStudent?.nombre} {accessStudent?.apellidos}</strong>
-              <span>Se creara una cuenta de usuario enlazada a esta ficha de alumno.</span>
+              <span>Se creara una cuenta para que este alumno pueda entrar a la plataforma.</span>
             </div>
             <div className="formGrid">
               <label>Email<input type="email" value={accessForm.email || ""} onChange={(e) => setAccessForm({ ...accessForm, email: e.target.value })} required /></label>

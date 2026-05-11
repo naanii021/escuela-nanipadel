@@ -49,7 +49,7 @@ function Login() {
       }
 
       if (!data.ok) {
-        setError(data.message || "Error desconocido");
+        setError(data.message || "No hemos podido completar la accion.");
         return;
       }
 
@@ -62,7 +62,7 @@ function Login() {
         navigate("/reservas");
       }
     } catch (e) {
-      setError("Error de conexión con el servidor");
+      setError("No hemos podido conectar con el club. Intentalo de nuevo en unos segundos.");
     } finally {
       setLoading(false);
     }
@@ -79,8 +79,8 @@ function Login() {
         <h2>{mode === "login" ? "Iniciar sesión" : "Crear cuenta"}</h2>
         <p className="loginInfo">
           {mode === "login"
-            ? "Accede a tu cuenta para reservar pistas y gestionar tus reservas."
-            : "Crea tu cuenta para empezar a reservar pistas."}
+            ? "Entra para ver tus reservas, clases y avisos del club."
+            : "Crea tu cuenta para reservar pista y participar en la actividad del club."}
         </p>
 
         {error && <div className="loginError">{error}</div>}
@@ -137,7 +137,7 @@ function Login() {
           </label>
 
           <button type="submit" className="loginBtn" disabled={loading}>
-            {loading ? "Cargando..." : mode === "login" ? "Entrar" : "Crear cuenta"}
+            {loading ? "Un momento..." : mode === "login" ? "Entrar" : "Crear cuenta"}
           </button>
         </form>
 

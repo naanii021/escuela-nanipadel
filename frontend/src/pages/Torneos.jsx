@@ -118,10 +118,10 @@ function Torneos() {
       if (isLogged()) headers.Authorization = `Bearer ${getToken()}`;
       const res = await fetch(`${API_BASE}/api/torneos`, { headers });
       const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.message || "No se pudieron cargar los torneos");
+      if (!res.ok || !data.ok) throw new Error(data.message || "No hemos podido cargar los torneos.");
       setTorneos(data.torneos || []);
     } catch (e) {
-      setErr(e.message || "Error al cargar los torneos");
+      setErr(e.message || "No hemos podido cargar los torneos ahora mismo.");
     } finally {
       setLoading(false);
     }
@@ -137,7 +137,7 @@ function Torneos() {
     async function loadTournamentPhotos() {
       try {
         const response = await fetch(TOURNAMENT_PHOTOS_MANIFEST, { cache: "no-store" });
-        if (!response.ok) throw new Error("No se pudieron cargar las fotos de torneo");
+        if (!response.ok) throw new Error("No hemos podido cargar las fotos de torneo.");
         const manifest = await response.json();
         if (mounted) {
           setTournamentPhotos(Array.isArray(manifest.photos) ? manifest.photos : []);
@@ -201,11 +201,11 @@ function Torneos() {
         body: torneo.inscrito ? undefined : JSON.stringify({}),
       });
       const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.message || "No se pudo actualizar la inscripcion");
-      setFeedback(torneo.inscrito ? "Inscripcion cancelada correctamente." : "Te has apuntado al torneo.");
+      if (!res.ok || !data.ok) throw new Error(data.message || "No hemos podido actualizar tu inscripcion.");
+      setFeedback(torneo.inscrito ? "Inscripcion cancelada." : "Ya estas apuntado al torneo.");
       await loadTorneos();
     } catch (e) {
-      setFeedback(e.message || "Error al actualizar la inscripcion");
+      setFeedback(e.message || "No hemos podido actualizar tu inscripcion.");
     } finally {
       setActionId(null);
     }
@@ -220,10 +220,9 @@ function Torneos() {
               <span className="eyebrowDot" aria-hidden="true" />
               Competicion del club
             </span>
-            <h2 className="torneosTitle">Torneos y jornadas con inscripcion directa</h2>
+            <h2 className="torneosTitle">Torneos y jornadas del club</h2>
             <p className="intro">
-              Consulta torneos activos, revisa plazas y apunta tu pareja desde una vista mas clara y
-              centrada en competir.
+              Consulta torneos activos, revisa plazas disponibles y apunta tu pareja cuando haya inscripciones abiertas.
             </p>
           </div>
 
@@ -254,7 +253,7 @@ function Torneos() {
                 <span className="torneosSectionEyebrow">Inscripciones</span>
                 <h3>Torneos activos y proximos</h3>
               </div>
-              <p>Filtra por categoria y entra directo a los torneos con plazas disponibles.</p>
+              <p>Filtra por categoria y revisa fechas, plazas y estado de cada torneo.</p>
             </div>
 
             <nav className="torneosFilters" aria-label="Filtrar torneos por categoria">
@@ -298,8 +297,8 @@ function Torneos() {
         {!loading && !err && filteredTorneos.length === 0 && (
           <div className="torneosMessage" role="status">
             {activeFilter !== "todos"
-              ? "No hay torneos en esta categoria por el momento."
-              : "Aun no hay torneos publicados. Aparecera aqui en cuanto el club los cree."}
+              ? "No hay torneos en esta categoria por ahora."
+              : "Aun no hay torneos publicados. Cuando el club abra uno, aparecera aqui."}
           </div>
         )}
 
@@ -400,7 +399,7 @@ function Torneos() {
                             ? "Cancelar inscripcion"
                             : isClosed
                               ? "Inscripciones cerradas"
-                              : "Apuntarse"}
+                              : "Apuntarme"}
                       </button>
                     </div>
                   </article>
@@ -415,9 +414,9 @@ function Torneos() {
             <div className="torneosGalleryHead">
               <div>
                 <span className="torneosSectionEyebrow">Ambiente competitivo</span>
-                <h3>La parte visual acompana, no manda</h3>
+                <h3>Fotos de jornadas y torneos</h3>
               </div>
-              <p>Imagenes del torneo y del ambiente del club cargadas automaticamente desde `fotosTorneo`.</p>
+              <p>Momentos de competicion y ambiente de club.</p>
             </div>
 
             <div className="torneosGalleryGrid">

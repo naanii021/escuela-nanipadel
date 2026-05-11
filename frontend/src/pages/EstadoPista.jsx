@@ -43,7 +43,7 @@ function EstadoPista() {
         }
       } catch (err) {
         if (!mounted) return;
-        setError(err.message || "No se pudo cargar el estado de pista");
+        setError(err.message || "No hemos podido cargar el estado de pista.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -74,11 +74,10 @@ function EstadoPista() {
     <section className="estadoPistaPage">
       <section className="estadoHero">
         <div className="estadoHeroMain">
-          <span className="estadoEyebrow">Sensor XIAO y tiempo en pista</span>
-          <h1>Estado completo de pista y condiciones de juego</h1>
+          <span className="estadoEyebrow">Tiempo y pista</span>
+          <h1>Consulta si es buen momento para jugar</h1>
           <p>
-            Pagina propia para el modulo diferencial del proyecto. Aqui queda lista la base para
-            mostrar el estado de juego con mas claridad, mas contexto y mejor lectura para el club.
+            Revisa temperatura, viento, lluvia y recomendacion antes de reservar o salir hacia el club.
           </p>
           <div className="estadoHeroActions">
             <Link className="btn btn-primary" to="/reservas">
@@ -143,11 +142,11 @@ function EstadoPista() {
       <section className="estadoPanel">
         <div className="estadoPanelHead">
           <div>
-            <span className="estadoSectionEyebrow">Resumen tecnico</span>
-            <h3>Datos listos para el modulo de pista</h3>
+              <span className="estadoSectionEyebrow">Resumen</span>
+            <h3>Datos utiles para decidir si jugar</h3>
           </div>
           <p>
-            Estructura lista para conectar mejor el sensor XIAO y crecer sin tocar la home.
+            Una lectura rapida de las condiciones que mas influyen en pista.
           </p>
         </div>
 
@@ -165,7 +164,7 @@ function EstadoPista() {
         <article className="estadoForecastCard">
           <div className="estadoSectionHead">
             <span className="estadoSectionEyebrow">Prevision</span>
-            <h3>Lectura de los proximos dias</h3>
+            <h3>Prevision de los proximos dias</h3>
           </div>
 
           <div className="estadoForecastList">
@@ -186,22 +185,22 @@ function EstadoPista() {
                 </div>
               ))
             ) : (
-              <p className="estadoEmpty">La prevision aparecera aqui cuando haya datos cargados.</p>
+              <p className="estadoEmpty">La prevision aparecera aqui cuando haya datos disponibles.</p>
             )}
           </div>
         </article>
 
         <article className="estadoModuleCard">
           <div className="estadoSectionHead">
-            <span className="estadoSectionEyebrow">Modulo XIAO</span>
-            <h3>Base visual para el proyecto</h3>
+            <span className="estadoSectionEyebrow">Consejos</span>
+            <h3>Antes de entrar en pista</h3>
           </div>
 
           <ul className="estadoModuleList">
-            <li>Espacio claro para estado de pista y recomendacion de juego.</li>
-            <li>Tarjetas separadas para metricas ambientales y lectura rapida.</li>
-            <li>Zona lista para ampliar sensores, historico o alertas futuras.</li>
-            <li>Diseno coherente con home, galeria y resto del club.</li>
+            <li>Revisa viento y lluvia antes de salir de casa.</li>
+            <li>Si hay calor, hidrata bien y evita las horas mas duras.</li>
+            <li>Con frio, calienta unos minutos mas antes de jugar.</li>
+            <li>Si la pista aparece en riesgo, consulta con el club antes de reservar.</li>
           </ul>
         </article>
       </section>
@@ -226,10 +225,9 @@ function EstadoPista() {
           </div>
         ) : (
           <div className="estadoPhotoPlaceholder">
-            <strong>Sin carpeta de pistas todavia.</strong>
+            <strong>Aun no hay fotos de pista.</strong>
             <p>
-              Si luego creas <code>frontend/public/fotosPista</code>, esta pagina cargara las fotos
-              sola.
+              Cuando el club anada fotos del entorno de juego, apareceran aqui.
             </p>
           </div>
         )}

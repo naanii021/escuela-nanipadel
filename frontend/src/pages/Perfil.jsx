@@ -114,7 +114,7 @@ export default function Perfil() {
       setForm(toFormProfile(data.profile));
       setProfessionalForm(toFormProfessional(data.profile));
     } catch (e) {
-      setError(e.message || "No se pudo cargar el perfil");
+      setError(e.message || "No hemos podido cargar tu perfil.");
     } finally {
       setLoading(false);
     }
@@ -157,9 +157,9 @@ export default function Perfil() {
         nivel_juego: data.profile.nivel_juego,
         foto_perfil_url: data.profile.foto_perfil_url,
       });
-      showNotice("Perfil actualizado");
+      showNotice("Perfil guardado.");
     } catch (e) {
-      setError(e.message || "No se pudo guardar el perfil");
+      setError(e.message || "No hemos podido guardar tu perfil.");
     } finally {
       setSaving(false);
     }
@@ -178,9 +178,9 @@ export default function Perfil() {
       const data = await apiPut("/api/perfil/profesional", payload);
       setProfile(data.profile);
       setProfessionalForm(toFormProfessional(data.profile));
-      showNotice("Perfil profesional actualizado");
+      showNotice("Perfil profesional guardado.");
     } catch (e) {
-      setError(e.message || "No se pudo guardar el perfil profesional");
+      setError(e.message || "No hemos podido guardar tu perfil profesional.");
     } finally {
       setSaving(false);
     }
@@ -203,7 +203,7 @@ export default function Perfil() {
             {form.foto_perfil_url ? <img src={form.foto_perfil_url} alt="" /> : <span>{initials(form.nombre, form.apellidos)}</span>}
           </div>
           <div>
-            <span className="profileEyebrow">Perfil privado</span>
+            <span className="profileEyebrow">Tu cuenta</span>
             <h1>{form.nombre || "Tu perfil"} {form.apellidos || ""}</h1>
             <p>{roleLabel(profile?.rol)} · {gameLevelLabel(form.nivel_juego)}</p>
           </div>
@@ -220,7 +220,7 @@ export default function Perfil() {
         <article className="profileCard">
           <div className="profileCardHeader">
             <span>01</span>
-            <div><h2>Datos personales</h2><p>Informacion basica de tu cuenta.</p></div>
+            <div><h2>Datos personales</h2><p>Informacion basica para que el club pueda identificarte.</p></div>
           </div>
           <div className="profileFormGrid">
             <label>Nombre<input value={form.nombre || ""} onChange={(e) => updateForm("nombre", e.target.value)} required /></label>
@@ -235,7 +235,7 @@ export default function Perfil() {
         <article className="profileCard">
           <div className="profileCardHeader">
             <span>02</span>
-            <div><h2>Datos de padel</h2><p>Estos datos ayudan a las partidas abiertas.</p></div>
+            <div><h2>Datos de padel</h2><p>Nos ayudan a ajustar mejor las partidas abiertas.</p></div>
           </div>
           <div className="profileFormGrid">
             <label>Nivel de juego<select value={form.nivel_juego ?? ""} onChange={(e) => updateForm("nivel_juego", e.target.value)}>{GAME_LEVELS.map((level) => <option key={String(level.value)} value={level.value}>{level.label}</option>)}</select></label>
@@ -250,7 +250,7 @@ export default function Perfil() {
         <article className="profileCard">
           <div className="profileCardHeader">
             <span>03</span>
-            <div><h2>Foto y privacidad</h2><p>De momento se guarda una URL de imagen.</p></div>
+            <div><h2>Foto y privacidad</h2><p>Elige como quieres aparecer en la plataforma.</p></div>
           </div>
           <div className="profileFormGrid">
             <label className="profileWide">URL foto de perfil<input value={form.foto_perfil_url || ""} onChange={(e) => updateForm("foto_perfil_url", e.target.value)} placeholder="https://..." /></label>
@@ -262,7 +262,7 @@ export default function Perfil() {
           <article className="profileCard profilePermissions">
             <div className="profileCardHeader">
               <span>ADM</span>
-              <div><h2>Permisos</h2><p>Resumen informativo del rol actual.</p></div>
+              <div><h2>Permisos</h2><p>Resumen de lo que puedes gestionar con tu rol.</p></div>
             </div>
             <div className="permissionGrid">
               <span>Rol: {roleLabel(profile.rol)}</span>
@@ -285,7 +285,7 @@ export default function Perfil() {
         <form className="profileProfessional" onSubmit={saveProfessional}>
           <div className="profileCardHeader">
             <span>PRO</span>
-            <div><h2>Perfil profesional</h2><p>Informacion laboral para profesorado y administracion.</p></div>
+            <div><h2>Perfil profesional</h2><p>Datos utiles para profesores y administracion del club.</p></div>
           </div>
 
           <div className="profileFormGrid">
