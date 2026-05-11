@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { getUser, isLogged, logout as doLogout } from "../services/auth";
+import NotificationBell from "./NotificationBell";
 import "./header.css";
 
 function Header() {
@@ -88,6 +89,7 @@ function Header() {
               </NavLink>
             ) : (
               <>
+                <NotificationBell />
                 <NavLink to="/perfil" className="navUserInfo" aria-label="Ver mi perfil">
                   <div className="navAvatar">{inicial}</div>
                   <span className="navUser">{user?.nombre}</span>

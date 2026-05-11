@@ -13,6 +13,7 @@ import asistenteRouter from "./routes/asistente.js";
 import gestionRouter from "./routes/gestion.js";
 import perfilRouter from "./routes/perfil.js";
 import galeriaRouter from "./routes/galeria.js";
+import notificacionesRouter from "./routes/notificaciones.js";
 import { requireAuth, requireRoles } from "./middleware/auth.js";
 
 // Cargamos variables de entorno desde .env
@@ -70,6 +71,9 @@ app.use("/api/perfil", perfilRouter);
 
 // Rutas de galeria con subida y moderacion
 app.use("/api/galeria", galeriaRouter);
+
+// Preferencias y centro de notificaciones del usuario
+app.use("/api/notificaciones", notificacionesRouter);
 
 // ======================================================
 // RUTAS BÁSICAS

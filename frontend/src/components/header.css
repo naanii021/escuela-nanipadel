@@ -178,6 +178,137 @@
   margin-left: 0.3rem;
 }
 
+.notificationBell {
+  position: relative;
+}
+
+.notificationBellBtn {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.78);
+  color: #334155;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.notificationBellBtn:hover,
+.notificationBellBtn:focus-visible {
+  transform: translateY(-1px);
+  background: #f0fdf4;
+  border-color: rgba(22, 163, 74, 0.28);
+  outline: none;
+}
+
+.notificationBadge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 19px;
+  height: 19px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  padding: 0 0.25rem;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 0.66rem;
+  font-weight: 950;
+  border: 2px solid #ffffff;
+}
+
+.notificationPanel {
+  position: absolute;
+  top: calc(100% + 0.7rem);
+  right: 0;
+  width: min(360px, calc(100vw - 1rem));
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+  z-index: 250;
+}
+
+.notificationPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.notificationPanelHeader strong {
+  color: #0f172a;
+  font-size: 0.98rem;
+}
+
+.notificationPanelHeader button {
+  border: 0;
+  background: transparent;
+  color: #15803d;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.notificationList {
+  max-height: 380px;
+  overflow: auto;
+}
+
+.notificationItem {
+  width: 100%;
+  display: grid;
+  gap: 0.24rem;
+  padding: 0.85rem 1rem;
+  border: 0;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notificationItem:hover,
+.notificationItem:focus-visible {
+  background: #f8fafc;
+  outline: none;
+}
+
+.notificationItem.unread {
+  background: #f0fdf4;
+}
+
+.notificationItem span {
+  color: #0f172a;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.notificationItem small {
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.notificationItem time,
+.notificationEmpty {
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.notificationEmpty {
+  margin: 0;
+  padding: 1rem;
+}
+
 /* ─── Entrar / Login button ────────────────────────────────────────── */
 
 .loginBtn {

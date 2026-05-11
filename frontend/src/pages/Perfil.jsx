@@ -60,6 +60,17 @@ const emptyProfessional = {
   telefono_profesional: "",
 };
 
+const emptyNotificationPreferences = {
+  email_enabled: 1,
+  whatsapp_enabled: 0,
+  in_app_enabled: 0,
+  notify_reservas: 1,
+  notify_clases: 1,
+  notify_club: 1,
+  notify_torneos: 1,
+  whatsapp_phone: "",
+};
+
 function initials(nombre, apellidos) {
   return `${String(nombre || "U").charAt(0)}${String(apellidos || "").charAt(0)}`.toUpperCase();
 }
@@ -90,11 +101,25 @@ function toFormProfessional(profile) {
   };
 }
 
+function toFormNotificationPreferences(preferences) {
+  return {
+    ...emptyNotificationPreferences,
+    ...Object.fromEntries(
+      Object.keys(emptyNotificationPreferences).map((key) => [
+        key,
+        preferences?.[key] ?? emptyNotificationPreferences[key],
+      ])
+    ),
+    email_enabled: 1,
+  };
+}
+
 export default function Perfil() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState(emptyProfile);
   const [professionalForm, setProfessionalForm] = useState(emptyProfessional);
+  const [notificationForm, setNotificationForm] = useState(emptyNotificationPreferences);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -110,9 +135,13 @@ export default function Perfil() {
       setLoading(true);
       setError("");
       const data = await apiGet("/api/perfil");
+      const notificationData = await apiGet("/api/notificaciones/preferencias").catch(() => ({
+        preferences: emptyNotificationPreferences,
+      }));
       setProfile(data.profile);
       setForm(toFormProfile(data.profile));
       setProfessionalForm(toFormProfessional(data.profile));
+      setNotificationForm(toFormNotificationPreferences(notificationData.preferences));
     } catch (e) {
       setError(e.message || "No hemos podido cargar tu perfil.");
     } finally {
@@ -136,6 +165,9 @@ export default function Perfil() {
 
   const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }));
   const updateProfessional = (field, value) => setProfessionalForm((current) => ({ ...current, [field]: value }));
+  const updateNotification = (field, value) => {
+    setNotificationForm((current) => ({ ...current, [field]: value }));
+  };
 
   const savePersonal = async (event) => {
     event.preventDefault();
@@ -148,8 +180,19 @@ export default function Perfil() {
         buscar_partidas_abiertas: Number(form.buscar_partidas_abiertas),
       };
       const data = await apiPut("/api/perfil", payload);
+      const notificationData = await apiPut("/api/notificaciones/preferencias", {
+        ...notificationForm,
+        email_enabled: 1,
+        whatsapp_enabled: Number(notificationForm.whatsapp_enabled),
+        in_app_enabled: Number(notificationForm.in_app_enabled),
+        notify_reservas: Number(notificationForm.notify_reservas),
+        notify_clases: Number(notificationForm.notify_clases),
+        notify_club: Number(notificationForm.notify_club),
+        notify_torneos: Number(notificationForm.notify_torneos),
+      });
       setProfile(data.profile);
       setForm(toFormProfile(data.profile));
+      setNotificationForm(toFormNotificationPreferences(notificationData.preferences));
       updateStoredUser({
         nombre: data.profile.nombre,
         email: data.profile.email,
@@ -255,6 +298,35 @@ export default function Perfil() {
           <div className="profileFormGrid">
             <label className="profileWide">URL foto de perfil<input value={form.foto_perfil_url || ""} onChange={(e) => updateForm("foto_perfil_url", e.target.value)} placeholder="https://..." /></label>
             <label className="profileWide">Privacidad del perfil<select value={form.privacidad_perfil || ""} onChange={(e) => updateForm("privacidad_perfil", e.target.value)}><option value="">Privacidad por defecto</option><option value="publico_partidas">Visible en partidas abiertas</option><option value="solo_club">Solo visible para el club</option><option value="privado">Privado</option></select></label>
+          </div>
+        </article>
+
+        <article className="profileCard">
+          <div className="profileCardHeader">
+            <span>04</span>
+            <div><h2>Preferencias de aviso</h2><p>El email queda siempre activo; el resto depende de tu perfil.</p></div>
+          </div>
+          <div className="profilePreferenceGrid">
+            <label className="profileToggle disabled">
+              <input type="checkbox" checked readOnly />
+              <span><strong>Email</strong><small>Canal obligatorio para reservas y avisos importantes.</small></span>
+            </label>
+            <label className="profileToggle">
+              <input type="checkbox" checked={Number(notificationForm.whatsapp_enabled) === 1} onChange={(e) => updateNotification("whatsapp_enabled", e.target.checked ? 1 : 0)} />
+              <span><strong>WhatsApp</strong><small>Preparado para activar proveedor externo mas adelante.</small></span>
+            </label>
+            <label className="profileToggle">
+              <input type="checkbox" checked={Number(notificationForm.in_app_enabled) === 1} onChange={(e) => updateNotification("in_app_enabled", e.target.checked ? 1 : 0)} />
+              <span><strong>Notificacion interna</strong><small>Avisos visibles en la campana de la web.</small></span>
+            </label>
+            <label className="profileWide">Telefono WhatsApp<input value={notificationForm.whatsapp_phone || ""} onChange={(e) => updateNotification("whatsapp_phone", e.target.value)} placeholder="+34 600 000 000" /></label>
+          </div>
+
+          <div className="profilePreferenceTypes">
+            <label><input type="checkbox" checked={Number(notificationForm.notify_reservas) === 1} onChange={(e) => updateNotification("notify_reservas", e.target.checked ? 1 : 0)} /> Reservas</label>
+            <label><input type="checkbox" checked={Number(notificationForm.notify_clases) === 1} onChange={(e) => updateNotification("notify_clases", e.target.checked ? 1 : 0)} /> Clases</label>
+            <label><input type="checkbox" checked={Number(notificationForm.notify_club) === 1} onChange={(e) => updateNotification("notify_club", e.target.checked ? 1 : 0)} /> Club</label>
+            <label><input type="checkbox" checked={Number(notificationForm.notify_torneos) === 1} onChange={(e) => updateNotification("notify_torneos", e.target.checked ? 1 : 0)} /> Torneos</label>
           </div>
         </article>
 

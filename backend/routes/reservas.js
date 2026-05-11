@@ -2,6 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { db } from "../db/connection.js";
 import { requireAuth } from "../middleware/auth.js";
+import { NOTIFICATION_EVENTS, notifyEvent } from "../services/notificationService.js";
 
 const router = express.Router();
 const query = (sql, params = []) => db.promise().query(sql, params);
@@ -156,6 +157,68 @@ async function updateOpenReservationState(connection, reservaId) {
     [nextStatus, reservaId]
   );
   return total;
+}
+
+async function notifyReservaCreada(reservaId, userId) {
+  try {
+    const [rows] = await query(
+      `SELECT r.id, r.fecha, r.hora_inicio, r.duracion_min, r.tipo_reserva, p.nombre AS pista_nombre
+       FROM reservas_pista r
+       JOIN pistas p ON p.id = r.pista_id
+       WHERE r.id = ?
+       LIMIT 1`,
+      [reservaId]
+    );
+    const reserva = rows[0];
+    if (!reserva) return;
+
+    await notifyEvent({
+      type: NOTIFICATION_EVENTS.RESERVA_CREADA,
+      recipientUserIds: [userId],
+      createdByUserId: userId,
+      title: reserva.tipo_reserva === "abierta" ? "Partida abierta creada" : "Reserva confirmada",
+      body: `Tu reserva en ${reserva.pista_nombre} para el ${reserva.fecha} a las ${reserva.hora_inicio} ha quedado registrada.`,
+      payload: {
+        reserva_id: reserva.id,
+        fecha: reserva.fecha,
+        hora_inicio: reserva.hora_inicio,
+        duracion_min: reserva.duracion_min,
+        tipo_reserva: reserva.tipo_reserva,
+      },
+    });
+  } catch (e) {
+    console.error("Error notificando reserva creada:", e);
+  }
+}
+
+async function notifyReservaCancelada(reservaId, actorUserId) {
+  try {
+    const [rows] = await query(
+      `SELECT r.id, r.usuario_id, r.fecha, r.hora_inicio, p.nombre AS pista_nombre
+       FROM reservas_pista r
+       JOIN pistas p ON p.id = r.pista_id
+       WHERE r.id = ?
+       LIMIT 1`,
+      [reservaId]
+    );
+    const reserva = rows[0];
+    if (!reserva?.usuario_id) return;
+
+    await notifyEvent({
+      type: NOTIFICATION_EVENTS.RESERVA_CANCELADA,
+      recipientUserIds: [reserva.usuario_id],
+      createdByUserId: actorUserId,
+      title: "Reserva cancelada",
+      body: `La reserva en ${reserva.pista_nombre} del ${reserva.fecha} a las ${reserva.hora_inicio} se ha cancelado.`,
+      payload: {
+        reserva_id: reserva.id,
+        fecha: reserva.fecha,
+        hora_inicio: reserva.hora_inicio,
+      },
+    });
+  } catch (e) {
+    console.error("Error notificando reserva cancelada:", e);
+  }
 }
 
 // GET /api/reservas?fecha=2026-03-30&pista_id=1
@@ -341,6 +404,7 @@ router.post("/", requireAuth, async (req, res) => {
     }
 
     await connection.commit();
+    await notifyReservaCreada(result.insertId, req.user.id);
 
     res.status(201).json({
       ok: true,
@@ -506,6 +570,7 @@ router.patch("/:id/cancelar", requireAuth, async (req, res) => {
     }
 
     await query("UPDATE reservas_pista SET estado = 'cancelada' WHERE id = ?", [req.params.id]);
+    await notifyReservaCancelada(req.params.id, req.user.id);
     res.json({ ok: true, message: "Reserva cancelada" });
   } catch (e) {
     res.status(500).json({ ok: false, message: e.message });
