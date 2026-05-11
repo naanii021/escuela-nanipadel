@@ -23,13 +23,12 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
 
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  user_id INT NOT NULL,
-  event_type VARCHAR(60) NOT NULL,
-  category ENUM('reservas','clases','club','torneos') NOT NULL,
-  channel ENUM('email','whatsapp','in_app') NOT NULL,
-  title VARCHAR(180) NOT NULL,
-  body TEXT NOT NULL,
-  status ENUM('pending','sent','delivered','failed','skipped') NOT NULL DEFAULT 'pending',
+  usuario_id INT NOT NULL,
+  tipo VARCHAR(60) NOT NULL,
+  canal ENUM('email','whatsapp','in_app') NOT NULL,
+  titulo VARCHAR(180) NOT NULL,
+  mensaje TEXT NOT NULL,
+  estado ENUM('pending','sent','delivered','failed','skipped','unread','read') NOT NULL DEFAULT 'pending',
   read_at DATETIME NULL,
   sent_at DATETIME NULL,
   error_message VARCHAR(500) NULL,
@@ -39,11 +38,11 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  KEY idx_notifications_user_created (user_id, created_at),
-  KEY idx_notifications_user_channel_read (user_id, channel, read_at),
-  KEY idx_notifications_status_channel (status, channel),
+  KEY idx_notifications_user_created (usuario_id, created_at),
+  KEY idx_notifications_user_channel_read (usuario_id, canal, read_at),
+  KEY idx_notifications_status_channel (estado, canal),
   CONSTRAINT fk_notifications_user
-    FOREIGN KEY (user_id) REFERENCES usuarios(id)
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
     ON DELETE CASCADE,
   CONSTRAINT fk_notifications_created_by
     FOREIGN KEY (created_by_user_id) REFERENCES usuarios(id)

@@ -35,9 +35,17 @@ router.get("/", async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 20, 50);
     const [rows] = await query(
-      `SELECT id, event_type, category, title, body, status, read_at, payload, created_at
+      `SELECT
+        id,
+        tipo,
+        canal,
+        titulo AS title,
+        mensaje AS body,
+        estado,
+        read_at,
+        created_at
        FROM notifications
-       WHERE user_id = ? AND channel = 'in_app'
+       WHERE usuario_id = ? AND canal = 'in_app'
        ORDER BY created_at DESC
        LIMIT ?`,
       [req.user.id, limit]
@@ -55,7 +63,7 @@ router.get("/unread-count", async (req, res) => {
     const [rows] = await query(
       `SELECT COUNT(*) AS total
        FROM notifications
-       WHERE user_id = ? AND channel = 'in_app' AND read_at IS NULL`,
+       WHERE usuario_id = ? AND canal = 'in_app' AND read_at IS NULL`,
       [req.user.id]
     );
 
@@ -68,12 +76,21 @@ router.get("/unread-count", async (req, res) => {
 
 router.patch("/:id/read", async (req, res) => {
   try {
-    await query(
+    const notificationId = Number(req.params.id);
+    if (!Number.isInteger(notificationId) || notificationId <= 0) {
+      return res.status(400).json({ ok: false, message: "Notificacion no valida" });
+    }
+
+    const [result] = await query(
       `UPDATE notifications
-       SET read_at = COALESCE(read_at, NOW())
-       WHERE id = ? AND user_id = ? AND channel = 'in_app'`,
-      [req.params.id, req.user.id]
+       SET read_at = COALESCE(read_at, NOW()), estado = 'read'
+       WHERE id = ? AND usuario_id = ? AND canal = 'in_app'`,
+      [notificationId, req.user.id]
     );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ ok: false, message: "Notificacion no encontrada" });
+    }
 
     res.json({ ok: true, message: "Notificacion marcada como leida" });
   } catch (e) {
@@ -86,8 +103,8 @@ router.patch("/read-all", async (req, res) => {
   try {
     await query(
       `UPDATE notifications
-       SET read_at = COALESCE(read_at, NOW())
-       WHERE user_id = ? AND channel = 'in_app' AND read_at IS NULL`,
+       SET read_at = COALESCE(read_at, NOW()), estado = 'read'
+       WHERE usuario_id = ? AND canal = 'in_app' AND read_at IS NULL`,
       [req.user.id]
     );
 

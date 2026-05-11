@@ -16,20 +16,23 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const panelRef = useRef(null);
 
   const loadNotifications = useCallback(async () => {
     try {
       setLoading(true);
+      setError("");
       const [listData, countData] = await Promise.all([
         apiGet("/api/notificaciones?limit=8"),
         apiGet("/api/notificaciones/unread-count"),
       ]);
       setNotifications(listData.notifications || []);
-      setUnread(Number(countData.unread || 0));
-    } catch {
+      setUnread(Number(countData.unread ?? countData.total ?? 0));
+    } catch (e) {
       setNotifications([]);
       setUnread(0);
+      setError(e.message || "No hemos podido cargar tus avisos.");
     } finally {
       setLoading(false);
     }
@@ -38,6 +41,10 @@ export default function NotificationBell() {
   useEffect(() => {
     loadNotifications();
   }, [loadNotifications]);
+
+  useEffect(() => {
+    if (open) loadNotifications();
+  }, [loadNotifications, open]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -53,13 +60,21 @@ export default function NotificationBell() {
   }, [open]);
 
   const markAsRead = async (id) => {
-    await apiPatch(`/api/notificaciones/${id}/read`);
-    await loadNotifications();
+    try {
+      await apiPatch(`/api/notificaciones/${id}/read`);
+      await loadNotifications();
+    } catch (e) {
+      setError(e.message || "No hemos podido marcar el aviso como leido.");
+    }
   };
 
   const markAllAsRead = async () => {
-    await apiPatch("/api/notificaciones/read-all");
-    await loadNotifications();
+    try {
+      await apiPatch("/api/notificaciones/read-all");
+      await loadNotifications();
+    } catch (e) {
+      setError(e.message || "No hemos podido marcar los avisos como leidos.");
+    }
   };
 
   return (
@@ -84,7 +99,9 @@ export default function NotificationBell() {
             {unread > 0 && <button type="button" onClick={markAllAsRead}>Leer todo</button>}
           </div>
 
-          {loading ? (
+          {error ? (
+            <p className="notificationEmpty">{error}</p>
+          ) : loading ? (
             <p className="notificationEmpty">Cargando avisos...</p>
           ) : notifications.length === 0 ? (
             <p className="notificationEmpty">No tienes avisos recientes.</p>
