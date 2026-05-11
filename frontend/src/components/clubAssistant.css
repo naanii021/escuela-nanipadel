@@ -2,7 +2,7 @@
   position: fixed;
   right: clamp(0.8rem, 2vw, 1.35rem);
   bottom: clamp(0.8rem, 2vw, 1.35rem);
-  z-index: 160;
+  z-index: 260;
   font-family: var(--font-body);
 }
 
@@ -64,7 +64,7 @@
   right: 0;
   bottom: 92px;
   width: min(430px, calc(100vw - 1.8rem));
-  max-height: min(720px, calc(100vh - 7rem));
+  max-height: min(720px, calc(100dvh - 7rem));
   display: grid;
   gap: 0.95rem;
   overflow: auto;
@@ -481,6 +481,7 @@
   .clubAssistant {
     right: 0.7rem;
     bottom: 0.7rem;
+    left: auto;
   }
 
   .assistantFab {
@@ -495,9 +496,12 @@
   }
 
   .assistantPanel {
-    width: calc(100vw - 1.2rem);
+    position: fixed;
+    left: 0.6rem;
+    right: 0.6rem;
     bottom: 82px;
-    max-height: calc(100vh - 6.8rem);
+    width: auto;
+    max-height: calc(100dvh - 6.8rem);
     padding: 0.82rem;
     border-radius: 24px;
   }
@@ -508,6 +512,31 @@
 }
 
 @media (max-width: 420px) {
+  .clubAssistant {
+    right: 0.55rem;
+    bottom: 0.55rem;
+  }
+
+  .assistantFab {
+    width: 62px;
+    height: 62px;
+  }
+
+  .assistantFabInner {
+    width: 46px;
+    height: 46px;
+    font-size: 0.7rem;
+  }
+
+  .assistantPanel {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: min(88dvh, 720px);
+    border-radius: 24px 24px 0 0;
+    padding-bottom: calc(0.82rem + env(safe-area-inset-bottom));
+  }
+
   .assistantPanelHead {
     padding: 0.82rem;
   }
@@ -522,6 +551,10 @@
 
   .assistantMessageAvatar {
     display: none;
+  }
+
+  .assistantActionChip {
+    min-height: auto;
   }
 }
 

@@ -7,6 +7,7 @@ import "./header.css";
 function Header() {
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const logged = isLogged();
   const user = getUser();
@@ -19,9 +20,11 @@ function Header() {
 
   const handleLogout = () => {
     doLogout();
+    setMobileOpen(false);
     navigate("/");
   };
 
+  const closeMobileMenu = () => setMobileOpen(false);
   const navClass = ({ isActive }) => (isActive ? "active" : "");
   const inicial = user?.nombre?.charAt(0)?.toUpperCase() ?? "U";
 
@@ -38,31 +41,43 @@ function Header() {
           </div>
         </NavLink>
 
-        <div className="headerRight">
+        <button
+          type="button"
+          className={`mobileMenuBtn${mobileOpen ? " isOpen" : ""}`}
+          aria-label={mobileOpen ? "Cerrar menu" : "Abrir menu"}
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen((value) => !value)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+
+        <div className={`headerRight${mobileOpen ? " isOpen" : ""}`}>
           <nav className="nav" aria-label="Navegacion principal">
-            <NavLink to="/" end className={navClass}>
+            <NavLink to="/" end className={navClass} onClick={closeMobileMenu}>
               Inicio
             </NavLink>
-            <NavLink to="/reservas" className={navClass}>
+            <NavLink to="/reservas" className={navClass} onClick={closeMobileMenu}>
               Reservas
             </NavLink>
-            <NavLink to="/clases" className={navClass}>
+            <NavLink to="/clases" className={navClass} onClick={closeMobileMenu}>
               Clases
             </NavLink>
-            <NavLink to="/torneos" className={navClass}>
+            <NavLink to="/torneos" className={navClass} onClick={closeMobileMenu}>
               Torneos
             </NavLink>
-            <NavLink to="/tienda" className={navClass}>
+            <NavLink to="/tienda" className={navClass} onClick={closeMobileMenu}>
               Tienda
             </NavLink>
-            <NavLink to="/estado-pista" className={navClass}>
+            <NavLink to="/estado-pista" className={navClass} onClick={closeMobileMenu}>
               Estado pista
             </NavLink>
-            <NavLink to="/galeria" className={navClass}>
+            <NavLink to="/galeria" className={navClass} onClick={closeMobileMenu}>
               Galeria
             </NavLink>
             {logged && (user?.rol === "profesor" || user?.rol === "profe" || user?.rol === "admin") && (
-              <NavLink to="/panel" className={navClass}>
+              <NavLink to="/panel" className={navClass} onClick={closeMobileMenu}>
                 Panel
               </NavLink>
             )}
@@ -70,7 +85,7 @@ function Header() {
 
           <div className="headerActions">
             {!logged ? (
-              <NavLink to="/login" className="loginBtn">
+              <NavLink to="/login" className="loginBtn" onClick={closeMobileMenu}>
                 <span className="loginBtnShimmer" aria-hidden="true" />
                 <span>Entrar</span>
                 <svg
@@ -90,7 +105,7 @@ function Header() {
             ) : (
               <>
                 <NotificationBell />
-                <NavLink to="/perfil" className="navUserInfo" aria-label="Ver mi perfil">
+                <NavLink to="/perfil" className="navUserInfo" aria-label="Ver mi perfil" onClick={closeMobileMenu}>
                   <div className="navAvatar">{inicial}</div>
                   <span className="navUser">{user?.nombre}</span>
                 </NavLink>

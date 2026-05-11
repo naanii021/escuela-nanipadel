@@ -10,3 +10,15 @@
   flex: 1;
   padding: 2.2rem 0;
 }
+
+@media (max-width: 980px) {
+  .main {
+    padding: 1.4rem 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .main {
+    padding: 0.8rem 0;
+  }
+}
