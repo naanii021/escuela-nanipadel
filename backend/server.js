@@ -15,6 +15,7 @@ import perfilRouter from "./routes/perfil.js";
 import galeriaRouter from "./routes/galeria.js";
 import notificacionesRouter from "./routes/notificaciones.js";
 import { requireAuth, requireRoles } from "./middleware/auth.js";
+import { sendWhatsAppMessage } from "./services/whatsappService.js";
 
 // Cargamos variables de entorno desde .env
 dotenv.config();
@@ -25,7 +26,7 @@ const app = express();
 // Puerto del backend
 const PORT = process.env.PORT || 4000;
 
-// Necesario para rutas de uploads y frontend estatico en modulos ES.
+// Necesario para rutas de uploads y frontend estático en módulos ES
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -33,15 +34,13 @@ const __dirname = path.dirname(__filename);
 // MIDDLEWARES
 // ======================================================
 
-// Permitimos peticiones desde otros orígenes.
-// Como ahora usas frontend en Vercel y backend en el miniPC,
-// lo más práctico es dejar CORS abierto de momento.
+// Permitimos peticiones desde otros orígenes
 app.use(cors());
 
 // Permite leer JSON que llegue en el body de las peticiones
 app.use(express.json());
 
-// Servimos subidas moderadas desde una carpeta controlada por el backend.
+// Servimos subidas moderadas desde una carpeta controlada por el backend
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ======================================================
@@ -63,13 +62,13 @@ app.use("/api/torneos", torneosRouter);
 // Ruta resumen para el asistente del club
 app.use("/api/asistente", asistenteRouter);
 
-// Rutas privadas de gestion para profesorado y administracion
+// Rutas privadas de gestión para profesorado y administración
 app.use("/api/gestion", gestionRouter);
 
 // Perfil privado del usuario autenticado
 app.use("/api/perfil", perfilRouter);
 
-// Rutas de galeria con subida y moderacion
+// Rutas de galería con subida y moderación
 app.use("/api/galeria", galeriaRouter);
 
 // Preferencias y centro de notificaciones del usuario
@@ -112,113 +111,122 @@ app.get("/api/db-test", async (_req, res) => {
 // ALUMNOS
 // ======================================================
 
-// Devuelve alumnos solo a staff; los visitantes nunca deben recibir nombres de alumnos.
-app.get("/api/alumnos", requireAuth, requireRoles(["admin", "profesor", "profe"]), async (_req, res) => {
-  try {
-    const [rows] = await db.promise().query(
-      "SELECT * FROM alumnos ORDER BY id"
-    );
+// Devuelve alumnos solo a staff; los visitantes nunca deben recibir nombres de alumnos
+app.get(
+  "/api/alumnos",
+  requireAuth,
+  requireRoles(["admin", "profesor", "profe"]),
+  async (_req, res) => {
+    try {
+      const [rows] = await db.promise().query(
+        "SELECT * FROM alumnos ORDER BY id"
+      );
 
-    res.json({
-      ok: true,
-      alumnos: rows,
-    });
-  } catch (e) {
-    console.error("❌ Error /api/alumnos:", e);
+      res.json({
+        ok: true,
+        alumnos: rows,
+      });
+    } catch (e) {
+      console.error("❌ Error /api/alumnos:", e);
 
-    res.status(500).json({
-      ok: false,
-      message: e.message,
-    });
+      res.status(500).json({
+        ok: false,
+        message: e.message,
+      });
+    }
   }
-});
+);
 
 // ======================================================
 // GRUPOS / CLASES
 // ======================================================
 
-// Devuelve grupos reales solo a profesorado/administracion. La vista publica usa /api/clases/publica.
-app.get("/api/grupos", requireAuth, requireRoles(["admin", "profesor", "profe"]), async (req, res) => {
-  console.log("🔎 GET /api/grupos");
+// Devuelve grupos reales solo a profesorado/administración
+app.get(
+  "/api/grupos",
+  requireAuth,
+  requireRoles(["admin", "profesor", "profe"]),
+  async (req, res) => {
+    console.log("🔎 GET /api/grupos");
 
-  try {
-    // Filtros opcionales recibidos por query string
-    const { nivel, profesor_id, dia } = req.query;
+    try {
+      // Filtros opcionales recibidos por query string
+      const { nivel, profesor_id, dia } = req.query;
 
-    const filters = [];
-    const values = [];
+      const filters = [];
+      const values = [];
 
-    // Filtrar por nivel
-    if (nivel) {
-      filters.push("g.nivel = ?");
-      values.push(nivel);
+      // Filtrar por nivel
+      if (nivel) {
+        filters.push("g.nivel = ?");
+        values.push(nivel);
+      }
+
+      // Filtrar por profesor
+      if (profesor_id) {
+        filters.push("g.profesor_id = ?");
+        values.push(profesor_id);
+      }
+
+      // Filtrar por día (coincide con dia1 o dia2)
+      if (dia) {
+        filters.push("(g.dia1 = ? OR g.dia2 = ?)");
+        values.push(dia, dia);
+      }
+
+      // Si hay filtros, construimos el WHERE
+      const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
+
+      const [rows] = await db.promise().query(
+        `
+        SELECT
+          g.id,
+          g.codigo,
+          g.nombre,
+          g.nivel,
+          g.dia1,
+          g.dia2,
+          g.hora_inicio,
+          g.duracion_min,
+          g.pista_habitual,
+          g.cupo,
+          g.activo,
+          p.id AS profesor_id,
+          CONCAT(p.nombre, ' ', p.apellidos) AS profesor,
+          COUNT(ga.alumno_id) AS alumnos
+        FROM grupos g
+        JOIN profesores p ON p.id = g.profesor_id
+        LEFT JOIN grupo_alumnos ga ON ga.grupo_id = g.id AND ga.activo = 1
+        ${where}
+        GROUP BY
+          g.id, g.codigo, g.nombre, g.nivel, g.dia1, g.dia2, g.hora_inicio,
+          g.duracion_min, g.pista_habitual, g.cupo, g.activo,
+          p.id, p.nombre, p.apellidos
+        ORDER BY g.hora_inicio, g.codigo
+        `,
+        values
+      );
+
+      res.json({
+        ok: true,
+        grupos: rows,
+      });
+    } catch (e) {
+      console.error("❌ Error /api/grupos:", e);
+
+      res.status(500).json({
+        ok: false,
+        message: e.message,
+      });
     }
-
-    // Filtrar por profesor
-    if (profesor_id) {
-      filters.push("g.profesor_id = ?");
-      values.push(profesor_id);
-    }
-
-    // Filtrar por día (coincide con dia1 o dia2)
-    if (dia) {
-      filters.push("(g.dia1 = ? OR g.dia2 = ?)");
-      values.push(dia, dia);
-    }
-
-    // Si hay filtros, construimos el WHERE
-    const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
-
-    const [rows] = await db.promise().query(
-      `
-      SELECT
-        g.id,
-        g.codigo,
-        g.nombre,
-        g.nivel,
-        g.dia1,
-        g.dia2,
-        g.hora_inicio,
-        g.duracion_min,
-        g.pista_habitual,
-        g.cupo,
-        g.activo,
-        p.id AS profesor_id,
-        CONCAT(p.nombre, ' ', p.apellidos) AS profesor,
-        COUNT(ga.alumno_id) AS alumnos
-      FROM grupos g
-      JOIN profesores p ON p.id = g.profesor_id
-      LEFT JOIN grupo_alumnos ga ON ga.grupo_id = g.id AND ga.activo = 1
-      ${where}
-      GROUP BY
-        g.id, g.codigo, g.nombre, g.nivel, g.dia1, g.dia2, g.hora_inicio,
-        g.duracion_min, g.pista_habitual, g.cupo, g.activo,
-        p.id, p.nombre, p.apellidos
-      ORDER BY g.hora_inicio, g.codigo
-      `,
-      values
-    );
-
-    res.json({
-      ok: true,
-      grupos: rows,
-    });
-  } catch (e) {
-    console.error("❌ Error /api/grupos:", e);
-
-    res.status(500).json({
-      ok: false,
-      message: e.message,
-    });
   }
-});
+);
 
 // ======================================================
 // METEO XIAO
 // ======================================================
 
-// Esta ruta recibe datos desde la XIAO.
-// La idea es que la placa haga un POST con temperatura, humedad, etc.
+// Esta ruta recibe datos desde la XIAO
 app.post("/api/meteo-xiao", async (req, res) => {
   try {
     const {
@@ -278,8 +286,7 @@ app.post("/api/meteo-xiao", async (req, res) => {
   }
 });
 
-// Devuelve la última lectura meteorológica guardada.
-// Útil para mostrarla en la home o en una página específica.
+// Devuelve la última lectura meteorológica guardada
 app.get("/api/meteo-xiao", async (_req, res) => {
   try {
     const [rows] = await db.promise().query(`
@@ -319,6 +326,34 @@ app.get("/api/meteo-xiao/latest", async (_req, res) => {
     });
   } catch (e) {
     console.error("❌ Error /api/meteo-xiao/latest GET:", e);
+
+    res.status(500).json({
+      ok: false,
+      message: e.message,
+    });
+  }
+});
+
+// ======================================================
+// WHATSAPP TEST
+// ======================================================
+
+// Ruta temporal para probar el envío de WhatsApp.
+// Cambia el número "to" por tu número real con prefijo internacional.
+app.get("/api/test-whatsapp", async (_req, res) => {
+  try {
+    const result = await sendWhatsAppMessage({
+      to: "+34622040926",
+      body: "Prueba de WhatsApp desde NaniPadel 🚀",
+    });
+
+    res.json({
+      ok: true,
+      sid: result.sid,
+      message: "WhatsApp enviado correctamente",
+    });
+  } catch (e) {
+    console.error("❌ Error enviando WhatsApp de prueba:", e);
 
     res.status(500).json({
       ok: false,
