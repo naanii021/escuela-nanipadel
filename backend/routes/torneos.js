@@ -6,6 +6,7 @@ const router = express.Router();
 const query = (sql, params) => db.promise().query(sql, params);
 
 const JWT_SECRET = process.env.JWT_SECRET || "nanipadel_secret_2026";
+const STAFF_ROLES = ["admin", "profesor", "profe"];
 
 function optionalAuth(req, _res, next) {
   const authHeader = req.headers.authorization;
@@ -33,11 +34,323 @@ function requireAuth(req, res, next) {
 }
 
 function requireAdmin(req, res, next) {
-  if (req.user.rol !== "profesor" && req.user.rol !== "admin") {
+  if (!STAFF_ROLES.includes(String(req.user?.rol || "").toLowerCase())) {
     return res.status(403).json({ ok: false, message: "No tienes permisos para esta acción" });
   }
   next();
 }
+
+async function getTableColumns(tableName) {
+  const [rows] = await query(`SHOW COLUMNS FROM ${tableName}`);
+  return new Set(rows.map((row) => row.Field));
+}
+
+function alumnoNameSelect(columns, alias = "a") {
+  const apellidos = columns.has("apellidos") ? `${alias}.apellidos` : "''";
+  return `TRIM(CONCAT(COALESCE(${alias}.nombre, ''), ' ', COALESCE(${apellidos}, '')))`;
+}
+
+function normalizeOptionalNumber(value) {
+  if (value === "" || value === null || value === undefined) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function fetchAmericanoDetail(americanoId) {
+  const alumnoColumns = await getTableColumns("alumnos");
+  const alumnoName = alumnoNameSelect(alumnoColumns);
+  const alumnoActivoWhere = alumnoColumns.has("activo") ? "AND a.activo = 1" : "";
+  const alumnoOrder = alumnoColumns.has("apellidos") ? "a.apellidos, a.nombre" : "a.nombre";
+
+  const [americanos] = await query("SELECT * FROM torneos_americanos WHERE id = ? LIMIT 1", [americanoId]);
+  if (!americanos.length) return null;
+
+  const [participantes] = await query(
+    `SELECT ap.id, ap.alumno_id, ${alumnoName} AS nombre, a.nivel, ${alumnoColumns.has("nivel_juego") ? "a.nivel_juego" : "NULL AS nivel_juego"}
+     FROM americano_participantes ap
+     JOIN alumnos a ON a.id = ap.alumno_id ${alumnoActivoWhere}
+     WHERE ap.americano_id = ?
+     ORDER BY ${alumnoOrder}`,
+    [americanoId]
+  );
+
+  const [partidos] = await query(
+    `SELECT
+      p.*,
+      ${alumnoNameSelect(alumnoColumns, "a1")} AS equipo_a_1,
+      ${alumnoNameSelect(alumnoColumns, "a2")} AS equipo_a_2,
+      ${alumnoNameSelect(alumnoColumns, "b1")} AS equipo_b_1,
+      ${alumnoNameSelect(alumnoColumns, "b2")} AS equipo_b_2
+     FROM americano_partidos p
+     JOIN alumnos a1 ON a1.id = p.equipo_a_alumno_1_id
+     LEFT JOIN alumnos a2 ON a2.id = p.equipo_a_alumno_2_id
+     JOIN alumnos b1 ON b1.id = p.equipo_b_alumno_1_id
+     LEFT JOIN alumnos b2 ON b2.id = p.equipo_b_alumno_2_id
+     WHERE p.americano_id = ?
+     ORDER BY COALESCE(p.ronda, 999), COALESCE(p.orden, 999), p.id`,
+    [americanoId]
+  );
+
+  const rankingMap = new Map(participantes.map((p) => [
+    Number(p.alumno_id),
+    { alumno_id: p.alumno_id, nombre: p.nombre, puntos: 0, partidos: 0, victorias: 0, diferencia: 0 },
+  ]));
+
+  partidos
+    .filter((p) => p.estado === "jugado")
+    .forEach((partido) => {
+      const teamA = [partido.equipo_a_alumno_1_id, partido.equipo_a_alumno_2_id].filter(Boolean).map(Number);
+      const teamB = [partido.equipo_b_alumno_1_id, partido.equipo_b_alumno_2_id].filter(Boolean).map(Number);
+      const puntosA = Number(partido.puntos_a || 0);
+      const puntosB = Number(partido.puntos_b || 0);
+
+      teamA.forEach((id) => {
+        const row = rankingMap.get(id);
+        if (!row) return;
+        row.puntos += puntosA;
+        row.partidos += 1;
+        row.diferencia += puntosA - puntosB;
+        if (puntosA > puntosB) row.victorias += 1;
+      });
+
+      teamB.forEach((id) => {
+        const row = rankingMap.get(id);
+        if (!row) return;
+        row.puntos += puntosB;
+        row.partidos += 1;
+        row.diferencia += puntosB - puntosA;
+        if (puntosB > puntosA) row.victorias += 1;
+      });
+    });
+
+  const clasificacion = Array.from(rankingMap.values()).sort((a, b) =>
+    b.puntos - a.puntos || b.victorias - a.victorias || b.diferencia - a.diferencia || a.nombre.localeCompare(b.nombre)
+  );
+
+  return { americano: americanos[0], participantes, partidos, clasificacion };
+}
+
+router.get("/americanos/catalogo/alumnos", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const columns = await getTableColumns("alumnos");
+    const selects = [
+      "id",
+      "nombre",
+      columns.has("apellidos") ? "apellidos" : "NULL AS apellidos",
+      columns.has("nivel") ? "nivel" : "NULL AS nivel",
+      columns.has("nivel_juego") ? "nivel_juego" : "NULL AS nivel_juego",
+    ];
+    const activeWhere = columns.has("activo") ? "WHERE activo = 1" : "";
+    const orderBy = columns.has("apellidos") ? "apellidos, nombre" : "nombre";
+    const [rows] = await query(
+      `SELECT ${selects.join(", ")} FROM alumnos ${activeWhere} ORDER BY ${orderBy}`
+    );
+    res.json({ ok: true, alumnos: rows });
+  } catch (e) {
+    console.error("Error GET /api/torneos/americanos/catalogo/alumnos:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+router.get("/americanos", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const [rows] = await query(
+      `SELECT ta.*, COUNT(DISTINCT ap.id) AS participantes, COUNT(DISTINCT p.id) AS partidos
+       FROM torneos_americanos ta
+       LEFT JOIN americano_participantes ap ON ap.americano_id = ta.id
+       LEFT JOIN americano_partidos p ON p.americano_id = ta.id
+       GROUP BY ta.id
+       ORDER BY ta.fecha DESC, ta.id DESC`
+    );
+    res.json({ ok: true, americanos: rows });
+  } catch (e) {
+    console.error("Error GET /api/torneos/americanos:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+router.post("/americanos", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const nombre = String(req.body.nombre || "").trim();
+    const fecha = req.body.fecha;
+    const categoria = String(req.body.categoria || "Judex").trim();
+
+    if (!nombre || !fecha) {
+      return res.status(400).json({ ok: false, message: "Nombre y fecha son obligatorios" });
+    }
+
+    const [result] = await query(
+      `INSERT INTO torneos_americanos
+       (nombre, fecha, categoria, pistas, duracion_min, observaciones, estado, creado_por)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        nombre,
+        fecha,
+        categoria,
+        req.body.pistas?.trim() || null,
+        normalizeOptionalNumber(req.body.duracion_min),
+        req.body.observaciones?.trim() || null,
+        req.body.estado || "preparacion",
+        req.user.id,
+      ]
+    );
+
+    res.status(201).json({ ok: true, id: result.insertId, message: "Americano creado" });
+  } catch (e) {
+    console.error("Error POST /api/torneos/americanos:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+router.get("/americanos/:id", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const detail = await fetchAmericanoDetail(req.params.id);
+    if (!detail) return res.status(404).json({ ok: false, message: "Americano no encontrado" });
+    res.json({ ok: true, ...detail });
+  } catch (e) {
+    console.error("Error GET /api/torneos/americanos/:id:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+router.post("/americanos/:id/participantes", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const alumnoIds = [...new Set((req.body.alumno_ids || [req.body.alumno_id]).map(Number).filter(Boolean))];
+    if (!alumnoIds.length) return res.status(400).json({ ok: false, message: "Selecciona al menos un alumno" });
+
+    await query(
+      `INSERT IGNORE INTO americano_participantes (americano_id, alumno_id)
+       VALUES ${alumnoIds.map(() => "(?, ?)").join(", ")}`,
+      alumnoIds.flatMap((alumnoId) => [req.params.id, alumnoId])
+    );
+
+    const detail = await fetchAmericanoDetail(req.params.id);
+    res.status(201).json({ ok: true, message: "Participantes actualizados", ...detail });
+  } catch (e) {
+    console.error("Error POST /api/torneos/americanos/:id/participantes:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+router.delete("/americanos/:id/participantes/:alumnoId", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    await query(
+      "DELETE FROM americano_participantes WHERE americano_id = ? AND alumno_id = ?",
+      [req.params.id, req.params.alumnoId]
+    );
+    const detail = await fetchAmericanoDetail(req.params.id);
+    res.json({ ok: true, message: "Participante eliminado", ...detail });
+  } catch (e) {
+    console.error("Error DELETE /api/torneos/americanos/:id/participantes/:alumnoId:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+router.post("/americanos/:id/partidos", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const payload = {
+      ronda: normalizeOptionalNumber(req.body.ronda),
+      orden: normalizeOptionalNumber(req.body.orden),
+      equipo_a_alumno_1_id: Number(req.body.equipo_a_alumno_1_id),
+      equipo_a_alumno_2_id: normalizeOptionalNumber(req.body.equipo_a_alumno_2_id),
+      equipo_b_alumno_1_id: Number(req.body.equipo_b_alumno_1_id),
+      equipo_b_alumno_2_id: normalizeOptionalNumber(req.body.equipo_b_alumno_2_id),
+      puntos_a: normalizeOptionalNumber(req.body.puntos_a) ?? 0,
+      puntos_b: normalizeOptionalNumber(req.body.puntos_b) ?? 0,
+      estado: req.body.estado || "pendiente",
+      notas: req.body.notas?.trim() || null,
+    };
+
+    if (!payload.equipo_a_alumno_1_id || !payload.equipo_b_alumno_1_id) {
+      return res.status(400).json({ ok: false, message: "Selecciona al menos un jugador por equipo" });
+    }
+
+    const playerIds = [
+      payload.equipo_a_alumno_1_id,
+      payload.equipo_a_alumno_2_id,
+      payload.equipo_b_alumno_1_id,
+      payload.equipo_b_alumno_2_id,
+    ].filter(Boolean);
+
+    if (new Set(playerIds).size !== playerIds.length) {
+      return res.status(400).json({ ok: false, message: "Un alumno no puede repetirse en el mismo mini partido" });
+    }
+
+    await query(
+      `INSERT INTO americano_partidos
+       (americano_id, ronda, orden, equipo_a_alumno_1_id, equipo_a_alumno_2_id, equipo_b_alumno_1_id, equipo_b_alumno_2_id, puntos_a, puntos_b, estado, notas)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        req.params.id,
+        payload.ronda,
+        payload.orden,
+        payload.equipo_a_alumno_1_id,
+        payload.equipo_a_alumno_2_id,
+        payload.equipo_b_alumno_1_id,
+        payload.equipo_b_alumno_2_id,
+        payload.puntos_a,
+        payload.puntos_b,
+        payload.estado,
+        payload.notas,
+      ]
+    );
+
+    const detail = await fetchAmericanoDetail(req.params.id);
+    res.status(201).json({ ok: true, message: "Partido creado", ...detail });
+  } catch (e) {
+    console.error("Error POST /api/torneos/americanos/:id/partidos:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+router.patch("/americanos/:id/partidos/:partidoId", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const allowed = [
+      "ronda",
+      "orden",
+      "equipo_a_alumno_1_id",
+      "equipo_a_alumno_2_id",
+      "equipo_b_alumno_1_id",
+      "equipo_b_alumno_2_id",
+      "puntos_a",
+      "puntos_b",
+      "estado",
+      "notas",
+    ];
+    const fields = [];
+    const values = [];
+
+    allowed.forEach((field) => {
+      if (!Object.prototype.hasOwnProperty.call(req.body, field)) return;
+      fields.push(`${field} = ?`);
+      values.push(field === "estado" || field === "notas" ? (req.body[field] || null) : normalizeOptionalNumber(req.body[field]));
+    });
+
+    if (!fields.length) return res.status(400).json({ ok: false, message: "No hay cambios para guardar" });
+
+    await query(
+      `UPDATE americano_partidos SET ${fields.join(", ")} WHERE id = ? AND americano_id = ?`,
+      [...values, req.params.partidoId, req.params.id]
+    );
+
+    const detail = await fetchAmericanoDetail(req.params.id);
+    res.json({ ok: true, message: "Partido actualizado", ...detail });
+  } catch (e) {
+    console.error("Error PATCH /api/torneos/americanos/:id/partidos/:partidoId:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+router.delete("/americanos/:id/partidos/:partidoId", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    await query("DELETE FROM americano_partidos WHERE id = ? AND americano_id = ?", [req.params.partidoId, req.params.id]);
+    const detail = await fetchAmericanoDetail(req.params.id);
+    res.json({ ok: true, message: "Partido eliminado", ...detail });
+  } catch (e) {
+    console.error("Error DELETE /api/torneos/americanos/:id/partidos/:partidoId:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
 
 // GET /api/torneos (listar todos los torneos)
 router.get("/", optionalAuth, async (req, res) => {

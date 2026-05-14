@@ -34,6 +34,7 @@
 }
 
 .torneosHero,
+.americanoPanel,
 .torneosControlBar,
 .torneosGallerySection,
 .torneosFeedback,
@@ -41,6 +42,326 @@
   border-radius: 24px;
   border: 1px solid rgba(15, 23, 42, 0.07);
   box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+}
+
+.americanoPanel {
+  margin-bottom: 1.2rem;
+  padding: 1.15rem;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.americanoPanelHead,
+.americanoSelector,
+.americanoCardHead,
+.matchCard,
+.rankingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.americanoPanelHead {
+  align-items: flex-end;
+}
+
+.americanoPanelHead h3,
+.americanoCardHead strong {
+  margin: 0.1rem 0 0;
+  color: #0f172a;
+}
+
+.americanoPanelHead h3 {
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  letter-spacing: -0.03em;
+}
+
+.americanoPanelHead p,
+.americanoCardHead span {
+  margin: 0.2rem 0 0;
+  color: #64748b;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.americanoToggle,
+.americanoPrimaryBtn,
+.americanoSecondaryBtn {
+  min-height: 44px;
+  border: 0;
+  border-radius: 14px;
+  padding: 0.72rem 1rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.americanoToggle,
+.americanoPrimaryBtn {
+  background: linear-gradient(135deg, #166534, #22c55e);
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(21, 128, 61, 0.2);
+}
+
+.americanoSecondaryBtn {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.americanoWorkspace {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.38fr) minmax(0, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.americanoCreateCard,
+.americanoCard,
+.americanoBoard {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.americanoCreateCard,
+.americanoCard,
+.americanoBoard {
+  padding: 1rem;
+}
+
+.americanoFormGrid,
+.matchForm {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.americanoFormGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0.9rem 0;
+}
+
+.americanoWide {
+  grid-column: 1 / -1;
+}
+
+.americanoFormGrid label,
+.americanoSelector label {
+  display: grid;
+  gap: 0.38rem;
+  color: #334155;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.americanoFormGrid input,
+.americanoFormGrid textarea,
+.americanoSelector select,
+.alumnoPicker select,
+.matchForm input,
+.matchForm select,
+.scoreEditor input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 12px;
+  padding: 0.65rem 0.75rem;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  font-weight: 700;
+  outline: none;
+}
+
+.americanoFormGrid textarea {
+  resize: vertical;
+}
+
+.americanoSelector {
+  align-items: flex-end;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.americanoSelector label {
+  min-width: min(100%, 360px);
+}
+
+.americanoMiniStats {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.americanoMiniStats span,
+.participantesList span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  padding: 0.45rem 0.72rem;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.americanoError,
+.americanoEmpty {
+  margin-top: 0.8rem;
+  border-radius: 14px;
+  padding: 0.8rem 0.9rem;
+  font-weight: 800;
+}
+
+.americanoError {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid rgba(220, 38, 38, 0.18);
+}
+
+.americanoEmpty {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.americanoDetailGrid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(260px, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.partidosCard {
+  grid-column: 1 / -1;
+}
+
+.alumnoPicker {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 0.8rem;
+}
+
+.alumnoPicker select {
+  min-height: 180px;
+}
+
+.participantesList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.participantesList button {
+  border: 0;
+  border-radius: 999px;
+  background: rgba(22, 101, 52, 0.12);
+  color: #166534;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.rankingTable,
+.matchList {
+  display: grid;
+  gap: 0.58rem;
+  margin-top: 0.85rem;
+}
+
+.rankingRow {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  border-radius: 14px;
+  padding: 0.72rem;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.rankingRow strong {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.rankingRow span {
+  color: #0f172a;
+  font-weight: 900;
+}
+
+.rankingRow em {
+  color: #15803d;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.rankingRow small {
+  grid-column: 2 / -1;
+  color: #64748b;
+  font-weight: 750;
+}
+
+.matchForm {
+  grid-template-columns: 80px 80px repeat(4, minmax(130px, 1fr)) auto;
+  margin-top: 0.85rem;
+  align-items: center;
+}
+
+.matchCard {
+  align-items: center;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  padding: 0.85rem;
+  background: #f8fafc;
+}
+
+.matchCard span {
+  display: block;
+  margin-bottom: 0.18rem;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.matchCard strong {
+  color: #0f172a;
+}
+
+.scoreEditor {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.scoreEditor input {
+  width: 74px;
+  text-align: center;
+}
+
+.scoreEditor button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 12px;
+  padding: 0.55rem 0.72rem;
+  background: #dcfce7;
+  color: #166534;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.scoreEditor .matchDeleteBtn {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .torneosHero {
@@ -714,6 +1035,15 @@
   .torneosGalleryGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .americanoWorkspace,
+  .americanoDetailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .matchForm {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
@@ -742,6 +1072,40 @@
   .torneoTitleRow {
     flex-direction: column;
     gap: 0.5rem;
+  }
+
+  .americanoPanel {
+    padding: 1rem;
+  }
+
+  .americanoPanelHead,
+  .americanoSelector,
+  .matchCard {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .americanoToggle,
+  .americanoPrimaryBtn,
+  .americanoSecondaryBtn {
+    width: 100%;
+  }
+
+  .americanoFormGrid,
+  .matchForm {
+    grid-template-columns: 1fr;
+  }
+
+  .scoreEditor {
+    justify-content: stretch;
+  }
+
+  .scoreEditor input {
+    flex: 1;
+  }
+
+  .scoreEditor button {
+    flex: 1 1 120px;
   }
 }
 

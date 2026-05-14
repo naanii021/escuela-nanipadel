@@ -1,7 +1,8 @@
 import "./torneos.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getToken, isLogged } from "../services/auth";
+import { apiDelete, apiGet, apiPatch, apiPost } from "../services/api";
+import { getToken, getUser, isLogged } from "../services/auth";
 
 const API_BASE = (process.env.REACT_APP_API_URL || "").replace(/\/$/, "");
 const TOURNAMENT_PHOTOS_MANIFEST = `${process.env.PUBLIC_URL}/tournament-photos-manifest.json`;
@@ -58,6 +59,27 @@ const CATEGORY_FILTERS = [
   { key: "liga_interna", label: "Liga" },
 ];
 
+const emptyAmericanoForm = {
+  nombre: "",
+  fecha: new Date().toISOString().slice(0, 10),
+  categoria: "Judex",
+  pistas: "",
+  duracion_min: "",
+  observaciones: "",
+};
+
+const emptyMatchForm = {
+  ronda: 1,
+  orden: 1,
+  equipo_a_alumno_1_id: "",
+  equipo_a_alumno_2_id: "",
+  equipo_b_alumno_1_id: "",
+  equipo_b_alumno_2_id: "",
+  puntos_a: 0,
+  puntos_b: 0,
+  estado: "pendiente",
+};
+
 function formatFecha(fecha) {
   if (!fecha) return "Por confirmar";
   return new Date(fecha).toLocaleDateString("es-ES", {
@@ -100,6 +122,21 @@ function occupancyMeta(inscritos, maxParejas) {
   return { percent, className, text: `${current}/${total} parejas` };
 }
 
+function isStaffUser() {
+  const role = String(getUser()?.rol || "").toLowerCase();
+  return ["admin", "profesor", "profe"].includes(role);
+}
+
+function alumnoLabel(alumno) {
+  return `${alumno?.nombre || "Alumno"} ${alumno?.apellidos || ""}`.trim();
+}
+
+function teamLabel(partido, side) {
+  const one = partido[`${side}_1`];
+  const two = partido[`${side}_2`];
+  return [one, two].filter(Boolean).join(" / ");
+}
+
 function Torneos() {
   const navigate = useNavigate();
   const [torneos, setTorneos] = useState([]);
@@ -109,6 +146,18 @@ function Torneos() {
   const [feedback, setFeedback] = useState("");
   const [activeFilter, setActiveFilter] = useState("todos");
   const [tournamentPhotos, setTournamentPhotos] = useState([]);
+  const [americanoOpen, setAmericanoOpen] = useState(false);
+  const [americanos, setAmericanos] = useState([]);
+  const [selectedAmericanoId, setSelectedAmericanoId] = useState("");
+  const [americanoDetail, setAmericanoDetail] = useState(null);
+  const [alumnosCatalog, setAlumnosCatalog] = useState([]);
+  const [americanoForm, setAmericanoForm] = useState(emptyAmericanoForm);
+  const [selectedAlumnoIds, setSelectedAlumnoIds] = useState([]);
+  const [matchForm, setMatchForm] = useState(emptyMatchForm);
+  const [americanoLoading, setAmericanoLoading] = useState(false);
+  const [americanoError, setAmericanoError] = useState("");
+
+  const canManageAmericanos = isStaffUser();
 
   const loadTorneos = useCallback(async () => {
     try {
@@ -130,6 +179,56 @@ function Torneos() {
   useEffect(() => {
     loadTorneos();
   }, [loadTorneos]);
+
+  const loadAmericanos = useCallback(async () => {
+    if (!canManageAmericanos) return;
+
+    try {
+      setAmericanoLoading(true);
+      setAmericanoError("");
+      const [americanosData, alumnosData] = await Promise.all([
+        apiGet("/api/torneos/americanos"),
+        apiGet("/api/torneos/americanos/catalogo/alumnos"),
+      ]);
+      const nextAmericanos = americanosData.americanos || [];
+      setAmericanos(nextAmericanos);
+      setAlumnosCatalog(alumnosData.alumnos || []);
+
+      const nextSelectedId = selectedAmericanoId || nextAmericanos[0]?.id || "";
+      setSelectedAmericanoId(nextSelectedId ? String(nextSelectedId) : "");
+    } catch (e) {
+      setAmericanoError(e.message || "No hemos podido cargar los americanos.");
+    } finally {
+      setAmericanoLoading(false);
+    }
+  }, [canManageAmericanos, selectedAmericanoId]);
+
+  const loadAmericanoDetail = useCallback(async (americanoId) => {
+    if (!canManageAmericanos || !americanoId) {
+      setAmericanoDetail(null);
+      return;
+    }
+
+    try {
+      setAmericanoError("");
+      const data = await apiGet(`/api/torneos/americanos/${americanoId}`);
+      setAmericanoDetail(data);
+      setMatchForm((current) => ({
+        ...current,
+        orden: (data.partidos?.length || 0) + 1,
+      }));
+    } catch (e) {
+      setAmericanoError(e.message || "No hemos podido cargar el americano.");
+    }
+  }, [canManageAmericanos]);
+
+  useEffect(() => {
+    if (americanoOpen) loadAmericanos();
+  }, [americanoOpen, loadAmericanos]);
+
+  useEffect(() => {
+    if (americanoOpen && selectedAmericanoId) loadAmericanoDetail(selectedAmericanoId);
+  }, [americanoOpen, selectedAmericanoId, loadAmericanoDetail]);
 
   useEffect(() => {
     let mounted = true;
@@ -178,6 +277,15 @@ function Torneos() {
   }, [torneos, activeFilter]);
 
   const featuredPhotos = tournamentPhotos.slice(0, 4);
+  const selectedParticipantIds = useMemo(
+    () => new Set((americanoDetail?.participantes || []).map((item) => Number(item.alumno_id))),
+    [americanoDetail?.participantes]
+  );
+  const availableAlumnos = useMemo(
+    () => alumnosCatalog.filter((alumno) => !selectedParticipantIds.has(Number(alumno.id))),
+    [alumnosCatalog, selectedParticipantIds]
+  );
+  const participantOptions = americanoDetail?.participantes || [];
 
   const handleInscripcion = async (torneo) => {
     if (!isLogged()) {
@@ -208,6 +316,88 @@ function Torneos() {
       setFeedback(e.message || "No hemos podido actualizar tu inscripcion.");
     } finally {
       setActionId(null);
+    }
+  };
+
+  const createAmericano = async (event) => {
+    event.preventDefault();
+    try {
+      setAmericanoLoading(true);
+      setAmericanoError("");
+      const data = await apiPost("/api/torneos/americanos", {
+        ...americanoForm,
+        duracion_min: americanoForm.duracion_min === "" ? null : Number(americanoForm.duracion_min),
+      });
+      setAmericanoForm(emptyAmericanoForm);
+      setSelectedAmericanoId(String(data.id));
+      await loadAmericanos();
+      await loadAmericanoDetail(data.id);
+      setFeedback("Americano creado.");
+    } catch (e) {
+      setAmericanoError(e.message || "No hemos podido crear el americano.");
+    } finally {
+      setAmericanoLoading(false);
+    }
+  };
+
+  const addParticipants = async () => {
+    if (!selectedAmericanoId || !selectedAlumnoIds.length) return;
+    try {
+      const data = await apiPost(`/api/torneos/americanos/${selectedAmericanoId}/participantes`, {
+        alumno_ids: selectedAlumnoIds.map(Number),
+      });
+      setAmericanoDetail(data);
+      setSelectedAlumnoIds([]);
+    } catch (e) {
+      setAmericanoError(e.message || "No hemos podido anadir participantes.");
+    }
+  };
+
+  const removeParticipant = async (alumnoId) => {
+    try {
+      const data = await apiDelete(`/api/torneos/americanos/${selectedAmericanoId}/participantes/${alumnoId}`);
+      setAmericanoDetail(data);
+    } catch (e) {
+      setAmericanoError(e.message || "No hemos podido quitar el participante.");
+    }
+  };
+
+  const createMatch = async (event) => {
+    event.preventDefault();
+    try {
+      const data = await apiPost(`/api/torneos/americanos/${selectedAmericanoId}/partidos`, {
+        ...matchForm,
+        ronda: Number(matchForm.ronda) || null,
+        orden: Number(matchForm.orden) || null,
+        puntos_a: Number(matchForm.puntos_a) || 0,
+        puntos_b: Number(matchForm.puntos_b) || 0,
+      });
+      setAmericanoDetail(data);
+      setMatchForm((current) => ({
+        ...emptyMatchForm,
+        ronda: current.ronda,
+        orden: (data.partidos?.length || 0) + 1,
+      }));
+    } catch (e) {
+      setAmericanoError(e.message || "No hemos podido crear el partido.");
+    }
+  };
+
+  const updateMatch = async (partidoId, patch) => {
+    try {
+      const data = await apiPatch(`/api/torneos/americanos/${selectedAmericanoId}/partidos/${partidoId}`, patch);
+      setAmericanoDetail(data);
+    } catch (e) {
+      setAmericanoError(e.message || "No hemos podido guardar el resultado.");
+    }
+  };
+
+  const deleteMatch = async (partidoId) => {
+    try {
+      const data = await apiDelete(`/api/torneos/americanos/${selectedAmericanoId}/partidos/${partidoId}`);
+      setAmericanoDetail(data);
+    } catch (e) {
+      setAmericanoError(e.message || "No hemos podido eliminar el partido.");
     }
   };
 
@@ -245,6 +435,154 @@ function Torneos() {
             </div>
           </div>
         </section>
+
+        {canManageAmericanos && (
+          <section className="americanoPanel" aria-label="Gestion de Americanos y Judex">
+            <div className="americanoPanelHead">
+              <div>
+                <span className="torneosSectionEyebrow">Americanos / Judex</span>
+                <h3>Gestion rapida en pista</h3>
+                <p>Crea un americano, elige alumnos, anota mini partidos y revisa la clasificacion al momento.</p>
+              </div>
+              <button
+                type="button"
+                className="americanoToggle"
+                onClick={() => setAmericanoOpen((value) => !value)}
+              >
+                {americanoOpen ? "Ocultar panel" : "Crear americano"}
+              </button>
+            </div>
+
+            {americanoOpen && (
+              <div className="americanoWorkspace">
+                <form className="americanoCreateCard" onSubmit={createAmericano}>
+                  <div className="americanoCardHead">
+                    <strong>Nuevo americano</strong>
+                    <span>Evento rapido</span>
+                  </div>
+                  <div className="americanoFormGrid">
+                    <label>Nombre<input value={americanoForm.nombre} onChange={(e) => setAmericanoForm((current) => ({ ...current, nombre: e.target.value }))} placeholder="Judex sub-12 viernes" required /></label>
+                    <label>Fecha<input type="date" value={americanoForm.fecha} onChange={(e) => setAmericanoForm((current) => ({ ...current, fecha: e.target.value }))} required /></label>
+                    <label>Categoria<input value={americanoForm.categoria} onChange={(e) => setAmericanoForm((current) => ({ ...current, categoria: e.target.value }))} placeholder="Judex" /></label>
+                    <label>Pistas<input value={americanoForm.pistas} onChange={(e) => setAmericanoForm((current) => ({ ...current, pistas: e.target.value }))} placeholder="Pista 1 y 2" /></label>
+                    <label>Duracion<input type="number" min="0" value={americanoForm.duracion_min} onChange={(e) => setAmericanoForm((current) => ({ ...current, duracion_min: e.target.value }))} placeholder="90" /></label>
+                    <label className="americanoWide">Observaciones<textarea value={americanoForm.observaciones} onChange={(e) => setAmericanoForm((current) => ({ ...current, observaciones: e.target.value }))} rows={3} placeholder="Niños nivel iniciacion, rotaciones cortas..." /></label>
+                  </div>
+                  <button type="submit" className="americanoPrimaryBtn" disabled={americanoLoading}>{americanoLoading ? "Creando..." : "Crear americano"}</button>
+                </form>
+
+                <div className="americanoBoard">
+                  <div className="americanoSelector">
+                    <label>
+                      Americano activo
+                      <select value={selectedAmericanoId} onChange={(e) => setSelectedAmericanoId(e.target.value)}>
+                        <option value="">Selecciona un americano</option>
+                        {americanos.map((item) => (
+                          <option key={item.id} value={item.id}>{item.nombre} - {formatFecha(item.fecha)}</option>
+                        ))}
+                      </select>
+                    </label>
+                    {americanoDetail?.americano && (
+                      <div className="americanoMiniStats">
+                        <span>{americanoDetail.participantes?.length || 0} alumnos</span>
+                        <span>{americanoDetail.partidos?.length || 0} partidos</span>
+                        <span>{americanoDetail.americano.categoria}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {americanoError && <div className="americanoError">{americanoError}</div>}
+
+                  {americanoDetail?.americano ? (
+                    <div className="americanoDetailGrid">
+                      <section className="americanoCard participantesCard">
+                        <div className="americanoCardHead">
+                          <strong>Participantes</strong>
+                          <span>Selecciona hasta 10 o los que necesites</span>
+                        </div>
+                        <div className="alumnoPicker">
+                          <select multiple value={selectedAlumnoIds} onChange={(e) => setSelectedAlumnoIds(Array.from(e.target.selectedOptions).map((option) => option.value))}>
+                            {availableAlumnos.map((alumno) => (
+                              <option key={alumno.id} value={alumno.id}>{alumnoLabel(alumno)}</option>
+                            ))}
+                          </select>
+                          <button type="button" className="americanoSecondaryBtn" onClick={addParticipants} disabled={!selectedAlumnoIds.length}>Anadir seleccionados</button>
+                        </div>
+                        <div className="participantesList">
+                          {(americanoDetail.participantes || []).map((item) => (
+                            <span key={item.alumno_id}>
+                              {item.nombre}
+                              <button type="button" onClick={() => removeParticipant(item.alumno_id)} aria-label={`Quitar ${item.nombre}`}>x</button>
+                            </span>
+                          ))}
+                          {!americanoDetail.participantes?.length && <p>Aun no hay participantes.</p>}
+                        </div>
+                      </section>
+
+                      <section className="americanoCard rankingCard">
+                        <div className="americanoCardHead">
+                          <strong>Clasificacion</strong>
+                          <span>Ordenada automaticamente</span>
+                        </div>
+                        <div className="rankingTable">
+                          {(americanoDetail.clasificacion || []).map((row, index) => (
+                            <div className="rankingRow" key={row.alumno_id}>
+                              <strong>{index + 1}</strong>
+                              <span>{row.nombre}</span>
+                              <em>{row.puntos} pts</em>
+                              <small>{row.partidos} PJ · {row.victorias} V · Dif {row.diferencia}</small>
+                            </div>
+                          ))}
+                          {!americanoDetail.clasificacion?.length && <p>La clasificacion aparecera al anadir alumnos.</p>}
+                        </div>
+                      </section>
+
+                      <section className="americanoCard partidosCard">
+                        <div className="americanoCardHead">
+                          <strong>Mini partidos</strong>
+                          <span>Creacion manual preparada para automatizar despues</span>
+                        </div>
+
+                        <form className="matchForm" onSubmit={createMatch}>
+                          <input type="number" min="1" value={matchForm.ronda} onChange={(e) => setMatchForm((current) => ({ ...current, ronda: e.target.value }))} aria-label="Ronda" />
+                          <input type="number" min="1" value={matchForm.orden} onChange={(e) => setMatchForm((current) => ({ ...current, orden: e.target.value }))} aria-label="Orden" />
+                          {["equipo_a_alumno_1_id", "equipo_a_alumno_2_id", "equipo_b_alumno_1_id", "equipo_b_alumno_2_id"].map((field) => (
+                            <select key={field} value={matchForm[field]} onChange={(e) => setMatchForm((current) => ({ ...current, [field]: e.target.value }))} required={field.endsWith("_1_id")}>
+                              <option value="">{field.includes("_a_") ? "Equipo A" : "Equipo B"}</option>
+                              {participantOptions.map((item) => <option key={`${field}-${item.alumno_id}`} value={item.alumno_id}>{item.nombre}</option>)}
+                            </select>
+                          ))}
+                          <button type="submit" className="americanoPrimaryBtn">Crear partido</button>
+                        </form>
+
+                        <div className="matchList">
+                          {(americanoDetail.partidos || []).map((partido) => (
+                            <article className="matchCard" key={partido.id}>
+                              <div>
+                                <span>Ronda {partido.ronda || "-"} · Partido {partido.orden || partido.id}</span>
+                                <strong>{teamLabel(partido, "equipo_a")} vs {teamLabel(partido, "equipo_b")}</strong>
+                              </div>
+                              <div className="scoreEditor">
+                                <input type="number" value={partido.puntos_a} onChange={(e) => updateMatch(partido.id, { puntos_a: Number(e.target.value), estado: "jugado" })} aria-label="Puntos equipo A" />
+                                <span>-</span>
+                                <input type="number" value={partido.puntos_b} onChange={(e) => updateMatch(partido.id, { puntos_b: Number(e.target.value), estado: "jugado" })} aria-label="Puntos equipo B" />
+                                <button type="button" onClick={() => updateMatch(partido.id, { estado: "jugado" })}>Guardar</button>
+                                <button type="button" className="matchDeleteBtn" onClick={() => deleteMatch(partido.id)}>Eliminar</button>
+                              </div>
+                            </article>
+                          ))}
+                          {!americanoDetail.partidos?.length && <p>No hay mini partidos creados todavia.</p>}
+                        </div>
+                      </section>
+                    </div>
+                  ) : (
+                    <div className="americanoEmpty">Crea o selecciona un americano para empezar a gestionarlo.</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
         {!loading && !err && (
           <section className="torneosControlBar">
