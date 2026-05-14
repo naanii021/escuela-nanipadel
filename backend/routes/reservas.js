@@ -54,20 +54,39 @@ function capitalizar(texto = "") {
   return texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : "";
 }
 
-function formatearFechaES(fechaMysql) {
-  if (!fechaMysql) return "";
+function formatearFechaES(fechaValor) {
+  if (!fechaValor) return "";
 
-  // Parse manual de YYYY-MM-DD para evitar problemas de zona horaria
-  const [year, month, day] = String(fechaMysql).split("-").map(Number);
-  const fecha = new Date(year, month - 1, day);
+  let fecha;
 
-  const texto = new Intl.DateTimeFormat("es-ES", {
+  // Si MySQL ya devuelve un objeto Date, lo usamos directamente
+  if (fechaValor instanceof Date) {
+    fecha = fechaValor;
+  } else {
+    const texto = String(fechaValor).trim();
+
+    // Si viene en formato YYYY-MM-DD, lo parseamos manualmente
+    if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) {
+      const [year, month, day] = texto.split("-").map(Number);
+      fecha = new Date(year, month - 1, day);
+    } else {
+      // Último intento genérico
+      fecha = new Date(texto);
+    }
+  }
+
+  // Si sigue siendo inválida, devolvemos el valor en bruto
+  if (Number.isNaN(fecha.getTime())) {
+    return String(fechaValor);
+  }
+
+  const textoFormateado = new Intl.DateTimeFormat("es-ES", {
     weekday: "long",
     day: "numeric",
     month: "long",
   }).format(fecha);
 
-  return capitalizar(texto);
+  return capitalizar(textoFormateado);
 }
 
 function formatearHora(hora) {
