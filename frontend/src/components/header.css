@@ -216,6 +216,12 @@
   outline: none;
 }
 
+.mobileMenuBtn.isOpen {
+  background: #0f172a;
+  border-color: rgba(15, 23, 42, 0.24);
+  color: #ffffff;
+}
+
 .mobileMenuBtn.isOpen span:nth-child(1) {
   transform: translateY(7px) rotate(45deg);
 }
@@ -528,12 +534,13 @@
     display: none;
     width: 100%;
     padding: 0.85rem;
-    border: 1px solid rgba(226, 232, 240, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 18px;
-    background: rgba(255, 255, 255, 0.98);
+    background: #0f172a;
     box-shadow: 0 22px 60px rgba(15, 23, 42, 0.16);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
+    color: #e2e8f0;
     align-items: stretch;
     flex-direction: column;
     z-index: 300;
@@ -556,6 +563,9 @@
     min-height: 42px;
     padding: 0.65rem 0.78rem;
     border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    background: rgba(255, 255, 255, 0.07);
+    color: #e2e8f0;
     font-size: 0.9rem;
   }
 
@@ -563,12 +573,59 @@
     display: none;
   }
 
+  .nav a:hover,
+  .nav a:focus-visible {
+    background: rgba(34, 197, 94, 0.16);
+    border-color: rgba(34, 197, 94, 0.34);
+    color: #ffffff;
+    outline: none;
+  }
+
+  .nav a.active {
+    background: rgba(34, 197, 94, 0.2);
+    border-color: rgba(34, 197, 94, 0.42);
+    color: #bbf7d0;
+  }
+
   .headerActions {
     width: 100%;
     margin-left: 0;
     padding-top: 0.72rem;
-    border-top: 1px solid rgba(226, 232, 240, 0.8);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
     justify-content: stretch;
+  }
+
+  .headerRight .notificationBellBtn,
+  .headerRight .navUserInfo,
+  .headerRight .logoutBtn {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.13);
+    color: #e2e8f0;
+    box-shadow: none;
+  }
+
+  .headerRight .notificationBellBtn:hover,
+  .headerRight .notificationBellBtn:focus-visible,
+  .headerRight .navUserInfo:hover,
+  .headerRight .navUserInfo.active {
+    background: rgba(34, 197, 94, 0.16);
+    border-color: rgba(34, 197, 94, 0.34);
+    color: #ffffff;
+  }
+
+  .headerRight .navUser {
+    color: #f8fafc;
+  }
+
+  .headerRight .logoutBtn {
+    border-color: rgba(248, 113, 113, 0.3);
+    color: #fecaca;
+  }
+
+  .headerRight .logoutBtn:hover {
+    background: rgba(239, 68, 68, 0.16);
+    border-color: rgba(248, 113, 113, 0.42);
+    color: #ffffff;
   }
 
   .navUserInfo {

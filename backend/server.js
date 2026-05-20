@@ -335,25 +335,43 @@ app.get("/api/meteo-xiao/latest", async (_req, res) => {
 });
 
 // ======================================================
+// FRONTEND ESTÁTICO
+// ======================================================
+
+// ======================================================
 // WHATSAPP TEST
 // ======================================================
 
-// Ruta temporal para probar el envío de WhatsApp.
-// Cambia el número "to" por tu número real con prefijo internacional.
-app.get("/api/test-whatsapp", async (_req, res) => {
+// Prueba manual para el PC grande:
+// GET /api/test-whatsapp?to=+34600000000&body=Mensaje
+app.get("/api/test-whatsapp", async (req, res) => {
   try {
+    const to = req.query.to || process.env.META_WHATSAPP_TEST_TO;
+    const body =
+      req.query.body ||
+      "Prueba de WhatsApp desde NaniPadel con Meta Cloud API";
+
+    if (!to) {
+      return res.status(400).json({
+        ok: false,
+        message:
+          "Indica un telefono con ?to=+34600000000 o configura META_WHATSAPP_TEST_TO en .env",
+      });
+    }
+
     const result = await sendWhatsAppMessage({
-      to: "+34622040926",
-      body: "Prueba de WhatsApp desde NaniPadel 🚀",
+      to,
+      body,
     });
 
     res.json({
       ok: true,
-      sid: result.sid,
+      provider: result.provider,
+      messageId: result.messageId,
       message: "WhatsApp enviado correctamente",
     });
   } catch (e) {
-    console.error("❌ Error enviando WhatsApp de prueba:", e);
+    console.error("Error enviando WhatsApp de prueba:", e);
 
     res.status(500).json({
       ok: false,
@@ -361,10 +379,6 @@ app.get("/api/test-whatsapp", async (_req, res) => {
     });
   }
 });
-
-// ======================================================
-// FRONTEND ESTÁTICO
-// ======================================================
 
 // Ruta a la carpeta build del frontend
 const buildPath = path.join(__dirname, "..", "frontend", "build");

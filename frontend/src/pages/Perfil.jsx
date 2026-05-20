@@ -62,13 +62,11 @@ const emptyProfessional = {
 
 const emptyNotificationPreferences = {
   email_enabled: 1,
-  whatsapp_enabled: 0,
   in_app_enabled: 0,
   notify_reservas: 1,
   notify_clases: 1,
   notify_club: 1,
   notify_torneos: 1,
-  whatsapp_phone: "",
 };
 
 function initials(nombre, apellidos) {
@@ -183,7 +181,6 @@ export default function Perfil() {
       const notificationData = await apiPut("/api/notificaciones/preferencias", {
         ...notificationForm,
         email_enabled: 1,
-        whatsapp_enabled: Number(notificationForm.whatsapp_enabled),
         in_app_enabled: Number(notificationForm.in_app_enabled),
         notify_reservas: Number(notificationForm.notify_reservas),
         notify_clases: Number(notificationForm.notify_clases),
@@ -286,7 +283,7 @@ export default function Perfil() {
             <label>Lado preferido<select value={form.lado_preferido || ""} onChange={(e) => updateForm("lado_preferido", e.target.value)}><option value="">Sin indicar</option><option value="drive">Drive</option><option value="reves">Reves</option><option value="ambos">Ambos</option></select></label>
             <label>Disponibilidad<select value={form.disponibilidad_general || ""} onChange={(e) => updateForm("disponibilidad_general", e.target.value)}><option value="">Sin indicar</option><option value="mananas">Mananas</option><option value="tardes">Tardes</option><option value="noches">Noches</option><option value="fines_semana">Fines de semana</option><option value="variable">Variable</option></select></label>
             <label>Buscar partidas abiertas<select value={Number(form.buscar_partidas_abiertas ?? 1)} onChange={(e) => updateForm("buscar_partidas_abiertas", Number(e.target.value))}><option value={1}>Si</option><option value={0}>No</option></select></label>
-            <label>Notificaciones<input value={form.preferencias_notificacion || ""} onChange={(e) => updateForm("preferencias_notificacion", e.target.value)} placeholder="Email, WhatsApp, avisos de partidas..." /></label>
+            <label>Notificaciones<input value={form.preferencias_notificacion || ""} onChange={(e) => updateForm("preferencias_notificacion", e.target.value)} placeholder="Email, avisos web, partidas..." /></label>
           </div>
         </article>
 
@@ -312,14 +309,9 @@ export default function Perfil() {
               <span><strong>Email</strong><small>Canal obligatorio para reservas y avisos importantes.</small></span>
             </label>
             <label className="profileToggle">
-              <input type="checkbox" checked={Number(notificationForm.whatsapp_enabled) === 1} onChange={(e) => updateNotification("whatsapp_enabled", e.target.checked ? 1 : 0)} />
-              <span><strong>WhatsApp</strong><small>Preparado para activar proveedor externo mas adelante.</small></span>
-            </label>
-            <label className="profileToggle">
               <input type="checkbox" checked={Number(notificationForm.in_app_enabled) === 1} onChange={(e) => updateNotification("in_app_enabled", e.target.checked ? 1 : 0)} />
               <span><strong>Notificacion interna</strong><small>Avisos visibles en la campana de la web.</small></span>
             </label>
-            <label className="profileWide">Telefono WhatsApp<input value={notificationForm.whatsapp_phone || ""} onChange={(e) => updateNotification("whatsapp_phone", e.target.value)} placeholder="+34 600 000 000" /></label>
           </div>
 
           <div className="profilePreferenceTypes">
