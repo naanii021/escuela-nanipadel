@@ -315,13 +315,178 @@
 }
 
 /* Public landing blocks for visitors and users without school profile. */
+.clasesPublicas {
+  max-width: 1180px;
+}
+
+.clasesPublicas .publicHero {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 86% 18%, rgba(74, 222, 128, 0.18), transparent 26%),
+    linear-gradient(135deg, #07152b 0%, #0f2745 58%, #123a52 100%);
+  color: #fff;
+  border: 0;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  box-shadow: 0 22px 48px rgba(7, 21, 43, 0.22);
+}
+
+.clasesPublicas .publicHero .heroContent {
+  align-items: center;
+}
+
+.clasesPublicas .heroTitle {
+  color: #fff;
+  max-width: 680px;
+}
+
+.clasesPublicas .heroSub {
+  color: rgba(226, 232, 240, 0.86);
+  font-size: 1.08rem;
+}
+
+.publicEyebrow {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 0.75rem;
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.publicHero .publicEyebrow,
+.clasesCta .publicEyebrow {
+  background: rgba(255, 255, 255, 0.1);
+  color: #bbf7d0;
+}
+
+.publicHeroBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 1.35rem;
+}
+
+.publicHeroBadges span {
+  border-radius: 999px;
+  padding: 0.42rem 0.72rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.publicHeroVisual {
+  width: min(34vw, 360px);
+  min-width: 290px;
+}
+
+.courtCard {
+  position: relative;
+  min-height: 310px;
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06)),
+    linear-gradient(160deg, rgba(34, 197, 94, 0.22), rgba(15, 23, 42, 0.2));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.courtLines {
+  position: absolute;
+  inset: 2rem 1.8rem 5.8rem;
+  border: 2px solid rgba(255, 255, 255, 0.58);
+  border-radius: 18px;
+}
+
+.courtLines::before,
+.courtLines::after,
+.courtLines span {
+  content: "";
+  position: absolute;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.courtLines::before {
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+}
+
+.courtLines::after {
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 100%;
+}
+
+.courtLines span {
+  left: 18%;
+  right: 18%;
+  top: 36%;
+  height: 2px;
+}
+
+.trainingNote {
+  position: absolute;
+  left: 1.25rem;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  display: grid;
+  gap: 0.28rem;
+  border-radius: 18px;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.94);
+  color: #0f172a;
+}
+
+.trainingNote strong {
+  font-size: 1rem;
+}
+
+.trainingNote span {
+  color: #475569;
+  line-height: 1.4;
+  font-size: 0.9rem;
+}
+
 .publicSection,
 .publicSplit,
 .clasesCta,
+.publicLoginBox,
 .staffDashboard,
 .studentPanels,
 .accountNotice {
   display: grid;
+  gap: 1rem;
+}
+
+.sectionHeaderStack {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 720px;
+}
+
+.sectionHeaderStack .publicEyebrow {
+  margin-bottom: 0.2rem;
+}
+
+.sectionHeaderStack p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.publicFormatGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 1rem;
 }
 
@@ -331,9 +496,18 @@
   gap: 1rem;
 }
 
+.levelGrid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.publicFormatCard,
 .publicInfoCard,
 .publicPanel,
+.priceCard,
+.scheduleCard,
+.methodItem,
 .clasesCta,
+.publicLoginBox,
 .staffPanel,
 .studentPanel,
 .studentProfileCard,
@@ -344,6 +518,72 @@
   border-radius: 22px;
   padding: 1.25rem;
   box-shadow: 0 8px 26px rgba(15, 23, 42, 0.06);
+}
+
+.publicFormatCard,
+.publicInfoCard,
+.priceCard,
+.scheduleCard {
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.publicFormatCard:hover,
+.publicInfoCard:hover,
+.priceCard:hover,
+.scheduleCard:hover {
+  transform: translateY(-3px);
+  border-color: rgba(22, 163, 74, 0.24);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.09);
+}
+
+.publicFormatCard {
+  position: relative;
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+  min-height: 210px;
+}
+
+.publicIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: #ecfdf5;
+  color: #15803d;
+}
+
+.publicCardBadge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  border-radius: 999px;
+  padding: 0.25rem 0.58rem;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 0.73rem;
+  font-weight: 900;
+}
+
+.publicFormatCard h3,
+.priceCard h3,
+.scheduleCard h3,
+.methodItem h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.02rem;
+  line-height: 1.25;
+}
+
+.publicFormatCard p,
+.priceCard strong,
+.scheduleCard p,
+.methodItem p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
 }
 
 .publicInfoCard span {
@@ -358,9 +598,17 @@
   font-weight: 800;
 }
 
+.publicInfoCard {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  border-top: 3px solid rgba(22, 163, 74, 0.52);
+}
+
 .publicInfoCard h3,
 .publicPanel h2,
 .clasesCta h2,
+.publicLoginBox h2,
 .staffPanel h2,
 .studentPanel h2 {
   margin: 0 0 0.55rem;
@@ -372,11 +620,26 @@
 .publicInfoCard small,
 .publicPanel p,
 .clasesCta p,
+.publicLoginBox p,
 .staffPanel p,
 .studentPanel p {
   margin: 0;
   color: var(--muted);
   line-height: 1.5;
+}
+
+.publicInfoCard a {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 0.15rem;
+  color: #15803d;
+  font-size: 0.86rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.publicInfoCard a:hover {
+  color: #166534;
 }
 
 .publicInfoCard small {
@@ -388,6 +651,71 @@
 
 .publicSplit {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.publicMethod {
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
+  align-items: start;
+}
+
+.methodList {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.methodItem {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.methodItem > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #15803d;
+  font-weight: 950;
+  font-size: 0.78rem;
+}
+
+.publicPriceGrid,
+.scheduleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+}
+
+.priceCard {
+  display: grid;
+  gap: 0.65rem;
+  background: #fff;
+}
+
+.priceCard strong {
+  color: #166534;
+  font-size: 0.95rem;
+}
+
+.publicNote {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.scheduleCard {
+  display: grid;
+  gap: 0.65rem;
+  align-content: start;
+}
+
+.scheduleCard svg {
+  color: #15803d;
 }
 
 .chipList {
@@ -419,6 +747,23 @@
 
 .clasesCta p {
   color: rgba(226, 232, 240, 0.76);
+}
+
+.clasesCta .heroSecondaryBtn {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.publicLoginBox {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  background: #f8fafc;
+  border-style: dashed;
+}
+
+.publicLoginBox h2 {
+  margin-bottom: 0.2rem;
 }
 
 .staffDashboard,
@@ -1045,6 +1390,19 @@
 @media (max-width: 960px) {
   .heroTitle { font-size: 2.1rem; }
 
+  .publicHeroVisual {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .courtCard {
+    min-height: 250px;
+  }
+
+  .publicMethod {
+    grid-template-columns: 1fr;
+  }
+
   .filtersBar {
     grid-template-columns: 1fr 1fr;
     gap: 0.55rem;
@@ -1094,10 +1452,28 @@
   }
 
   .publicSplit,
+  .publicLoginBox,
   .staffDashboard,
   .studentPanels,
   .studentProfileCard {
     grid-template-columns: 1fr;
+  }
+
+  .clasesPublicas .publicHero .heroContent {
+    align-items: stretch;
+  }
+
+  .publicHeroBadges {
+    gap: 0.45rem;
+  }
+
+  .publicHeroBadges span,
+  .clasesPublicas .heroActions a {
+    justify-content: center;
+  }
+
+  .publicLoginBox {
+    align-items: stretch;
   }
 
   .studentHelpPanel {
@@ -1121,6 +1497,30 @@
 
   .clasesHero {
     padding: 1.25rem;
+  }
+
+  .clasesPublicas .publicHero {
+    padding: 1.25rem;
+    border-radius: 18px;
+  }
+
+  .publicHeroVisual {
+    display: none;
+  }
+
+  .publicFormatGrid,
+  .publicGrid,
+  .publicPriceGrid,
+  .scheduleGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .clasesPublicas .heroActions {
+    width: 100%;
+  }
+
+  .clasesPublicas .heroActions a {
+    width: 100%;
   }
 
   .filtersBar {
