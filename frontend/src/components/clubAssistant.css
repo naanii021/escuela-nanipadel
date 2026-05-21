@@ -9,8 +9,8 @@
 
 .assistantFab {
   position: relative;
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 999px;
   cursor: pointer;
@@ -18,7 +18,7 @@
     radial-gradient(circle at 72% 20%, hsl(145 35% 48% / 0.32), transparent 36%),
     linear-gradient(145deg, var(--color-primary), var(--color-primary-soft));
   color: #ffffff;
-  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.28), 0 0 0 5px hsl(145 35% 48% / 0.08);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.24), 0 0 0 4px hsl(145 35% 48% / 0.08);
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
@@ -26,15 +26,15 @@
 .assistantFab.isOpen {
   transform: translateY(-3px);
   border-color: hsl(145 35% 48% / 0.42);
-  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.34), 0 0 0 7px hsl(145 35% 48% / 0.12);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.3), 0 0 0 6px hsl(145 35% 48% / 0.12);
 }
 
 .assistantFabStatus {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 12px;
-  height: 12px;
+  top: 7px;
+  right: 7px;
+  width: 10px;
+  height: 10px;
   border-radius: 999px;
   background: var(--color-secondary);
   border: 3px solid var(--color-primary);
@@ -62,12 +62,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   font-weight: 950;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -76,14 +76,15 @@
 .assistantPanel {
   position: absolute;
   right: 0;
-  bottom: 78px;
-  width: min(390px, calc(100vw - 1.5rem));
-  max-height: min(650px, calc(100dvh - 6.5rem));
+  bottom: 72px;
+  width: min(560px, calc(100vw - 32px));
+  max-width: 560px;
+  max-height: 78vh;
   display: grid;
-  gap: 0.72rem;
-  overflow: auto;
-  padding: 0.78rem;
-  border-radius: 22px;
+  gap: 0.62rem;
+  overflow-y: auto;
+  padding: 0.68rem;
+  border-radius: 20px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.99));
   border: 1px solid rgba(15, 23, 42, 0.08);
   box-shadow: 0 28px 70px rgba(15, 23, 42, 0.23), inset 0 1px 0 rgba(255, 255, 255, 0.9);
@@ -101,8 +102,10 @@
   justify-content: space-between;
   gap: 0.75rem;
   align-items: center;
-  padding: 0.78rem;
-  border-radius: 18px;
+  min-height: 74px;
+  max-height: 110px;
+  padding: 0.68rem 0.72rem;
+  border-radius: 16px;
   background:
     radial-gradient(circle at 90% 0%, hsl(145 35% 48% / 0.25), transparent 34%),
     linear-gradient(135deg, var(--color-primary), var(--color-primary-soft));
@@ -111,7 +114,7 @@
 
 .assistantBrand {
   display: flex;
-  gap: 0.68rem;
+  gap: 0.58rem;
   align-items: center;
   min-width: 0;
 }
@@ -127,9 +130,9 @@
 }
 
 .assistantAvatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
   background: var(--color-secondary);
   color: #ffffff;
   font-weight: 950;
@@ -146,7 +149,7 @@
 }
 
 .assistantEyebrow {
-  margin-bottom: 0.12rem;
+  margin-top: 0.14rem;
   color: hsl(145 30% 84%);
 }
 
@@ -154,7 +157,7 @@
   margin: 0;
   color: #ffffff;
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 1rem;
   line-height: 1;
   letter-spacing: 0;
 }
@@ -163,7 +166,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.34rem;
-  margin-top: 0.25rem;
+  margin-top: 0.18rem;
   color: rgba(255, 255, 255, 0.78);
   font-size: 0.76rem;
   font-weight: 850;
@@ -178,8 +181,8 @@
 }
 
 .assistantCloseBtn {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
@@ -198,15 +201,15 @@
 
 .assistantWelcome {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
-  gap: 0.58rem;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 0.5rem;
   align-items: start;
 }
 
 .assistantMessageAvatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
   background: var(--color-secondary-light);
   color: var(--color-secondary-dark);
   font-size: 0.72rem;
@@ -215,18 +218,12 @@
 }
 
 .assistantBubble {
-  padding: 0.78rem 0.86rem;
-  border-radius: 18px 18px 18px 8px;
+  padding: 0.62rem 0.72rem;
+  border-radius: 15px 15px 15px 7px;
   background: #ffffff;
   color: var(--color-primary);
   border: 1px solid var(--color-border);
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
-}
-
-.assistantBubble strong {
-  display: block;
-  margin-bottom: 0.24rem;
-  font-size: 0.88rem;
 }
 
 .assistantBubble p,
@@ -234,7 +231,7 @@
 .assistantState p {
   margin: 0;
   line-height: 1.5;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
 }
 
 .assistantBubble p {
@@ -245,19 +242,19 @@
 .assistantActions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: 0.42rem;
 }
 
 .assistantActionChip {
   position: relative;
-  min-height: 68px;
+  min-height: 54px;
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
-  gap: 0.52rem;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 0.44rem;
   align-items: center;
   border: 1px solid var(--color-border);
-  border-radius: 16px;
-  padding: 0.62rem;
+  border-radius: 13px;
+  padding: 0.48rem;
   background: #ffffff;
   color: var(--color-text);
   text-align: left;
@@ -278,9 +275,9 @@
 }
 
 .assistantActionIcon {
-  width: 32px;
-  height: 32px;
-  border-radius: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
   background: hsl(145 35% 48% / 0.1);
   color: var(--color-secondary-dark);
 }
@@ -291,15 +288,19 @@
 }
 
 .assistantActionChip strong {
-  margin-bottom: 0.14rem;
-  font-size: 0.8rem;
+  margin-bottom: 0.08rem;
+  font-size: 0.76rem;
   font-weight: 950;
 }
 
 .assistantActionChip small {
   color: var(--color-muted);
-  font-size: 0.7rem;
-  line-height: 1.28;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .assistantActionChip em {
@@ -321,13 +322,13 @@
 }
 
 .assistantBody {
-  min-height: 126px;
+  min-height: 112px;
 }
 
 .assistantReplyCard,
 .assistantState {
-  border-radius: 18px;
-  padding: 0.9rem;
+  border-radius: 16px;
+  padding: 0.78rem;
   background: #ffffff;
   border: 1px solid var(--color-border);
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.065);
@@ -342,14 +343,14 @@
 .assistantReplyTop {
   display: flex;
   align-items: center;
-  gap: 0.58rem;
-  margin-bottom: 0.6rem;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .assistantReplyIcon {
-  width: 38px;
-  height: 38px;
-  border-radius: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
   background: var(--color-secondary-light);
   color: var(--color-secondary-dark);
   border: 1px solid hsl(145 35% 48% / 0.16);
@@ -363,15 +364,15 @@
 .assistantReplyCard h4 {
   margin: 0;
   color: var(--color-primary);
-  font-size: 0.98rem;
+  font-size: 0.94rem;
   line-height: 1.25;
 }
 
 .assistantStatusBadge {
   display: inline-flex;
   width: fit-content;
-  margin-bottom: 0.62rem;
-  padding: 0.3rem 0.62rem;
+  margin-bottom: 0.52rem;
+  padding: 0.24rem 0.56rem;
   border-radius: 999px;
   background: hsl(145 35% 48% / 0.1);
   border: 1px solid hsl(145 35% 48% / 0.18);
@@ -384,7 +385,7 @@
   display: block;
   margin-top: 0.5rem;
   color: var(--color-muted);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   line-height: 1.45;
 }
 
@@ -439,12 +440,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-top: 0.8rem;
-  padding: 0.68rem 0.95rem;
+  margin-top: 0.68rem;
+  padding: 0.58rem 0.86rem;
   border-radius: 999px;
   background: linear-gradient(135deg, var(--color-secondary), var(--color-secondary-dark));
   color: #ffffff;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 950;
   text-decoration: none;
   box-shadow: 0 10px 22px hsl(145 35% 48% / 0.2);
@@ -458,22 +459,22 @@
 
 .assistantHelpList {
   display: grid;
-  gap: 0.42rem;
-  margin-top: 0.8rem;
+  gap: 0.36rem;
+  margin-top: 0.68rem;
 }
 
 .assistantHelpList button,
 .assistantHelpList a {
   width: 100%;
   border: 1px solid var(--color-border);
-  border-radius: 13px;
-  padding: 0.58rem 0.68rem;
+  border-radius: 12px;
+  padding: 0.5rem 0.62rem;
   background: hsl(220 20% 97%);
   color: var(--color-primary);
   text-align: left;
   text-decoration: none;
   font: inherit;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 850;
   cursor: pointer;
   transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
@@ -532,30 +533,30 @@
 
 @media (max-width: 720px) {
   .clubAssistant {
-    right: 0.7rem;
-    bottom: 0.7rem;
+    right: 10px;
+    bottom: 10px;
   }
 
   .assistantFab {
-    width: 58px;
-    height: 58px;
+    width: 54px;
+    height: 54px;
   }
 
   .assistantFabInner {
-    width: 42px;
-    height: 42px;
-    font-size: 0.68rem;
+    width: 38px;
+    height: 38px;
+    font-size: 0.64rem;
   }
 
   .assistantPanel {
     position: fixed;
-    left: 0.7rem;
-    right: 0.7rem;
-    bottom: 76px;
-    width: auto;
-    max-height: calc(100dvh - 6.4rem);
-    padding: 0.72rem;
-    border-radius: 22px;
+    left: auto;
+    right: 10px;
+    bottom: 90px;
+    width: calc(100vw - 20px);
+    max-height: 82vh;
+    padding: 0.62rem;
+    border-radius: 20px;
   }
 
   .assistantActions {
@@ -565,15 +566,15 @@
 
 @media (max-width: 430px) {
   .clubAssistant {
-    right: 0.55rem;
-    bottom: calc(0.55rem + env(safe-area-inset-bottom));
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
   }
 
   .assistantPanel {
-    left: 0.55rem;
-    right: 0.55rem;
-    bottom: calc(70px + env(safe-area-inset-bottom));
-    max-height: min(82dvh, 640px);
+    right: 10px;
+    bottom: calc(90px + env(safe-area-inset-bottom));
+    width: calc(100vw - 20px);
+    max-height: 82vh;
   }
 
   .assistantPanelHead {
@@ -592,7 +593,6 @@
     display: none;
   }
 
-  .assistantActions,
   .assistantFactGrid {
     grid-template-columns: 1fr;
   }

@@ -36,9 +36,9 @@ const ACTIONS_BY_ROLE = {
 
 const HELP_OPTIONS = {
   visitante: [
-    { label: "Ver clases", action: "clases" },
-    { label: "Reservar pista", action: "reservar" },
-    { label: "Ver torneos", action: "torneos" },
+    { label: "No veo mis clases", action: "mis-clases" },
+    { label: "Quiero cambiar mi horario", href: CONTACT_HREF },
+    { label: "Tengo una recuperacion pendiente", action: "recuperaciones" },
     { label: "Contactar con el club", href: CONTACT_HREF },
   ],
   alumno: [
@@ -48,9 +48,9 @@ const HELP_OPTIONS = {
     { label: "Contactar con el club", href: CONTACT_HREF },
   ],
   staff: [
-    { label: "Abrir panel", to: "/panel" },
-    { label: "Revisar grupos", action: "grupos" },
-    { label: "Ver reservas", action: "reservas" },
+    { label: "No veo mis clases", action: "grupos" },
+    { label: "Quiero cambiar mi horario", href: CONTACT_HREF },
+    { label: "Tengo una recuperacion pendiente", action: "recuperaciones" },
     { label: "Contactar con el club", href: CONTACT_HREF },
   ],
 };
@@ -89,14 +89,14 @@ function getRole(summary) {
 
 function getWelcomeText(role) {
   if (role === "staff") {
-    return "Hola, puedo ayudarte a consultar grupos, avisos, reservas y tareas pendientes del club.";
+    return "Te ayudo a revisar grupos, alumnos, reservas y avisos del club.";
   }
 
   if (role === "alumno") {
-    return "Hola, puedo ayudarte a revisar tus clases, reservas, avisos y recuperaciones pendientes.";
+    return "Te ayudo con tus clases, reservas, avisos y recuperaciones.";
   }
 
-  return "Hola, soy el asistente de NaniPadel. Puedo ayudarte a conocer las clases, reservas, torneos y como contactar con el club.";
+  return "Te ayudo a consultar clases, reservas, torneos y contacto del club.";
 }
 
 function Icon({ type }) {
@@ -130,6 +130,14 @@ function buildEmptyResponse(title, to) {
 }
 
 function buildResponse(action, summary, role) {
+  if (!action) {
+    return {
+      title: "Que necesitas consultar?",
+      eyebrow: "Asistente",
+      text: "Elige una opcion y te llevo directamente a la seccion correspondiente.",
+    };
+  }
+
   const guest = role === "visitante";
   const notifications = summary?.notifications || {};
   const avisos = notifications.items || [];
@@ -137,25 +145,19 @@ function buildResponse(action, summary, role) {
 
   if (action === "clases") {
     return {
-      title: "Clases de la escuela",
-      eyebrow: "Informacion publica",
-      status: "Disponible",
-      text: "Puedes ver niveles, formatos, metodologia y como pedir informacion para encontrar tu grupo.",
-      detail: "No se muestran grupos internos ni horarios reales desde el asistente publico.",
-      cta: { label: "Ver clases", to: "/clases" },
+      title: "Clases",
+      eyebrow: "Escuela",
+      text: "Consulta niveles, formatos y como apuntarte a la escuela.",
+      cta: { label: "Ir a clases", to: "/clases" },
     };
   }
 
   if (action === "reservar" || action === "reservas") {
     return {
-      title: guest ? "Reservar pista" : "Reservas del club",
+      title: "Reservas",
       eyebrow: "Pistas",
-      status: guest ? "Acceso publico" : "Gestion",
-      text: guest
-        ? "Puedes entrar en reservas para consultar pistas y disponibilidad."
-        : "Abre la zona de reservas para revisar la agenda de pistas del club.",
-      detail: guest ? "Para gestionar tus reservas personales tendras que iniciar sesion." : "No cargo reservas internas de otros usuarios desde esta ventana.",
-      cta: { label: "Ir a reservas", to: "/reservas" },
+      text: "Elige dia, hora y tipo de reserva.",
+      cta: { label: guest ? "Reservar pista" : "Ver reservas", to: "/reservas" },
     };
   }
 
@@ -273,9 +275,7 @@ function buildResponse(action, summary, role) {
       return {
         title: "Torneos",
         eyebrow: "Competicion",
-        status: "Sin abiertos",
-        text: "No veo torneos abiertos ahora mismo.",
-        detail: "Cuando el club publique uno nuevo, aparecera en la seccion de torneos.",
+        text: "Revisa las competiciones disponibles del club.",
         cta: { label: "Ver torneos", to: "/torneos" },
       };
     }
@@ -284,8 +284,8 @@ function buildResponse(action, summary, role) {
       title: "Torneos abiertos",
       eyebrow: "Competicion",
       status: `${torneos.length} publicado${torneos.length === 1 ? "" : "s"}`,
-      text: `El siguiente es ${torneos[0].nombre}.`,
-      detail: formatDateTime(torneos[0].fecha_inicio, torneos[0].hora_inicio),
+      text: "Revisa las competiciones disponibles del club.",
+      detail: `Proximo: ${torneos[0].nombre} - ${formatDateTime(torneos[0].fecha_inicio, torneos[0].hora_inicio)}`,
       items: torneos.slice(0, 3).map((torneo) => torneo.nombre),
       cta: { label: "Ir a torneos", to: "/torneos" },
     };
@@ -305,25 +305,17 @@ function buildResponse(action, summary, role) {
 
   if (action === "contactar") {
     return {
-      title: "Contactar con el club",
+      title: "Contacto",
       eyebrow: "Ayuda",
-      status: "Disponible",
-      text: "Cuentanos que necesitas y te ayudamos desde el club.",
-      detail: "Puedes preguntar por clases, disponibilidad, reservas o cualquier duda antes de venir.",
-      cta: { label: "Escribir al club", href: CONTACT_HREF },
+      text: "Escribe al club para resolver dudas sobre clases, reservas o grupos.",
+      cta: { label: "Contactar", href: CONTACT_HREF },
     };
   }
 
   return {
     title: "Ayuda",
     eyebrow: "Guia rapida",
-    status: "Listo",
-    text: guest
-      ? "Te ayudo a encontrar clases, reservas, torneos y contacto con el club."
-      : role === "staff"
-        ? "Elige si quieres abrir panel, revisar grupos, avisos, reservas o estado de pista."
-        : "Elige que quieres revisar: clases, reservas, avisos, recuperaciones o estado de pista.",
-    detail: "Selecciona un acceso para ver una respuesta mas concreta.",
+    text: "Te oriento con las dudas mas habituales.",
     helpOptions: true,
   };
 }
@@ -342,7 +334,7 @@ export default function ClubAssistant() {
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState("");
-  const [selectedAction, setSelectedAction] = useState("ayuda");
+  const [selectedAction, setSelectedAction] = useState("");
 
   useEffect(() => {
     if (!open || summary || loading) return;
@@ -370,13 +362,13 @@ export default function ClubAssistant() {
 
   const role = useMemo(() => getRole(summary), [summary]);
   const actions = ACTIONS_BY_ROLE[role] || ACTIONS_BY_ROLE.visitante;
-  const selectedActionMeta = actions.find((action) => action.key === selectedAction) || actions[actions.length - 1];
+  const selectedActionMeta = actions.find((action) => action.key === selectedAction);
   const response = summary ? buildResponse(selectedAction, summary, role) : null;
   const unreadCount = Number(summary?.notifications?.unread || 0);
 
   useEffect(() => {
-    if (!actions.some((action) => action.key === selectedAction)) {
-      setSelectedAction(actions[0]?.key || "ayuda");
+    if (selectedAction && !actions.some((action) => action.key === selectedAction)) {
+      setSelectedAction("");
     }
   }, [actions, selectedAction]);
 
@@ -388,8 +380,8 @@ export default function ClubAssistant() {
             <div className="assistantBrand">
               <div className="assistantAvatar" aria-hidden="true">NP</div>
               <div>
-                <span className="assistantEyebrow">Asistente del club</span>
-                <h3>NaniPadel</h3>
+                <h3>Asistente del club</h3>
+                <span className="assistantEyebrow">NaniPadel</span>
                 <span className="assistantOnline">
                   <span aria-hidden="true" />
                   Online
@@ -404,7 +396,6 @@ export default function ClubAssistant() {
           <div className="assistantWelcome">
             <div className="assistantMessageAvatar" aria-hidden="true">NP</div>
             <div className="assistantBubble">
-              <strong>Hola, soy el asistente de NaniPadel.</strong>
               <p>{getWelcomeText(role)}</p>
             </div>
           </div>
@@ -451,7 +442,7 @@ export default function ClubAssistant() {
             {!loading && !error && response && (
               <div className="assistantReplyCard">
                 <div className="assistantReplyTop">
-                  <span className="assistantReplyIcon" aria-hidden="true"><Icon type={selectedActionMeta?.icon} /></span>
+                  <span className="assistantReplyIcon" aria-hidden="true"><Icon type={selectedActionMeta?.icon || "help"} /></span>
                   <div>
                     <span className="assistantReplyTag">{response.eyebrow || response.title}</span>
                     <h4>{response.title}</h4>
