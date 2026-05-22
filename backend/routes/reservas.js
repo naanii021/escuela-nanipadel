@@ -1182,23 +1182,66 @@ router.delete("/:id/participantes/me", requireAuth, async (req, res) => {
       });
     }
 
-    const [result] = await connection.query(
-      `UPDATE reservas_pista_participantes
-       SET estado = 'cancelado'
-       WHERE reserva_id = ? AND usuario_id = ? AND estado = 'confirmado'`,
-      [req.params.id, req.user.id],
-    );
+    // Primero comprobamos que el usuario registrado está dentro de la partida
+const [participantRows] = await connection.query(
+  `SELECT id
+   FROM reservas_pista_participantes
+   WHERE reserva_id = ?
+     AND usuario_id = ?
+     AND tipo_participante = 'usuario'
+     AND estado = 'confirmado'
+   LIMIT 1`,
+  [req.params.id, req.user.id]
+);
 
-    if (result.affectedRows === 0) {
-      await connection.rollback();
-      return res.status(404).json({
-        ok: false,
-        message: "No estas apuntado a esta partida.",
-      });
-    }
+if (participantRows.length === 0) {
+  await connection.rollback();
+  return res.status(404).json({
+    ok: false,
+    message: "No estas apuntado a esta partida.",
+  });
+}
 
-    const total = await updateOpenReservationState(connection, req.params.id);
-    await connection.commit();
+// Cancelamos al usuario registrado
+await connection.query(
+  `UPDATE reservas_pista_participantes
+   SET estado = 'cancelado'
+   WHERE reserva_id = ?
+     AND usuario_id = ?
+     AND tipo_participante = 'usuario'
+     AND estado = 'confirmado'`,
+  [req.params.id, req.user.id]
+);
+
+// Cancelamos también sus invitados/amigos
+// Como no tienen cuenta propia, dependen del usuario que los añadió
+const [guestResult] = await connection.query(
+  `UPDATE reservas_pista_participantes
+   SET estado = 'cancelado'
+   WHERE reserva_id = ?
+     AND invitado_de_usuario_id = ?
+     AND tipo_participante = 'invitado'
+     AND estado = 'confirmado'`,
+  [req.params.id, req.user.id]
+);
+
+// Recalculamos el estado de la partida después de quitar usuario + invitados
+const total = await updateOpenReservationState(connection, req.params.id);
+await connection.commit();
+
+// Avisamos a los jugadores restantes de que alguien se ha salido.
+// Si no queda nadie, la función no enviará nada.
+await notifyPartidaAbiertaSalida(req.params.id, req.user.id);
+
+res.json({
+  ok: true,
+  plazas_ocupadas: total,
+  invitados_cancelados: guestResult.affectedRows,
+  message:
+    guestResult.affectedRows > 0
+      ? `Has salido de la partida junto con ${guestResult.affectedRows} invitado(s).`
+      : "Has salido de la partida",
+});
 
     // Avisamos a los jugadores restantes de que alguien se ha salido.
     // Si no queda nadie, la función no enviará nada.

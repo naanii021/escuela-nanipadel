@@ -7,6 +7,7 @@ const manifestPath = path.join(publicDir, "gallery-manifest.json");
 const courtManifestPath = path.join(publicDir, "court-photos-manifest.json");
 const tournamentManifestPath = path.join(publicDir, "tournament-photos-manifest.json");
 const validExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif"]);
+const excludedGalleryWords = ["icono", "logo", "favicon"];
 
 const sourceFolders = [
   { folder: "fotosAlumnos", category: "Alumnos", legacy: false },
@@ -64,6 +65,7 @@ function collectPhotosFromFolder(source) {
     .filter((entry) => entry.isFile())
     .map((entry) => entry.name)
     .filter((fileName) => validExtensions.has(path.extname(fileName).toLowerCase()))
+    .filter((fileName) => !excludedGalleryWords.some((word) => fileName.toLowerCase().includes(word)))
     .map((fileName) => {
       const absolutePath = path.join(folderPath, fileName);
       const stats = fs.statSync(absolutePath);

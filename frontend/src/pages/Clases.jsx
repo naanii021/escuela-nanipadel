@@ -153,8 +153,31 @@ function GroupCard({ grupo }) {
             </div>
             <div className="occCount">{a}/{c || "-"} alumnos</div>
           </div>
-          {proxima && <div className={`cardProxima${proxima === "Hoy" ? " cardProximaHoy" : ""}`}><IcClock />Proxima: <strong>{proxima}</strong></div>}
+          <div className="cardBottomRow">
+            {proxima && <div className={`cardProxima${proxima === "Hoy" ? " cardProximaHoy" : ""}`}><IcClock />Proxima: <strong>{proxima}</strong></div>}
+            <Link to="/panel" className="cardLoginCta">Gestionar <IcArrow /></Link>
+          </div>
         </div>
+      </div>
+    </article>
+  );
+}
+
+function StudentGroupCard({ grupo }) {
+  const proxima = proximaDia(grupo.dia1, grupo.dia2);
+
+  return (
+    <article className="studentClassCard" data-nivel={grupo.nivel || "default"}>
+      <div className="studentClassTop">
+        <span className={`badge ${nivelBadgeClass(grupo.nivel)}`}>{nivelLabel(grupo.nivel)}</span>
+        {proxima && <span className={`studentNextPill${proxima === "Hoy" ? " today" : ""}`}><IcClock /> {proxima}</span>}
+      </div>
+      <h3>{grupo.nombre || "Grupo de clases"}</h3>
+      <div className="studentClassMeta">
+        <div><span><IcCalendar /> Dias</span><strong>{formatDias(grupo.dia1, grupo.dia2)}</strong></div>
+        <div><span><IcClock /> Hora</span><strong>{formatHora(grupo.hora_inicio, grupo.duracion_min)}</strong></div>
+        <div><span><IcCourt /> Pista</span><strong>{grupo.pista_habitual || "Pendiente"}</strong></div>
+        <div><span><IcUser /> Profesor</span><strong>{grupo.profesor || "Pendiente"}</strong></div>
       </div>
     </article>
   );
@@ -332,7 +355,7 @@ function StaffClassesSummary({ classData, grupos, loading, err, q, setQ, nivelFi
   }, [grupos, q, nivelFilt, dia, profesor]);
 
   return (
-    <section className="clases">
+    <section className="clases clasesStaff">
       <header className="clasesHero staffHero">
         <div className="heroContent">
           <div className="heroText">
@@ -409,14 +432,18 @@ function StudentClassesDashboard({ classData, user, loading }) {
   const recuperaciones = classData?.recuperaciones || [];
   const proximasSesiones = classData?.proximasSesiones || classData?.proximas_clases || [];
   const asistenciaReciente = classData?.asistenciaReciente || classData?.asistencia || [];
+  const nextSession = proximasSesiones[0] || null;
+  const nextGroup = nextSession
+    ? misClases.find((item) => String(item.id) === String(nextSession.grupo_id)) || grupo
+    : grupo;
 
   return (
-    <section className="clases">
-      <header className="clasesHero">
+    <section className="clases clasesAlumno">
+      <header className="clasesHero studentHero">
         <div className="heroContent">
           <div className="heroText">
             <h1 className="heroTitle">Mis clases</h1>
-            <p className="heroSub">Aqui puedes consultar tu grupo, tus horarios y los avisos del profesor.</p>
+            <p className="heroSub">Tus grupos, proximas clases y avisos de la escuela en un solo lugar.</p>
           </div>
           <div className="heroStats">
             <div className="statCard"><strong>{loading ? "-" : misClases.length}</strong><span>grupos</span></div>
@@ -424,6 +451,24 @@ function StudentClassesDashboard({ classData, user, loading }) {
           </div>
         </div>
       </header>
+
+      <section className="studentNextClassCard">
+        <div>
+          <span className="studentSectionEyebrow">Proxima clase</span>
+          <h2>{nextGroup?.nombre || "Aun sin clase programada"}</h2>
+          <p>
+            {nextSession
+              ? `${nextSession.fecha || "Fecha pendiente"} - ${formatHora(nextSession.hora_inicio, nextSession.duracion_min || nextGroup?.duracion_min || 60)}`
+              : "Aun no tienes una proxima clase registrada."}
+          </p>
+        </div>
+        <div className="studentNextMeta">
+          <div><span>Nivel</span><strong>{nivelLabel(nextGroup?.nivel || alumno.nivel_juego || alumno.nivel)}</strong></div>
+          <div><span>Dias</span><strong>{nextGroup ? formatDias(nextGroup.dia1, nextGroup.dia2) : "No disponible"}</strong></div>
+          <div><span>Pista</span><strong>{nextSession?.pista_habitual || nextGroup?.pista_habitual || "Pendiente"}</strong></div>
+          <div><span>Profesor</span><strong>{nextGroup?.profesor || classData?.profesor?.nombre || "Pendiente"}</strong></div>
+        </div>
+      </section>
 
       <section className="studentProfileCard">
         <div>
@@ -439,6 +484,25 @@ function StudentClassesDashboard({ classData, user, loading }) {
           <div><span>Pista</span><strong>{classData?.pista || grupo?.pista_habitual || "No disponible"}</strong></div>
           <div><span>Estado</span><strong>{Number(alumno.activo ?? 1) ? "Activo" : "Inactivo"}</strong></div>
         </div>
+      </section>
+
+      <section className="studentAssignedSection">
+        <div className="sectionHeaderRow">
+          <h2 className="sectionTitle">Mis grupos</h2>
+          <span className="resultsBadge">{misClases.length} asignado{misClases.length === 1 ? "" : "s"}</span>
+        </div>
+        {misClases.length ? (
+          <div className="studentClassGrid">
+            {misClases.map((item) => <StudentGroupCard key={item.id} grupo={item} />)}
+          </div>
+        ) : (
+          <div className="studentEmptyState">
+            <IcCourt />
+            <strong>Aun no tienes clases asignadas.</strong>
+            <p>Contacta con el club para mas informacion.</p>
+            <a href={CONTACT_HREF} className="heroCtaBtn">Contactar con el club</a>
+          </div>
+        )}
       </section>
 
       <section className="studentPanels">
