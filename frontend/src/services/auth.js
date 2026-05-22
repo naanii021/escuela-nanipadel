@@ -1,21 +1,4 @@
-function getDefaultApiBase() {
-  if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
-  }
-
-  if (typeof window !== "undefined") {
-    const { hostname, port } = window.location;
-    const isLocalFrontend = ["localhost", "127.0.0.1"].includes(hostname) && port === "3000";
-
-    if (isLocalFrontend) {
-      return "http://localhost:4000";
-    }
-  }
-
-  return "";
-}
-
-const API_BASE = getDefaultApiBase().replace(/\/$/, "");
+import { buildApiUrl } from "./apiConfig";
 
 // Guardar token y usuario en localStorage
 export function saveSession(token, user) {
@@ -60,7 +43,7 @@ export function isLogged() {
 
 // Login
 export async function login(email, password) {
-  const res = await fetch(`${API_BASE}/api/auth/login`, {
+  const res = await fetch(buildApiUrl("/api/auth/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -70,7 +53,7 @@ export async function login(email, password) {
 
 // Registro
 export async function registro(nombre, email, telefono, password) {
-  const res = await fetch(`${API_BASE}/api/auth/registro`, {
+  const res = await fetch(buildApiUrl("/api/auth/registro"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ nombre, email, telefono, password }),
@@ -83,7 +66,7 @@ export async function verifyToken() {
   const token = getToken();
   if (!token) return null;
 
-  const res = await fetch(`${API_BASE}/api/auth/me`, {
+  const res = await fetch(buildApiUrl("/api/auth/me"), {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();

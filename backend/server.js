@@ -342,37 +342,57 @@ app.get("/api/meteo-xiao/latest", async (_req, res) => {
 // WHATSAPP TEST
 // ======================================================
 
-// Prueba manual para el PC grande:
-// GET /api/test-whatsapp?to=+34600000000&body=Mensaje
-app.get("/api/test-whatsapp", async (req, res) => {
+// Ruta temporal para probar WhatsApp desde el backend real.
+// Importante: esta ruta solo funciona si WHATSAPP_TEST_ENABLED=true en el .env.
+app.post("/api/whatsapp/test", async (req, res) => {
   try {
-    const to = req.query.to || process.env.META_WHATSAPP_TEST_TO;
-    const body =
-      req.query.body ||
-      "Prueba de WhatsApp desde NaniPadel con Meta Cloud API";
+    // Bloqueamos esta ruta si no está activada en el .env
+    // Así evitamos que se pueda usar en producción sin querer.
+    if (process.env.WHATSAPP_TEST_ENABLED !== "true") {
+      return res.status(403).json({
+        ok: false,
+        message: "Ruta de prueba de WhatsApp desactivada",
+      });
+    }
 
+    // Cogemos el número enviado en el body.
+    // Si no viene ninguno, usamos el número de prueba guardado en el .env.
+    const to = req.body?.to || process.env.WHATSAPP_TEST_TO;
+
+    // Cogemos el mensaje enviado en el body.
+    // Si no viene ninguno, usamos un texto por defecto.
+    const body =
+      req.body?.body ||
+      "✅ Prueba desde la ruta real del backend de NaniPadel. WhatsApp funcionando.";
+
+    // Si no tenemos número de destino, devolvemos error claro.
     if (!to) {
       return res.status(400).json({
         ok: false,
         message:
-          "Indica un telefono con ?to=+34600000000 o configura META_WHATSAPP_TEST_TO en .env",
+          "Falta número de destino. Envía { to: '34600000000' } o configura WHATSAPP_TEST_TO en el .env",
       });
     }
 
+    // Enviamos el mensaje usando el servicio real de WhatsApp.
     const result = await sendWhatsAppMessage({
       to,
       body,
     });
 
+    // Respondemos con confirmación.
     res.json({
       ok: true,
+      message: "WhatsApp enviado correctamente",
       provider: result.provider,
       messageId: result.messageId,
-      message: "WhatsApp enviado correctamente",
+      to: result.to,
     });
   } catch (e) {
-    console.error("Error enviando WhatsApp de prueba:", e);
+    // Mostramos el error completo en consola para depurar.
+    console.error("❌ Error en POST /api/whatsapp/test:", e);
 
+    // Respondemos al cliente con el mensaje del error.
     res.status(500).json({
       ok: false,
       message: e.message,
@@ -380,15 +400,61 @@ app.get("/api/test-whatsapp", async (req, res) => {
   }
 });
 
-// Ruta a la carpeta build del frontend
-const buildPath = path.join(__dirname, "..", "frontend", "build");
+// Ruta GET opcional para probar rápido desde navegador.
+// Ejemplo:
+// http://localhost:4000/api/whatsapp/test?body=Hola
+app.get("/api/whatsapp/test", async (req, res) => {
+  try {
+    // Bloqueamos esta ruta si no está activada en el .env
+    // Así evitamos que se pueda usar en producción sin querer.
+    if (process.env.WHATSAPP_TEST_ENABLED !== "true") {
+      return res.status(403).json({
+        ok: false,
+        message: "Ruta de prueba de WhatsApp desactivada",
+      });
+    }
 
-// Servimos los archivos estáticos del frontend compilado
-app.use(express.static(buildPath));
+    // Cogemos el número desde query o desde el .env.
+    const to = req.query.to || process.env.WHATSAPP_TEST_TO;
 
-// Cualquier ruta no-API devuelve index.html para que React Router funcione
-app.get("*", (_req, res) => {
-  res.sendFile(path.join(buildPath, "index.html"));
+    // Cogemos el mensaje desde query o usamos uno por defecto.
+    const body =
+      req.query.body ||
+      "✅ Prueba GET desde el backend de NaniPadel. WhatsApp funcionando.";
+
+    // Si no tenemos número, paramos.
+    if (!to) {
+      return res.status(400).json({
+        ok: false,
+        message:
+          "Falta número de destino. Usa ?to=34600000000 o configura WHATSAPP_TEST_TO en el .env",
+      });
+    }
+
+    // Enviamos el mensaje usando el servicio real de WhatsApp.
+    const result = await sendWhatsAppMessage({
+      to,
+      body,
+    });
+
+    // Respondemos con confirmación.
+    res.json({
+      ok: true,
+      message: "WhatsApp enviado correctamente",
+      provider: result.provider,
+      messageId: result.messageId,
+      to: result.to,
+    });
+  } catch (e) {
+    // Mostramos el error completo en consola para depurar.
+    console.error("❌ Error en GET /api/whatsapp/test:", e);
+
+    // Respondemos al cliente con el mensaje del error.
+    res.status(500).json({
+      ok: false,
+      message: e.message,
+    });
+  }
 });
 
 // ======================================================

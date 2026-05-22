@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import GalleryFilters from "../components/GalleryFilters";
 import GalleryLightbox from "../components/GalleryLightbox";
 import { apiGet, apiPatch, apiUpload } from "../services/api";
+import { buildApiUrl } from "../services/apiConfig";
 import { getUser, isLogged } from "../services/auth";
 import "./galeria.css";
 
@@ -12,12 +13,7 @@ const EMPTY_UPLOAD_FORM = { titulo: "", categoria: "Otros", descripcion: "", ima
 function withPublicUrl(path) {
   if (!path) return "";
   if (/^https?:\/\//i.test(path)) return path;
-  if (path.startsWith("/uploads") && typeof window !== "undefined") {
-    const { hostname, port } = window.location;
-    if (["localhost", "127.0.0.1"].includes(hostname) && port === "3000") {
-      return `http://localhost:4000${path}`;
-    }
-  }
+  if (path.startsWith("/uploads")) return buildApiUrl(path);
   const publicUrl = (process.env.PUBLIC_URL || "").replace(/\/$/, "");
   return `${publicUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }

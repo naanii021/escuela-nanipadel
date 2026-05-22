@@ -6,6 +6,9 @@ const query = (sql, params = []) => db.promise().query(sql, params);
 export const NOTIFICATION_EVENTS = {
   RESERVA_CREADA: "reserva_creada",
   RESERVA_CANCELADA: "reserva_cancelada",
+  PARTIDA_ABIERTA_UNIDO: "partida_abierta_unido",
+  PARTIDA_ABIERTA_SALIDA:"partida_abierta_salida",
+  PARTIDA_ABIERTA_COMPLETA:"partida_abierta_completa",
   CLASE_CANCELADA: "clase_cancelada",
   CLASE_REPROGRAMADA: "clase_reprogramada",
   AVISO_PROFESOR: "aviso_profesor",
@@ -16,6 +19,9 @@ export const NOTIFICATION_EVENTS = {
 export const EVENT_CATEGORY = {
   [NOTIFICATION_EVENTS.RESERVA_CREADA]: "reservas",
   [NOTIFICATION_EVENTS.RESERVA_CANCELADA]: "reservas",
+  [NOTIFICATION_EVENTS.PARTIDA_ABIERTA_UNIDO]: "reservas",
+  [NOTIFICATION_EVENTS.PARTIDA_ABIERTA_SALIDA]: "reservas",
+  [NOTIFICATION_EVENTS.PARTIDA_ABIERTA_COMPLETA]: "reservas",
   [NOTIFICATION_EVENTS.CLASE_CANCELADA]: "clases",
   [NOTIFICATION_EVENTS.CLASE_REPROGRAMADA]: "clases",
   [NOTIFICATION_EVENTS.AVISO_PROFESOR]: "clases",
@@ -83,32 +89,47 @@ export async function getOrCreateNotificationPreferences(userId) {
 }
 
 export async function updateNotificationPreferences(userId, payload = {}) {
+  // Recuperamos preferencias actuales para no machacar valores si no vienen en el payload
   const current = await getOrCreateNotificationPreferences(userId);
-  const hasWhatsappEnabled = Object.prototype.hasOwnProperty.call(
-    payload,
-    "whatsapp_enabled"
-  );
-  const hasWhatsappPhone = Object.prototype.hasOwnProperty.call(
-    payload,
-    "whatsapp_phone"
-  );
 
+  // Función auxiliar para saber si un campo viene realmente en el body
+  const hasField = (field) =>
+    Object.prototype.hasOwnProperty.call(payload, field);
+
+  // Construimos preferencias nuevas conservando las anteriores cuando no se envía un campo
   const preferences = {
-    whatsapp_enabled: hasWhatsappEnabled
-      ? toDbBoolean(payload.whatsapp_enabled, 0)
+    whatsapp_enabled: hasField("whatsapp_enabled")
+      ? toDbBoolean(payload.whatsapp_enabled, current.whatsapp_enabled)
       : current.whatsapp_enabled,
-    in_app_enabled: toDbBoolean(payload.in_app_enabled, 1),
-    notify_reservas: toDbBoolean(payload.notify_reservas, 1),
-    notify_clases: toDbBoolean(payload.notify_clases, 1),
-    notify_club: toDbBoolean(payload.notify_club, 1),
-    notify_torneos: toDbBoolean(payload.notify_torneos, 1),
-    whatsapp_phone: hasWhatsappPhone
+
+    in_app_enabled: hasField("in_app_enabled")
+      ? toDbBoolean(payload.in_app_enabled, current.in_app_enabled)
+      : current.in_app_enabled,
+
+    notify_reservas: hasField("notify_reservas")
+      ? toDbBoolean(payload.notify_reservas, current.notify_reservas)
+      : current.notify_reservas,
+
+    notify_clases: hasField("notify_clases")
+      ? toDbBoolean(payload.notify_clases, current.notify_clases)
+      : current.notify_clases,
+
+    notify_club: hasField("notify_club")
+      ? toDbBoolean(payload.notify_club, current.notify_club)
+      : current.notify_club,
+
+    notify_torneos: hasField("notify_torneos")
+      ? toDbBoolean(payload.notify_torneos, current.notify_torneos)
+      : current.notify_torneos,
+
+    whatsapp_phone: hasField("whatsapp_phone")
       ? payload.whatsapp_phone
         ? String(payload.whatsapp_phone).trim()
         : null
       : current.whatsapp_phone,
   };
 
+  // Guardamos o actualizamos las preferencias del usuario
   await query(
     `INSERT INTO notification_preferences
       (usuario_id, email_enabled, whatsapp_enabled, in_app_enabled, notify_reservas, notify_clases, notify_club, notify_torneos, whatsapp_phone)
@@ -303,7 +324,7 @@ export async function notifyEvent(event) {
         try {
           const whatsappResult = await sendWhatsAppMessage({
             to: row.whatsapp_phone,
-            body: row.mensaje,
+            body: `${row.titulo}\n\n${row.mensaje}`,
           });
 
           await query(

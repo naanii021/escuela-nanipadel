@@ -3,8 +3,8 @@
   "photos": [
     {
       "id": 1,
-      "title": "Icono Web",
-      "src": "/fotosTorneo/icono web.jpeg",
+      "title": "Torneo1",
+      "src": "/fotosTorneo/torneo1.png",
       "highlight": "Momentos del torneo",
       "desc": "Imagen del ambiente competitivo, jornadas y actividad deportiva del club."
     },
@@ -12,13 +12,6 @@
       "id": 2,
       "title": "Liga1",
       "src": "/fotosTorneo/liga1.png",
-      "highlight": "Ambiente de competicion",
-      "desc": "Imagen del ambiente competitivo, jornadas y actividad deportiva del club."
-    },
-    {
-      "id": 3,
-      "title": "Torneo1",
-      "src": "/fotosTorneo/torneo1.png",
       "highlight": "Ambiente de competicion",
       "desc": "Imagen del ambiente competitivo, jornadas y actividad deportiva del club."
     }

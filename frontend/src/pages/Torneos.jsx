@@ -2,41 +2,30 @@ import "./torneos.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../services/api";
-import { getToken, getUser, isLogged } from "../services/auth";
+import { getUser, isLogged } from "../services/auth";
 
-const API_BASE = (process.env.REACT_APP_API_URL || "").replace(/\/$/, "");
 const TOURNAMENT_PHOTOS_MANIFEST = `${process.env.PUBLIC_URL}/tournament-photos-manifest.json`;
 
 const CATEGORY_META = {
   adultos: {
     label: "Adultos",
     accentClass: "catAdultos",
-    image:
-      "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=1200&q=80",
   },
   menores: {
     label: "Menores",
     accentClass: "catMenores",
-    image:
-      "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1200&q=80",
   },
   mixto: {
     label: "Mixto",
     accentClass: "catMixto",
-    image:
-      "https://images.unsplash.com/photo-1547347298-4074fc3086f0?auto=format&fit=crop&w=1200&q=80",
   },
   competicion: {
     label: "Competicion",
     accentClass: "catCompeticion",
-    image:
-      "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?auto=format&fit=crop&w=1200&q=80",
   },
   liga_interna: {
     label: "Liga interna",
     accentClass: "catLiga",
-    image:
-      "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=1200&q=80",
   },
 };
 
@@ -103,8 +92,6 @@ function getCategoryMeta(categoria) {
     CATEGORY_META[categoria] || {
       label: categoria || "General",
       accentClass: "catAdultos",
-      image:
-        "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=1200&q=80",
     }
   );
 }
@@ -120,6 +107,55 @@ function occupancyMeta(inscritos, maxParejas) {
   const percent = Math.min(100, Math.round((current / total) * 100));
   const className = percent >= 85 ? "occHigh" : percent >= 55 ? "occMid" : "occLow";
   return { percent, className, text: `${current}/${total} parejas` };
+}
+
+function getTorneoImage(torneo) {
+  return (
+    torneo?.cartel_url ||
+    torneo?.cartelUrl ||
+    torneo?.cartel ||
+    torneo?.imagen_url ||
+    torneo?.imagenUrl ||
+    torneo?.imagen ||
+    torneo?.poster_url ||
+    torneo?.posterUrl ||
+    ""
+  );
+}
+
+function getAvailableSlots(torneo) {
+  const total = Number(torneo?.max_parejas || 0);
+  if (!total) return null;
+  return Math.max(total - Number(torneo?.inscritos || 0), 0);
+}
+
+function getCapacityText(torneo) {
+  const libres = getAvailableSlots(torneo);
+  if (libres === null) return `${Number(torneo?.inscritos || 0)} parejas inscritas`;
+  if (libres === 0) return "Sin plazas libres";
+  return `${libres} plaza${libres === 1 ? "" : "s"} libre${libres === 1 ? "" : "s"}`;
+}
+
+function canRegisterTournament(torneo) {
+  return torneo?.estado === "abierto" && getAvailableSlots(torneo) !== 0;
+}
+
+function isClosedTournament(torneo) {
+  return ["cerrado", "cancelado", "finalizado", "completo"].includes(torneo?.estado);
+}
+
+function isVisibleTournament(torneo) {
+  const estado = String(torneo?.estado || "").toLowerCase();
+  const nombre = String(torneo?.nombre || "").toLowerCase();
+  if (["borrador", "draft", "eliminado", "cancelado"].includes(estado)) return false;
+  if (torneo?.es_demo || torneo?.demo || torneo?.mock) return false;
+  return !["ejemplo", "demo", "sample"].some((word) => nombre.includes(word));
+}
+
+function isValidTournamentPhoto(photo) {
+  const value = `${photo?.title || ""} ${photo?.src || ""}`.toLowerCase();
+  if (!photo?.src || !/\.(jpe?g|png|webp|avif)$/i.test(photo.src)) return false;
+  return !["icono", "logo", "favicon", "web"].some((word) => value.includes(word));
 }
 
 function isStaffUser() {
@@ -156,6 +192,7 @@ function Torneos() {
   const [matchForm, setMatchForm] = useState(emptyMatchForm);
   const [americanoLoading, setAmericanoLoading] = useState(false);
   const [americanoError, setAmericanoError] = useState("");
+  const [selectedTorneo, setSelectedTorneo] = useState(null);
 
   const canManageAmericanos = isStaffUser();
 
@@ -163,11 +200,8 @@ function Torneos() {
     try {
       setLoading(true);
       setErr("");
-      const headers = { Accept: "application/json" };
-      if (isLogged()) headers.Authorization = `Bearer ${getToken()}`;
-      const res = await fetch(`${API_BASE}/api/torneos`, { headers });
-      const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.message || "No hemos podido cargar los torneos.");
+      const data = await apiGet("/api/torneos");
+      if (!data.ok) throw new Error(data.message || "No hemos podido cargar los torneos.");
       setTorneos(data.torneos || []);
     } catch (e) {
       setErr(e.message || "No hemos podido cargar los torneos ahora mismo.");
@@ -252,31 +286,33 @@ function Torneos() {
     };
   }, []);
 
+  const publicTorneos = useMemo(() => torneos.filter(isVisibleTournament), [torneos]);
+
   const stats = useMemo(() => {
-    const abiertos = torneos.filter((t) => t.estado === "abierto").length;
-    const proximos = torneos.filter((t) => t.estado === "proximo").length;
-    const plazas = torneos.reduce(
+    const abiertos = publicTorneos.filter((t) => t.estado === "abierto").length;
+    const proximos = publicTorneos.filter((t) => t.estado === "proximo").length;
+    const plazas = publicTorneos.reduce(
       (acc, t) => acc + Math.max(Number(t.max_parejas || 0) - Number(t.inscritos || 0), 0),
       0
     );
-    return { total: torneos.length, abiertos, proximos, plazas };
-  }, [torneos]);
+    return { total: publicTorneos.length, abiertos, proximos, plazas };
+  }, [publicTorneos]);
 
   const filterCounts = useMemo(() => {
-    const counts = { todos: torneos.length };
+    const counts = { todos: publicTorneos.length };
     for (const key of Object.keys(CATEGORY_META)) counts[key] = 0;
-    for (const t of torneos) {
+    for (const t of publicTorneos) {
       if (counts[t.categoria] !== undefined) counts[t.categoria] += 1;
     }
     return counts;
-  }, [torneos]);
+  }, [publicTorneos]);
 
   const filteredTorneos = useMemo(() => {
-    if (activeFilter === "todos") return torneos;
-    return torneos.filter((t) => t.categoria === activeFilter);
-  }, [torneos, activeFilter]);
+    if (activeFilter === "todos") return publicTorneos;
+    return publicTorneos.filter((t) => t.categoria === activeFilter);
+  }, [publicTorneos, activeFilter]);
 
-  const featuredPhotos = tournamentPhotos.slice(0, 4);
+  const featuredPhotos = tournamentPhotos.filter(isValidTournamentPhoto).slice(0, 4);
   const selectedParticipantIds = useMemo(
     () => new Set((americanoDetail?.participantes || []).map((item) => Number(item.alumno_id))),
     [americanoDetail?.participantes]
@@ -300,18 +336,19 @@ function Torneos() {
     try {
       setActionId(torneo.id);
       setFeedback("");
-      const res = await fetch(`${API_BASE}${endpoint}`, {
-        method: torneo.inscrito ? "PATCH" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: torneo.inscrito ? undefined : JSON.stringify({}),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.message || "No hemos podido actualizar tu inscripcion.");
+      const data = torneo.inscrito ? await apiPatch(endpoint) : await apiPost(endpoint, {});
+      if (!data.ok) throw new Error(data.message || "No hemos podido actualizar tu inscripcion.");
       setFeedback(torneo.inscrito ? "Inscripcion cancelada." : "Ya estas apuntado al torneo.");
       await loadTorneos();
+      setSelectedTorneo((current) => {
+        if (!current || current.id !== torneo.id) return current;
+        const delta = torneo.inscrito ? -1 : 1;
+        return {
+          ...current,
+          inscrito: !torneo.inscrito,
+          inscritos: Math.max(Number(current.inscritos || 0) + delta, 0),
+        };
+      });
     } catch (e) {
       setFeedback(e.message || "No hemos podido actualizar tu inscripcion.");
     } finally {
@@ -647,20 +684,25 @@ function Torneos() {
                 const category = getCategoryMeta(torneo.categoria);
                 const status = getStatusMeta(torneo.estado);
                 const occupancy = occupancyMeta(torneo.inscritos, torneo.max_parejas);
-                const isClosed = ["cerrado", "cancelado", "finalizado", "completo"].includes(
-                  torneo.estado
-                );
+                const isClosed = isClosedTournament(torneo);
 
                 return (
                   <article
                     className={`torneoCard ${category.accentClass}`}
                     key={torneo.id}
                     style={{ "--i": index }}
+                    onClick={() => setSelectedTorneo(torneo)}
                     aria-label={`Torneo: ${torneo.nombre}`}
                   >
                     <div className="torneoMedia">
-                      <img src={category.image} alt={`Categoria ${category.label}`} loading="lazy" />
-                      <div className="torneoMediaOverlay" aria-hidden="true" />
+                      {getTorneoImage(torneo) ? (
+                        <img src={getTorneoImage(torneo)} alt={`Cartel de ${torneo.nombre}`} loading="lazy" />
+                      ) : (
+                        <div className="torneoPosterFallback" aria-hidden="true">
+                          <span>{category.label}</span>
+                          <strong>NaniPadel</strong>
+                        </div>
+                      )}
                       <div className="torneoBadges">
                         <span className={`torneoBadge torneoCategoria ${category.accentClass}`}>
                           {category.label}
@@ -711,7 +753,7 @@ function Torneos() {
                       <div className="torneoCapacity">
                         <div className="capacityRow">
                           <span>Plazas</span>
-                          <strong>{occupancy.text}</strong>
+                          <strong>{getCapacityText(torneo)}</strong>
                         </div>
                         <div
                           className={`capacityBar ${occupancy.className}`}
@@ -725,20 +767,40 @@ function Torneos() {
                         </div>
                       </div>
 
-                      <button
-                        className={`btnTorneo${torneo.inscrito ? " isSubscribed" : ""}`}
-                        disabled={actionId === torneo.id || (!torneo.inscrito && isClosed)}
-                        onClick={() => handleInscripcion(torneo)}
-                        aria-busy={actionId === torneo.id}
-                      >
-                        {actionId === torneo.id
-                          ? "Procesando..."
-                          : torneo.inscrito
-                            ? "Cancelar inscripcion"
-                            : isClosed
-                              ? "Inscripciones cerradas"
-                              : "Apuntarme"}
-                      </button>
+                      <div className="torneoActions">
+                        <button
+                          type="button"
+                          className="btnTorneo btnTorneoGhost"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setSelectedTorneo(torneo);
+                          }}
+                        >
+                          Ver detalles
+                        </button>
+                        {canRegisterTournament(torneo) || torneo.inscrito ? (
+                          <button
+                            type="button"
+                            className={`btnTorneo${torneo.inscrito ? " isSubscribed" : ""}`}
+                            disabled={actionId === torneo.id}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleInscripcion(torneo);
+                            }}
+                            aria-busy={actionId === torneo.id}
+                          >
+                            {actionId === torneo.id
+                              ? "Procesando..."
+                              : torneo.inscrito
+                                ? "Cancelar"
+                                : "Inscribirme"}
+                          </button>
+                        ) : (
+                          <button type="button" className="btnTorneo" disabled onClick={(event) => event.stopPropagation()}>
+                            {isClosed ? "No disponible" : "Ver disponibilidad"}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </article>
                 );
@@ -772,6 +834,70 @@ function Torneos() {
               ))}
             </div>
           </section>
+        )}
+
+        {selectedTorneo && (
+          <div className="torneoModalBackdrop" role="presentation" onClick={() => setSelectedTorneo(null)}>
+            <section
+              className="torneoModal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="torneo-modal-title"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button type="button" className="torneoModalClose" onClick={() => setSelectedTorneo(null)} aria-label="Cerrar detalle">
+                x
+              </button>
+              <div className="torneoModalMedia">
+                {getTorneoImage(selectedTorneo) ? (
+                  <img src={getTorneoImage(selectedTorneo)} alt={`Cartel de ${selectedTorneo.nombre}`} />
+                ) : (
+                  <div className="torneoPosterFallback" aria-hidden="true">
+                    <span>{getCategoryMeta(selectedTorneo.categoria).label}</span>
+                    <strong>NaniPadel</strong>
+                  </div>
+                )}
+              </div>
+              <div className="torneoModalBody">
+                <div className="torneoModalHead">
+                  <div>
+                    <span className={`torneoBadge torneoCategoria ${getCategoryMeta(selectedTorneo.categoria).accentClass}`}>
+                      {getCategoryMeta(selectedTorneo.categoria).label}
+                    </span>
+                    <h3 id="torneo-modal-title">{selectedTorneo.nombre}</h3>
+                  </div>
+                  <span className={`torneoBadge torneoEstado ${getStatusMeta(selectedTorneo.estado).className}`}>
+                    {getStatusMeta(selectedTorneo.estado).label}
+                  </span>
+                </div>
+                <p>{selectedTorneo.descripcion || "El club publicara mas informacion de este torneo proximamente."}</p>
+                <div className="torneoModalMeta">
+                  <div><span>Fecha</span><strong>{formatFecha(selectedTorneo.fecha_inicio)}</strong></div>
+                  <div><span>Hora</span><strong>{formatHora(selectedTorneo.hora_inicio)}</strong></div>
+                  <div><span>Categoria</span><strong>{getCategoryMeta(selectedTorneo.categoria).label}</strong></div>
+                  <div><span>Precio</span><strong>{formatPrecio(selectedTorneo.precio)}</strong></div>
+                  <div><span>Nivel</span><strong>{selectedTorneo.nivel || "Todos"}</strong></div>
+                  <div><span>Plazas</span><strong>{getCapacityText(selectedTorneo)}</strong></div>
+                </div>
+                {canRegisterTournament(selectedTorneo) || selectedTorneo.inscrito ? (
+                  <button
+                    type="button"
+                    className={`btnTorneo${selectedTorneo.inscrito ? " isSubscribed" : ""}`}
+                    disabled={actionId === selectedTorneo.id}
+                    onClick={() => handleInscripcion(selectedTorneo)}
+                  >
+                    {actionId === selectedTorneo.id
+                      ? "Procesando..."
+                      : selectedTorneo.inscrito
+                        ? "Cancelar inscripcion"
+                        : "Inscribirme"}
+                  </button>
+                ) : (
+                  <div className="torneoModalNotice">Inscripciones no disponibles.</div>
+                )}
+              </div>
+            </section>
+          </div>
         )}
       </div>
     </section>
