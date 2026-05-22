@@ -300,9 +300,20 @@
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 }
 
+.notificationPanelHeader > div {
+  display: grid;
+  gap: 0.1rem;
+}
+
 .notificationPanelHeader strong {
   color: #0f172a;
   font-size: 0.98rem;
+}
+
+.notificationPanelHeader span {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
 .notificationPanelHeader button {
@@ -321,13 +332,12 @@
 .notificationItem {
   width: 100%;
   display: grid;
-  gap: 0.24rem;
+  gap: 0.45rem;
   padding: 0.85rem 1rem;
   border: 0;
   border-bottom: 1px solid rgba(15, 23, 42, 0.07);
   background: #ffffff;
   text-align: left;
-  cursor: pointer;
 }
 
 .notificationItem:hover,
@@ -337,13 +347,48 @@
 }
 
 .notificationItem.unread {
-  background: #f0fdf4;
+  background: linear-gradient(90deg, #f0fdf4, #ffffff);
+  box-shadow: inset 3px 0 0 #22c55e;
+}
+
+.notificationItem-importante,
+.notificationItem-urgente {
+  box-shadow: inset 3px 0 0 #f59e0b;
+}
+
+.notificationItem-urgente {
+  box-shadow: inset 3px 0 0 #ef4444;
+}
+
+.notificationItemTop,
+.notificationItemMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
 }
 
 .notificationItem span {
   color: #0f172a;
   font-size: 0.9rem;
   font-weight: 900;
+}
+
+.notificationItem i,
+.notificationItem em {
+  border-radius: 999px;
+  padding: 0.18rem 0.45rem;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.notificationItem em {
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .notificationItem small {
@@ -358,6 +403,29 @@
   color: #94a3b8;
   font-size: 0.72rem;
   font-weight: 800;
+}
+
+.notificationItem button,
+.notificationPanelLink {
+  width: fit-content;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.45rem 0.7rem;
+  background: #ecfdf5;
+  color: #15803d;
+  font-size: 0.74rem;
+  font-weight: 900;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.notificationPanelLink {
+  display: flex;
+  justify-content: center;
+  width: auto;
+  margin: 0.75rem;
+  background: #0f172a;
+  color: #ffffff;
 }
 
 .notificationEmpty {
@@ -702,6 +770,17 @@
 }
 
 @media (max-width: 420px) {
+  .brandText {
+    display: none;
+  }
+
+  .headerRight {
+    width: calc(100vw - 0.8rem);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+
   .headerActions {
     grid-template-columns: 44px minmax(0, 1fr);
   }

@@ -1906,3 +1906,90 @@ button:disabled {
     grid-template-columns: repeat(6, minmax(210px, 82vw));
   }
 }
+
+@media (max-width: 480px) {
+  .staffPanel {
+    width: calc(100% - 0.8rem);
+    gap: 1rem;
+  }
+
+  .staffHero,
+  .staffToolbar,
+  .staffFilters,
+  .panelSection,
+  .opsPanel,
+  .attendancePanel {
+    border-radius: 16px;
+  }
+
+  .staffHero {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .staffHero h1 {
+    font-size: 1.55rem;
+  }
+
+  .staffSummary,
+  .staffTabs,
+  .staffActions,
+  .profileActions,
+  .modalActions,
+  .formGrid,
+  .attendanceRow,
+  .recoveryCard,
+  .recoveryGrid,
+  .trackingGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .staffTabs,
+  .staffActions {
+    width: 100%;
+  }
+
+  .staffPrimaryBtn,
+  .staffSecondaryBtn,
+  .staffDangerBtn,
+  .staffGhostBtn,
+  .modalActions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .staffModalBackdrop {
+    align-items: end;
+    padding: 0.4rem;
+  }
+
+  .staffModal,
+  .studentProfileDrawer {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - 0.8rem);
+    border-radius: 20px;
+    padding: 0.95rem;
+  }
+
+  .modalHeader {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .modalHeader h2 {
+    font-size: 1.55rem;
+  }
+
+  .weeklyGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .studentRow,
+  .studentRowAdmin,
+  .groupListItem {
+    min-width: 0;
+  }
+}

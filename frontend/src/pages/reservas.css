@@ -203,7 +203,7 @@
   justify-content: space-between;
   gap: 0.9rem;
   flex-wrap: wrap;
-  margin: 1.4rem 1.4rem 0;
+  margin: 1.4rem auto 0;
   padding: 0.95rem 1.1rem;
   border-radius: 20px;
   background: rgba(255,255,255,0.04);
@@ -340,7 +340,7 @@
   justify-content: space-between;
   align-items: baseline;
   gap: 1rem;
-  margin: 1.4rem 1.4rem 1rem;
+  margin: 1.4rem auto 1rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid rgba(255,255,255,0.07);
   position: relative;
@@ -1705,7 +1705,7 @@
   .courtsColumns { grid-template-columns: 1fr; }
   .reservasHeader { padding-top: 2rem; }
   .toolbar {
-    margin-top: 1.2rem;
+    margin: 1.2rem auto 0;
     align-items: stretch;
   }
   .dayTitle {
@@ -1742,7 +1742,7 @@
   .summaryItem { flex: 1; min-width: 0; padding: 0.7rem 0.5rem; border-radius: 15px; }
   .summaryItem strong { font-size: 1.4rem; }
   .summaryItem span { font-size: 0.62rem; letter-spacing: 0.03em; }
-  .toolbar { flex-direction: column; gap: 0.75rem; padding: 0.78rem; border-radius: 18px; }
+  .toolbar { flex-direction: column; gap: 0.75rem; margin: 1.05rem auto 0; padding: 0.78rem; border-radius: 18px; }
   .datePills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .datePicker { grid-column: 1 / -1; justify-content: center; }
   .pillBtn,
@@ -1785,6 +1785,59 @@
     right: 0.7rem;
     bottom: 0.8rem;
     max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .reservasHeader,
+  .toolbar,
+  .dayTitle,
+  .courtsColumns,
+  .loadingSlots {
+    width: calc(100% - 0.8rem);
+  }
+
+  .reservasHeader {
+    padding-top: 1.25rem;
+  }
+
+  .reservasTitle {
+    font-size: 1.65rem;
+    line-height: 0.98;
+  }
+
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  .datePills {
+    gap: 0.45rem;
+  }
+
+  .pillBtn,
+  .datePicker,
+  .filters select,
+  .searchHour,
+  .check {
+    min-width: 0;
+    min-height: 46px;
+  }
+
+  .courtColumn,
+  .reservaCard,
+  .reservationDetail,
+  .modal {
+    max-width: 100%;
+  }
+
+  .modalBackdrop {
+    padding: 0.4rem;
+  }
+
+  .modalHead h3 {
+    font-size: 1.25rem;
   }
 }
 

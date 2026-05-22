@@ -991,6 +991,60 @@
   gap: 0.5rem;
 }
 
+.homeAlerts {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 22px;
+  padding: 1.1rem;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+}
+
+.homeAlertsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.homeAlertCard,
+.homeAlertsEmpty {
+  border-radius: 18px;
+  padding: 0.9rem;
+  background: #f8fafc;
+}
+
+.homeAlertCard {
+  display: grid;
+  gap: 0.32rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: inset 4px 0 0 #22c55e;
+}
+
+.homeAlertCard.priority-importante {
+  box-shadow: inset 4px 0 0 #f59e0b;
+}
+
+.homeAlertCard.priority-urgente {
+  box-shadow: inset 4px 0 0 #ef4444;
+}
+
+.homeAlertCard span {
+  color: #15803d;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.homeAlertCard strong {
+  color: #0f172a;
+}
+
+.homeAlertCard small,
+.homeAlertsEmpty {
+  color: #64748b;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
 .forecastDay {
   display: grid;
   grid-template-columns: 60px 35px 1fr auto auto;
@@ -1077,7 +1131,8 @@
 
   .weatherStatusRow,
   .platformGrid,
-  .quickGrid {
+  .quickGrid,
+  .homeAlertsGrid {
     grid-template-columns: 1fr;
   }
 
@@ -1102,6 +1157,7 @@
 
 @media (max-width: 480px) {
   .heroCard,
+  .homeAlerts,
   .weatherModal {
     padding: 1.1rem;
   }
@@ -1127,6 +1183,42 @@
   }
 
   .fDayDesc {
+    display: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .heroCard,
+  .homeAlerts,
+  .quickCard,
+  .newsSection,
+  .platformBlock {
+    border-radius: 18px;
+    padding: 0.95rem;
+  }
+
+  .heroLeft h2 {
+    font-size: 1.8rem;
+    line-height: 0.95;
+  }
+
+  .heroLeft p,
+  .recText p {
+    font-size: 0.86rem;
+  }
+
+  .heroLeft .btn,
+  .ctaRow .btn,
+  .weatherActionBtn {
+    width: 100%;
+  }
+
+  .forecastDay {
+    grid-template-columns: 1fr auto auto;
+    align-items: start;
+  }
+
+  .fDayIcon {
     display: none;
   }
 }

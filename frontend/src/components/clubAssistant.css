@@ -529,8 +529,8 @@
   }
 
   .assistantPanel {
-    left: 0;
-    right: 0;
+    left: 0.4rem;
+    right: 0.4rem;
     bottom: 0;
     max-height: min(88dvh, 720px);
     border-radius: 24px 24px 0 0;
@@ -555,6 +555,18 @@
 
   .assistantActionChip {
     min-height: auto;
+  }
+}
+
+@media (max-width: 380px) {
+  .assistantPanel {
+    left: 0;
+    right: 0;
+  }
+
+  .assistantFab {
+    width: 58px;
+    height: 58px;
   }
 }
 

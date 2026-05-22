@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getWeatherForClub } from "../services/weatherService";
+import { apiGet } from "../services/api";
+import { isLogged } from "../services/auth";
 import HomeNewsCard from "../components/HomeNewsCard";
 import "./home.css";
 
@@ -123,6 +125,7 @@ function Home() {
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState("");
   const [showWeatherModal, setShowWeatherModal] = useState(false);
+  const [activeAlerts, setActiveAlerts] = useState([]);
 
   useEffect(() => {
     const loadWeather = async () => {
@@ -140,6 +143,13 @@ function Home() {
     };
 
     loadWeather();
+  }, []);
+
+  useEffect(() => {
+    if (!isLogged()) return;
+    apiGet("/api/notificaciones?limit=3&active=1&important=1")
+      .then((data) => setActiveAlerts(data.notifications || []))
+      .catch(() => setActiveAlerts([]));
   }, []);
 
   const featuredNews = NEWS_ITEMS.find((item) => item.featured) || NEWS_ITEMS[0];
@@ -339,6 +349,34 @@ function Home() {
             </Link>
           </div>
         </div>
+      )}
+
+      {isLogged() && (
+        <section className="homeAlerts">
+          <div className="sectionHeader sectionHeaderInline">
+            <div>
+              <span className="sectionEyebrow">Avisos activos</span>
+              <h3>Lo importante del club</h3>
+            </div>
+            <Link className="newsMoreBtn" to="/avisos">
+              Ver todos
+            </Link>
+          </div>
+
+          {activeAlerts.length === 0 ? (
+            <p className="homeAlertsEmpty">No tienes avisos pendientes.</p>
+          ) : (
+            <div className="homeAlertsGrid">
+              {activeAlerts.map((item) => (
+                <Link className={`homeAlertCard priority-${item.priority || "normal"}`} to="/avisos" key={item.id}>
+                  <span>{item.category || item.tipo}</span>
+                  <strong>{item.title}</strong>
+                  <small>{item.body}</small>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
       )}
 
       <section className="features">

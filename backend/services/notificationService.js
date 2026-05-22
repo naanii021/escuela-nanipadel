@@ -206,6 +206,10 @@ function getReferenceInfo(event) {
 function buildChannelRows(user, preferences, event, category) {
   if (!categoryEnabled(preferences, category)) return [];
 
+  const allowedChannels = Array.isArray(event.channels) && event.channels.length
+    ? new Set(event.channels)
+    : null;
+  const channelEnabled = (channel) => !allowedChannels || allowedChannels.has(channel);
   const referenceInfo = getReferenceInfo(event);
   const base = {
     usuario_id: user.id,
@@ -216,16 +220,18 @@ function buildChannelRows(user, preferences, event, category) {
     referencia_id: referenceInfo.referencia_id,
   };
 
-  const rows = [
-    {
+  const rows = [];
+
+  if (channelEnabled("email")) {
+    rows.push({
       ...base,
       canal: "email",
       estado: user.email ? "pending" : "failed",
       error_message: user.email ? null : "El usuario no tiene email configurado.",
-    },
-  ];
+    });
+  }
 
-  if (Number(preferences.in_app_enabled) === 1) {
+  if (channelEnabled("in_app") && Number(preferences.in_app_enabled) === 1) {
     rows.push({
       ...base,
       canal: "in_app",
@@ -234,7 +240,7 @@ function buildChannelRows(user, preferences, event, category) {
     });
   }
 
-  if (Number(preferences.whatsapp_enabled) === 1) {
+  if (channelEnabled("whatsapp") && Number(preferences.whatsapp_enabled) === 1) {
     rows.push({
       ...base,
       canal: "whatsapp",
@@ -266,8 +272,8 @@ export async function notifyEvent(event) {
     for (const row of channelRows) {
       const [result] = await query(
         `INSERT INTO notifications
-          (usuario_id, tipo, canal, titulo, mensaje, referencia_tipo, referencia_id, estado, error_message, sent_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, IF(? IN ('sent'), NOW(), NULL))`,
+          (usuario_id, tipo, canal, titulo, mensaje, referencia_tipo, referencia_id, estado, error_message, sent_at, payload, created_by_user_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, IF(? IN ('sent'), NOW(), NULL), ?, ?)`,
         [
           row.usuario_id,
           row.tipo,
@@ -279,6 +285,8 @@ export async function notifyEvent(event) {
           row.estado,
           row.error_message,
           row.estado,
+          event.payload ? JSON.stringify(event.payload) : null,
+          event.createdByUserId || null,
         ]
       );
 

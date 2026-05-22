@@ -1,0 +1,382 @@
+.avisosPage {
+  width: min(1180px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1.4rem 0 3.5rem;
+  display: grid;
+  gap: 1.1rem;
+}
+
+.avisosHero,
+.avisosComposer,
+.avisosBoard {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 24px;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+}
+
+.avisosHero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.2rem;
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at 88% 10%, rgba(34, 197, 94, 0.2), transparent 30%),
+    linear-gradient(135deg, #0f172a, #142033);
+  color: #ffffff;
+}
+
+.avisosHero span,
+.avisosSectionHead span {
+  color: #86efac;
+  font-size: 0.75rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.avisosHero h1,
+.avisosSectionHead h2,
+.avisoCard h3 {
+  margin: 0.15rem 0 0;
+  letter-spacing: 0;
+}
+
+.avisosHero h1 {
+  font-size: clamp(2.1rem, 5vw, 3.4rem);
+  line-height: 0.95;
+}
+
+.avisosHero p,
+.avisosSectionHead p {
+  max-width: 60ch;
+  margin: 0.55rem 0 0;
+  color: rgba(226, 232, 240, 0.76);
+  line-height: 1.55;
+}
+
+.avisosHeroStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(95px, 1fr));
+  gap: 0.65rem;
+  align-self: stretch;
+}
+
+.avisosHeroStats div {
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.avisosHeroStats strong {
+  color: #86efac;
+  font-size: 2rem;
+}
+
+.avisosHeroStats small {
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.avisosComposer,
+.avisosBoard {
+  padding: 1.2rem;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.avisosSectionHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.avisosSectionHead span {
+  color: #15803d;
+}
+
+.avisosSectionHead p {
+  color: #64748b;
+  text-align: right;
+}
+
+.avisosForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.avisosForm label {
+  display: grid;
+  gap: 0.38rem;
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.avisosForm input,
+.avisosForm select,
+.avisosForm textarea,
+.avisosFilters select {
+  width: 100%;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 14px;
+  background: #f8fafc;
+  color: #0f172a;
+  font: inherit;
+  outline: none;
+}
+
+.avisosForm input,
+.avisosForm select,
+.avisosFilters select {
+  min-height: 44px;
+  padding: 0 0.8rem;
+}
+
+.avisosForm textarea {
+  min-height: 110px;
+  padding: 0.8rem;
+  resize: vertical;
+}
+
+.avisosWide,
+.avisosChecks {
+  grid-column: 1 / -1;
+}
+
+.avisosChecks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.avisosChecks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 999px;
+  padding: 0.62rem 0.85rem;
+  background: #ffffff;
+}
+
+.avisosPrimaryBtn,
+.avisosGhostBtn,
+.avisosFilters button,
+.avisoCard button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.72rem 1rem;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.avisosPrimaryBtn {
+  width: fit-content;
+  background: linear-gradient(135deg, #166534, #22c55e);
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(21, 128, 61, 0.2);
+}
+
+.avisosGhostBtn,
+.avisosFilters button {
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+  color: #334155;
+}
+
+.avisosFilters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.avisosFilters button.active {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.avisosFilters select {
+  width: auto;
+  min-width: 150px;
+}
+
+.avisosGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.85rem;
+}
+
+.avisoCard {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.avisoCard.isUnread {
+  border-color: rgba(34, 197, 94, 0.28);
+  box-shadow: inset 4px 0 0 #22c55e, 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.avisoCard.priority-importante {
+  box-shadow: inset 4px 0 0 #f59e0b, 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.avisoCard.priority-urgente {
+  box-shadow: inset 4px 0 0 #ef4444, 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.avisoCardTop,
+.avisoMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.avisoCardTop span,
+.avisoCardTop i,
+.avisoMeta em {
+  border-radius: 999px;
+  padding: 0.26rem 0.58rem;
+  background: #ecfdf5;
+  color: #166534;
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.avisoCardTop i {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.priority-importante .avisoCardTop i {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.priority-urgente .avisoCardTop i {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.avisoCard h3 {
+  color: #0f172a;
+  font-size: 1.1rem;
+}
+
+.avisoCard p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.avisoMeta {
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.avisoMeta em {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.avisoCard button {
+  width: fit-content;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.avisosEmpty,
+.avisosError,
+.avisosSuccess {
+  margin: 0 0 1rem;
+  border-radius: 18px;
+  padding: 1rem;
+  font-weight: 850;
+}
+
+.avisosEmpty {
+  display: grid;
+  gap: 0.2rem;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.avisosError {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.avisosSuccess {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+@media (max-width: 768px) {
+  .avisosPage {
+    width: min(100% - 1rem, 1180px);
+  }
+
+  .avisosHero,
+  .avisosSectionHead {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .avisosSectionHead p {
+    text-align: left;
+  }
+
+  .avisosHeroStats,
+  .avisosForm,
+  .avisosGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .avisosPrimaryBtn,
+  .avisosGhostBtn,
+  .avisosFilters button,
+  .avisosFilters select,
+  .avisoCard button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .avisosPage {
+    width: calc(100% - 0.8rem);
+    padding-top: 1rem;
+  }
+
+  .avisosHero,
+  .avisosComposer,
+  .avisosBoard {
+    border-radius: 18px;
+    padding: 0.95rem;
+  }
+
+  .avisosHero h1 {
+    font-size: 2rem;
+  }
+
+  .avisoCardTop,
+  .avisoMeta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

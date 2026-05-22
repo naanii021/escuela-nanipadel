@@ -76,6 +76,11 @@ function Header() {
             <NavLink to="/galeria" className={navClass} onClick={closeMobileMenu}>
               Galeria
             </NavLink>
+            {logged && (
+              <NavLink to="/avisos" className={navClass} onClick={closeMobileMenu}>
+                Avisos
+              </NavLink>
+            )}
             {logged && (user?.rol === "profesor" || user?.rol === "profe" || user?.rol === "admin") && (
               <NavLink to="/panel" className={navClass} onClick={closeMobileMenu}>
                 Panel

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiGet, apiPatch } from "../services/api";
 
 function formatDate(value) {
@@ -68,6 +69,9 @@ export default function NotificationBell() {
     }
   };
 
+  const shortBody = (value = "") =>
+    value.length > 96 ? `${value.slice(0, 96).trim()}...` : value;
+
   const markAllAsRead = async () => {
     try {
       await apiPatch("/api/notificaciones/read-all");
@@ -95,7 +99,10 @@ export default function NotificationBell() {
       {open && (
         <div className="notificationPanel">
           <div className="notificationPanelHeader">
-            <strong>Avisos</strong>
+            <div>
+              <strong>Avisos</strong>
+              <span>{unread > 0 ? `${unread} sin leer` : "Al dia"}</span>
+            </div>
             {unread > 0 && <button type="button" onClick={markAllAsRead}>Leer todo</button>}
           </div>
 
@@ -104,23 +111,36 @@ export default function NotificationBell() {
           ) : loading ? (
             <p className="notificationEmpty">Cargando avisos...</p>
           ) : notifications.length === 0 ? (
-            <p className="notificationEmpty">No tienes avisos recientes.</p>
+            <p className="notificationEmpty">No tienes avisos pendientes.</p>
           ) : (
             <div className="notificationList">
               {notifications.map((item) => (
-                <button
+                <article
                   key={item.id}
-                  type="button"
-                  className={`notificationItem${item.read_at ? "" : " unread"}`}
-                  onClick={() => !item.read_at && markAsRead(item.id)}
+                  className={`notificationItem${item.read_at ? "" : " unread"} notificationItem-${item.priority || "normal"}`}
                 >
-                  <span>{item.title}</span>
-                  <small>{item.body}</small>
-                  <time>{formatDate(item.created_at)}</time>
-                </button>
+                  <div className="notificationItemTop">
+                    <span>{item.title}</span>
+                    {!item.read_at && <i>Nuevo</i>}
+                  </div>
+                  <small>{shortBody(item.body)}</small>
+                  <div className="notificationItemMeta">
+                    <time>{formatDate(item.created_at)}</time>
+                    <em>{item.category || item.tipo}</em>
+                  </div>
+                  {!item.read_at && (
+                    <button type="button" onClick={() => markAsRead(item.id)}>
+                      Marcar como leido
+                    </button>
+                  )}
+                </article>
               ))}
             </div>
           )}
+
+          <Link className="notificationPanelLink" to="/avisos" onClick={() => setOpen(false)}>
+            Ver todos
+          </Link>
         </div>
       )}
     </div>
