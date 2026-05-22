@@ -2,8 +2,7 @@ import { useMemo, useState } from "react";
 import "./tienda.css";
 
 const shopImage = (fileName) => `${process.env.PUBLIC_URL}/fotosTienda/${fileName}`;
-const CLUB_EMAIL = "info@nanipadel.com";
-const CLUB_WHATSAPP_NUMBER = "";
+const CLUB_WHATSAPP = process.env.REACT_APP_CLUB_WHATSAPP || "34656850729";
 
 const SHOP_FILTERS = [
   { key: "todas", label: "Todas" },
@@ -135,12 +134,15 @@ function formatPrice(price) {
   return String(price).replace(/\s*EUR$/i, " EUR");
 }
 
-function contactHref(item) {
-  const text = `Hola, estoy interesado en ${item.name} de la tienda NaniPadel.`;
-  if (CLUB_WHATSAPP_NUMBER) {
-    return `https://wa.me/${CLUB_WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
-  }
-  return `mailto:${CLUB_EMAIL}?subject=${encodeURIComponent(`Tienda NaniPadel - ${item.name}`)}&body=${encodeURIComponent(text)}`;
+function buildWhatsappUrl(item) {
+  const tipo = item?.type === "servicio" ? "servicio" : "producto";
+  const nombre = item?.name || item?.title || "este articulo";
+  const message =
+    tipo === "servicio"
+      ? `Hola, quiero consultar el servicio ${nombre} de NaniPadel. ¿Me podéis dar más información?`
+      : `Hola, estoy interesado en el producto ${nombre} de la tienda NaniPadel. ¿Me podéis dar más información?`;
+
+  return `https://wa.me/${CLUB_WHATSAPP}?text=${encodeURIComponent(message)}`;
 }
 
 function Tienda() {
@@ -200,7 +202,7 @@ function Tienda() {
           </div>
           <div className="tiendaFeaturedActions">
             <button type="button" className="shopPrimaryBtn" onClick={() => setSelectedItem(featuredItem)}>Ver detalles</button>
-            <a className="shopSecondaryBtn" href={contactHref(featuredItem)}>Contactar</a>
+            <a className="shopSecondaryBtn" href={buildWhatsappUrl(featuredItem)} target="_blank" rel="noopener noreferrer">Contactar</a>
           </div>
         </div>
       </section>
@@ -264,7 +266,9 @@ function Tienda() {
                     </button>
                     <a
                       className="shopSecondaryBtn"
-                      href={contactHref(item)}
+                      href={buildWhatsappUrl(item)}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       onClick={(event) => event.stopPropagation()}
                     >
                       Contactar
@@ -314,10 +318,10 @@ function Tienda() {
                 ))}
               </div>
               <div className="shopModalActions">
-                <a className="shopPrimaryBtn" href={contactHref(selectedItem)}>
-                  {selectedItem.type === "servicio" ? "Solicitar servicio" : "Solicitar producto"}
+                <a className="shopPrimaryBtn" href={buildWhatsappUrl(selectedItem)} target="_blank" rel="noopener noreferrer">
+                  {selectedItem.type === "servicio" ? "Consultar por WhatsApp" : "Solicitar por WhatsApp"}
                 </a>
-                <a className="shopSecondaryBtn" href={contactHref(selectedItem)}>Contactar con el club</a>
+                <a className="shopSecondaryBtn" href={buildWhatsappUrl(selectedItem)} target="_blank" rel="noopener noreferrer">Contactar por WhatsApp</a>
               </div>
               <small>No hay pasarela de pago activa; la solicitud se gestiona directamente con el club.</small>
             </div>
