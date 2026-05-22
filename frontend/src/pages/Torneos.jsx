@@ -2,9 +2,8 @@ import "./torneos.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../services/api";
-import { getToken, getUser, isLogged } from "../services/auth";
+import { getUser, isLogged } from "../services/auth";
 
-const API_BASE = (process.env.REACT_APP_API_URL || "").replace(/\/$/, "");
 const TOURNAMENT_PHOTOS_MANIFEST = `${process.env.PUBLIC_URL}/tournament-photos-manifest.json`;
 
 const CATEGORY_META = {
@@ -163,11 +162,8 @@ function Torneos() {
     try {
       setLoading(true);
       setErr("");
-      const headers = { Accept: "application/json" };
-      if (isLogged()) headers.Authorization = `Bearer ${getToken()}`;
-      const res = await fetch(`${API_BASE}/api/torneos`, { headers });
-      const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.message || "No hemos podido cargar los torneos.");
+      const data = await apiGet("/api/torneos");
+      if (!data.ok) throw new Error(data.message || "No hemos podido cargar los torneos.");
       setTorneos(data.torneos || []);
     } catch (e) {
       setErr(e.message || "No hemos podido cargar los torneos ahora mismo.");
@@ -300,16 +296,8 @@ function Torneos() {
     try {
       setActionId(torneo.id);
       setFeedback("");
-      const res = await fetch(`${API_BASE}${endpoint}`, {
-        method: torneo.inscrito ? "PATCH" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: torneo.inscrito ? undefined : JSON.stringify({}),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.message || "No hemos podido actualizar tu inscripcion.");
+      const data = torneo.inscrito ? await apiPatch(endpoint) : await apiPost(endpoint, {});
+      if (!data.ok) throw new Error(data.message || "No hemos podido actualizar tu inscripcion.");
       setFeedback(torneo.inscrito ? "Inscripcion cancelada." : "Ya estas apuntado al torneo.");
       await loadTorneos();
     } catch (e) {
