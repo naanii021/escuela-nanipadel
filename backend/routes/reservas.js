@@ -424,8 +424,12 @@ async function notifyReservaCreada(reservaId, userId) {
 
       payload: {
         reserva_id: reserva.id,
+        usuario_nombre: reserva.usuario_nombre || "jugador",
+        pista_nombre: reserva.pista_nombre,
         fecha: reserva.fecha,
+        fecha_texto: fechaBonita,
         hora_inicio: reserva.hora_inicio,
+        hora_texto: horaInicio,
         duracion_min: reserva.duracion_min,
         tipo_reserva: reserva.tipo_reserva,
       },
@@ -468,8 +472,12 @@ async function notifyReservaCancelada(reservaId, actorUserId) {
       body: `Hola ${reserva.usuario_nombre || "jugador"}, tu reserva en la ${reserva.pista_nombre} ha sido cancelada. Estaba prevista para el ${fechaBonita} a las ${horaInicio}.`,
       payload: {
         reserva_id: reserva.id,
+        usuario_nombre: reserva.usuario_nombre || "jugador",
+        pista_nombre: reserva.pista_nombre,
         fecha: reserva.fecha,
+        fecha_texto: fechaBonita,
         hora_inicio: reserva.hora_inicio,
+        hora_texto: horaInicio,
         duracion_min: reserva.duracion_min,
       },
     });
@@ -535,11 +543,15 @@ async function notifyPartidaAbiertaUnido(reservaId, joinedUserId) {
       body: `${jugadorNombre} se ha unido a tu partida abierta en la ${reserva.pista_nombre} del ${fechaBonita} a las ${horaInicio}.`,
       payload: {
         reserva_id: reserva.id,
+        pista_nombre: reserva.pista_nombre,
         fecha: reserva.fecha,
+        fecha_texto: fechaBonita,
         hora_inicio: reserva.hora_inicio,
+        hora_texto: horaInicio,
         duracion_min: reserva.duracion_min,
         tipo_reserva: reserva.tipo_reserva,
         jugador_id: joinedUserId,
+        jugador_nombre: jugadorNombre,
       },
     });
   } catch (e) {
@@ -604,11 +616,15 @@ async function notifyPartidaAbiertaSalida(reservaId, actorUserId) {
       body: `${jugadorNombre} se ha salido de la partida abierta en la ${reserva.pista_nombre} del ${fechaBonita} a las ${horaInicio}.`,
       payload: {
         reserva_id: reserva.id,
+        pista_nombre: reserva.pista_nombre,
         fecha: reserva.fecha,
+        fecha_texto: fechaBonita,
         hora_inicio: reserva.hora_inicio,
+        hora_texto: horaInicio,
         duracion_min: reserva.duracion_min,
         tipo_reserva: reserva.tipo_reserva,
         jugador_id: actorUserId,
+        jugador_nombre: jugadorNombre,
       },
     });
   } catch (e) {
@@ -674,8 +690,11 @@ async function notifyPartidaAbiertaCompleta(reservaId, actorUserId) {
       body: `Tu partida abierta en la ${reserva.pista_nombre} del ${fechaBonita} a las ${horaInicio} ya está completa con ${maxJugadores} jugadores. La pista queda cerrada al 100%. ¡Nos vemos en pista!`,
       payload: {
         reserva_id: reserva.id,
+        pista_nombre: reserva.pista_nombre,
         fecha: reserva.fecha,
+        fecha_texto: fechaBonita,
         hora_inicio: reserva.hora_inicio,
+        hora_texto: horaInicio,
         duracion_min: reserva.duracion_min,
         tipo_reserva: reserva.tipo_reserva,
         max_jugadores: maxJugadores,
@@ -1124,12 +1143,6 @@ router.post("/:id/unirse", requireAuth, async (req, res) => {
     const total = await updateOpenReservationState(connection, req.params.id);
     await connection.commit();
 
-    if (total >= maxJugadores) {
-      await notifyPartidaAbiertaCompleta(req.params.id, req.user.id);
-    } else {
-      await notifyPartidaAbiertaUnido(req.params.id, req.user.id);
-    }
-
     // Si la partida ya está completa, avisamos a todos de que queda cerrada al 100%.
     if (total >= maxJugadores) {
       await notifyPartidaAbiertaCompleta(req.params.id, req.user.id);
@@ -1230,7 +1243,7 @@ const total = await updateOpenReservationState(connection, req.params.id);
 await connection.commit();
 
 // Avisamos a los jugadores restantes de que alguien se ha salido.
-// Si no queda nadie, la función no enviará nada.
+// Si no queda nadie, la funcion no enviara nada.
 await notifyPartidaAbiertaSalida(req.params.id, req.user.id);
 
 res.json({
@@ -1243,15 +1256,6 @@ res.json({
       : "Has salido de la partida",
 });
 
-    // Avisamos a los jugadores restantes de que alguien se ha salido.
-    // Si no queda nadie, la función no enviará nada.
-    await notifyPartidaAbiertaSalida(req.params.id, req.user.id);
-
-    res.json({
-      ok: true,
-      plazas_ocupadas: total,
-      message: "Has salido de la partida",
-    });
   } catch (e) {
     await connection.rollback();
     console.error("Error DELETE /api/reservas/:id/participantes/me:", e);

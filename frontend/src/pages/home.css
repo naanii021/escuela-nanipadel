@@ -133,13 +133,13 @@
   animation: pulseDot 2s ease infinite;
 }
 
-.heroLeft h2 {
+.heroLeft h1 {
   margin: 0;
-  font-size: clamp(2.2rem, 4.2vw, 4rem);
+  font-size: clamp(2.15rem, 4.2vw, 4rem);
   line-height: 1.02;
-  letter-spacing: -0.05em;
+  letter-spacing: 0;
   color: var(--hero-text);
-  max-width: 11ch;
+  max-width: 13ch;
 }
 
 .heroLeft p {
@@ -152,6 +152,25 @@
 
 .heroLeft strong {
   color: var(--brand-400);
+}
+
+.heroProof {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.heroProof span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border-radius: 999px;
+  padding: 0.38rem 0.72rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .ctaRow {
@@ -259,7 +278,7 @@
   text-transform: uppercase;
 }
 
-.weatherTop h4 {
+.weatherTop h2 {
   margin: 0;
   color: rgba(255, 255, 255, 0.9);
   font-size: 1rem;
@@ -423,23 +442,74 @@
   letter-spacing: 0.08em;
 }
 
+.sectionHeader h2,
 .sectionHeader h3,
-.platformIntro h3 {
+.platformIntro h2,
+.platformIntro h3,
+.projectStoryIntro h2 {
   margin: 0 0 0.45rem;
   color: var(--text);
   font-size: clamp(1.45rem, 2.5vw, 2rem);
   line-height: 1.08;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   font-weight: 900;
 }
 
 .sectionHeader p,
-.platformIntro p {
+.platformIntro p,
+.projectStoryIntro p {
   margin: 0;
   max-width: 62ch;
   color: var(--muted);
   line-height: 1.65;
   font-size: 0.95rem;
+}
+
+.projectStory {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 1rem;
+  align-items: stretch;
+  padding: 1.35rem;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.1), transparent 30%),
+    #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.07);
+}
+
+.projectStoryIntro,
+.projectStoryGrid {
+  min-width: 0;
+}
+
+.projectStoryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.projectStoryItem {
+  display: grid;
+  gap: 0.42rem;
+  padding: 1rem;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.projectStoryItem strong {
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 950;
+}
+
+.projectStoryItem span {
+  color: #64748b;
+  font-size: 0.86rem;
+  font-weight: 750;
+  line-height: 1.5;
 }
 
 .features,
@@ -528,7 +598,12 @@
   justify-content: center;
   border-radius: 16px;
   background: linear-gradient(135deg, rgba(22, 163, 74, 0.12), rgba(34, 197, 94, 0.04));
-  font-size: 1.45rem;
+  color: #15803d;
+  font-size: 0.64rem;
+  font-weight: 950;
+  line-height: 1.1;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .platformItem strong {
@@ -608,9 +683,16 @@
 }
 
 .qiIcon {
-  font-size: 1.85rem;
-  line-height: 1;
+  width: fit-content;
   margin-bottom: 0.25rem;
+  border-radius: 999px;
+  padding: 0.28rem 0.58rem;
+  background: #f0fdf4;
+  color: #15803d;
+  font-size: 0.72rem;
+  font-weight: 950;
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
 .qiTitle {
@@ -723,12 +805,12 @@
   font-weight: 700;
 }
 
-.newsFeaturedContent h4 {
+.newsFeaturedContent h3 {
   margin: 0 0 0.45rem;
   font-size: clamp(1.6rem, 2.8vw, 2.2rem);
   line-height: 1.06;
   font-weight: 900;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
 }
 
 .newsFeaturedContent p {
@@ -782,13 +864,13 @@
   align-content: start;
 }
 
-.newsCardBody strong {
+.newsCardBody h3 {
   display: block;
   color: var(--text);
   font-size: 1rem;
   line-height: 1.28;
   font-weight: 900;
-  margin-bottom: 0.38rem;
+  margin: 0 0 0.38rem;
 }
 
 .newsCardBody p {
@@ -838,7 +920,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.weatherModalHead h3 {
+.weatherModalHead h2 {
   margin: 0;
   font-size: 1.3rem;
   font-weight: 900;
@@ -978,7 +1060,7 @@
   line-height: 1.4;
 }
 
-.forecastSection h4 {
+.forecastSection h3 {
   margin: 0 0 0.8rem;
   font-size: 1rem;
   font-weight: 800;
@@ -1112,8 +1194,13 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .heroLeft h2 {
+  .heroLeft h1 {
     max-width: none;
+  }
+
+  .projectStory,
+  .projectStoryGrid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1124,6 +1211,7 @@
   }
 
   .heroCard,
+  .projectStory,
   .quickCard,
   .newsSection {
     padding: 1.3rem;
@@ -1131,6 +1219,7 @@
 
   .weatherStatusRow,
   .platformGrid,
+  .projectStoryGrid,
   .quickGrid,
   .homeAlertsGrid {
     grid-template-columns: 1fr;
@@ -1158,11 +1247,12 @@
 @media (max-width: 480px) {
   .heroCard,
   .homeAlerts,
+  .projectStory,
   .weatherModal {
     padding: 1.1rem;
   }
 
-  .heroLeft h2 {
+  .heroLeft h1 {
     font-size: 2rem;
   }
 
@@ -1192,12 +1282,13 @@
   .homeAlerts,
   .quickCard,
   .newsSection,
+  .projectStory,
   .platformBlock {
     border-radius: 18px;
     padding: 0.95rem;
   }
 
-  .heroLeft h2 {
+  .heroLeft h1 {
     font-size: 1.8rem;
     line-height: 0.95;
   }

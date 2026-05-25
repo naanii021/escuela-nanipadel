@@ -354,6 +354,9 @@ export default function Perfil() {
                 ? "Añade un número de teléfono para recibir avisos por WhatsApp."
                 : "Puedes dejarlo vacío si quieres usar el teléfono de tus datos personales."}
             </p>
+            <p className="profileWhatsappLegal">
+              Acepto recibir avisos de reservas, clases y torneos de NaniPadel por WhatsApp.
+            </p>
           </div>
 
           <div className="profilePreferenceTypes">

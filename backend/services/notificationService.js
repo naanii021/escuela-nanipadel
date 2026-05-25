@@ -1,5 +1,9 @@
 import { db } from "../db/connection.js";
-import { sendWhatsAppMessage } from "./whatsappService.js";
+import {
+  sendWhatsAppMessage,
+  sendWhatsAppTemplate,
+  WHATSAPP_TEMPLATES,
+} from "./whatsappService.js";
 
 const query = (sql, params = []) => db.promise().query(sql, params);
 
@@ -276,6 +280,75 @@ function buildChannelRows(user, preferences, event, category) {
   return rows;
 }
 
+function firstValue(...values) {
+  return values.find((value) => value !== undefined && value !== null && String(value).trim() !== "") || "";
+}
+
+function buildWhatsAppTemplateForEvent(event, row) {
+  const payload = event.payload || {};
+  const nombre = firstValue(payload.usuario_nombre, payload.nombre_usuario, row.usuario_nombre, "jugador");
+  const pista = firstValue(payload.pista_nombre, payload.pista, "la pista");
+  const fecha = firstValue(payload.fecha_texto, payload.fecha, "");
+  const hora = firstValue(payload.hora_texto, payload.hora_inicio, "");
+  const jugador = firstValue(payload.jugador_nombre, "Un jugador");
+
+  if (event.type === NOTIFICATION_EVENTS.RESERVA_CREADA) {
+    if (payload.tipo_reserva === "abierta") {
+      return {
+        templateName: WHATSAPP_TEMPLATES.PARTIDA_ABIERTA_CREADA,
+        variables: [nombre, pista, fecha, hora],
+      };
+    }
+
+    return {
+      templateName: WHATSAPP_TEMPLATES.RESERVA_CONFIRMADA,
+      variables: [nombre, pista, fecha, hora],
+    };
+  }
+
+  if (event.type === NOTIFICATION_EVENTS.RESERVA_CANCELADA) {
+    return {
+      templateName: WHATSAPP_TEMPLATES.RESERVA_CANCELADA,
+      variables: [nombre, pista, fecha, hora],
+    };
+  }
+
+  if (event.type === NOTIFICATION_EVENTS.PARTIDA_ABIERTA_UNIDO) {
+    return {
+      templateName: WHATSAPP_TEMPLATES.PARTIDA_ABIERTA_UNIDO,
+      variables: [jugador, pista, fecha, hora],
+    };
+  }
+
+  if (event.type === NOTIFICATION_EVENTS.PARTIDA_ABIERTA_SALIDA) {
+    return {
+      templateName: WHATSAPP_TEMPLATES.PARTIDA_ABIERTA_SALIDA,
+      variables: [jugador, pista, fecha, hora],
+    };
+  }
+
+  if (event.type === NOTIFICATION_EVENTS.PARTIDA_ABIERTA_COMPLETA) {
+    return {
+      templateName: WHATSAPP_TEMPLATES.PARTIDA_ABIERTA_COMPLETA,
+      variables: [pista, fecha, hora, firstValue(payload.max_jugadores, "4")],
+    };
+  }
+
+  if (event.type === NOTIFICATION_EVENTS.CLASE_CANCELADA) {
+    return {
+      templateName: WHATSAPP_TEMPLATES.CLASE_CANCELADA,
+      variables: [
+        nombre,
+        firstValue(payload.clase_nombre, payload.grupo_nombre, "tu clase"),
+        fecha,
+        hora,
+      ],
+    };
+  }
+
+  return null;
+}
+
 export async function notifyEvent(event) {
   const category = event.category || EVENT_CATEGORY[event.type];
 
@@ -322,10 +395,17 @@ export async function notifyEvent(event) {
         }
 
         try {
-          const whatsappResult = await sendWhatsAppMessage({
-            to: row.whatsapp_phone,
-            body: `${row.titulo}\n\n${row.mensaje}`,
-          });
+          const templatePayload = buildWhatsAppTemplateForEvent(event, row);
+          const whatsappResult = templatePayload
+            ? await sendWhatsAppTemplate({
+                to: row.whatsapp_phone,
+                templateName: templatePayload.templateName,
+                variables: templatePayload.variables,
+              })
+            : await sendWhatsAppMessage({
+                to: row.whatsapp_phone,
+                body: `${row.titulo}\n\n${row.mensaje}`,
+              });
 
           await query(
             `UPDATE notifications
@@ -340,6 +420,12 @@ export async function notifyEvent(event) {
             estado: "sent",
           });
         } catch (error) {
+          console.error("Error enviando WhatsApp desde notificationService:", {
+            notificationId: result.insertId,
+            tipo: row.tipo,
+            message: error.message,
+          });
+
           await query(
             `UPDATE notifications
              SET estado = 'failed', error_message = ?

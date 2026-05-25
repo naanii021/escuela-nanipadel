@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet, apiPatch, apiPost } from "../services/api";
 import { getUser, isLogged } from "../services/auth";
+import { requestNotificationsRefresh } from "../services/notificationEvents";
 import "./avisos.css";
 
 const FILTERS = [
@@ -121,6 +122,7 @@ export default function Avisos() {
     try {
       await apiPatch(`/api/notificaciones/${id}/read`);
       await loadNotifications();
+      requestNotificationsRefresh();
     } catch (e) {
       setError("No se pudo actualizar la notificación. Inténtalo de nuevo más tarde.");
     }
@@ -130,6 +132,7 @@ export default function Avisos() {
     try {
       await apiPatch("/api/notificaciones/read-all");
       await loadNotifications();
+      requestNotificationsRefresh();
     } catch (e) {
       setError("No se pudieron actualizar las notificaciones. Inténtalo de nuevo más tarde.");
     }
@@ -154,6 +157,7 @@ export default function Avisos() {
       setForm(initialForm);
       setNotice("Aviso creado correctamente.");
       await loadNotifications();
+      requestNotificationsRefresh();
     } catch (e) {
       setError(e.message || "No hemos podido crear el aviso.");
     } finally {

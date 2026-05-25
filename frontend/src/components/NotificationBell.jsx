@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet, apiPatch } from "../services/api";
+import {
+  NOTIFICATIONS_REFRESH_EVENT,
+  requestNotificationsRefresh,
+} from "../services/notificationEvents";
 
 function formatDate(value) {
   if (!value) return "";
@@ -12,6 +16,10 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+function shortBody(value = "") {
+  return value.length > 96 ? `${value.slice(0, 96).trim()}...` : value;
+}
+
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -20,32 +28,58 @@ export default function NotificationBell() {
   const [error, setError] = useState("");
   const panelRef = useRef(null);
 
-  const loadNotifications = useCallback(async () => {
+  const refreshNotifications = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError("");
+
       const [listData, countData] = await Promise.all([
         apiGet("/api/notificaciones?limit=8"),
         apiGet("/api/notificaciones/unread-count"),
       ]);
-      setNotifications(listData.notifications || []);
-      setUnread(Number(countData.unread ?? countData.total ?? 0));
-    } catch (e) {
-      setNotifications([]);
-      setUnread(0);
-      setError("No se pudieron cargar las notificaciones. Inténtalo de nuevo más tarde.");
+
+      const nextNotifications = listData.notifications || [];
+      const fallbackUnread = nextNotifications.filter((item) => !item.read_at).length;
+
+      setNotifications(nextNotifications);
+      setUnread(Number(countData.unread ?? countData.total ?? listData.unread_count ?? fallbackUnread));
+    } catch {
+      setError("No se pudieron cargar las notificaciones.");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadNotifications();
-  }, [loadNotifications]);
+    refreshNotifications();
+
+    const intervalId = window.setInterval(() => {
+      refreshNotifications({ silent: true });
+    }, 30000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshNotifications({ silent: true });
+      }
+    };
+
+    const handleRefreshRequest = () => {
+      refreshNotifications({ silent: true });
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener(NOTIFICATIONS_REFRESH_EVENT, handleRefreshRequest);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener(NOTIFICATIONS_REFRESH_EVENT, handleRefreshRequest);
+    };
+  }, [refreshNotifications]);
 
   useEffect(() => {
-    if (open) loadNotifications();
-  }, [loadNotifications, open]);
+    if (open) refreshNotifications({ silent: true });
+  }, [open, refreshNotifications]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -63,21 +97,20 @@ export default function NotificationBell() {
   const markAsRead = async (id) => {
     try {
       await apiPatch(`/api/notificaciones/${id}/read`);
-      await loadNotifications();
-    } catch (e) {
-      setError("No se pudo actualizar la notificación. Inténtalo de nuevo más tarde.");
+      await refreshNotifications({ silent: true });
+      requestNotificationsRefresh();
+    } catch {
+      setError("No se pudieron actualizar las notificaciones.");
     }
   };
-
-  const shortBody = (value = "") =>
-    value.length > 96 ? `${value.slice(0, 96).trim()}...` : value;
 
   const markAllAsRead = async () => {
     try {
       await apiPatch("/api/notificaciones/read-all");
-      await loadNotifications();
-    } catch (e) {
-      setError("No se pudieron actualizar las notificaciones. Inténtalo de nuevo más tarde.");
+      await refreshNotifications({ silent: true });
+      requestNotificationsRefresh();
+    } catch {
+      setError("No se pudieron actualizar las notificaciones.");
     }
   };
 

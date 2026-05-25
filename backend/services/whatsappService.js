@@ -14,6 +14,16 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 // Ojo: no es el +34..., es el Phone Number ID de Meta.
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
+export const WHATSAPP_TEMPLATES = {
+  RESERVA_CONFIRMADA: "reserva_confirmada",
+  RESERVA_CANCELADA: "reserva_cancelada",
+  PARTIDA_ABIERTA_CREADA: "partida_abierta_creada",
+  PARTIDA_ABIERTA_UNIDO: "partida_abierta_unido",
+  PARTIDA_ABIERTA_COMPLETA: "partida_abierta_completa",
+  PARTIDA_ABIERTA_SALIDA: "partida_abierta_salida",
+  CLASE_CANCELADA: "clase_cancelada",
+};
+
 // Normaliza teléfonos para dejarlos en formato internacional.
 // Ejemplos válidos:
 // 622040926        -> +34622040926
@@ -153,4 +163,88 @@ export async function enviarWhatsAppTexto(numeroDestino, mensaje) {
     to: numeroDestino,
     body: mensaje,
   });
+}
+
+export async function sendWhatsAppTemplate({
+  to,
+  templateName,
+  languageCode = "es",
+  variables = [],
+}) {
+  if (!WHATSAPP_TOKEN) {
+    throw new Error("Falta WHATSAPP_TOKEN en el .env");
+  }
+
+  if (!WHATSAPP_PHONE_NUMBER_ID) {
+    throw new Error("Falta WHATSAPP_PHONE_NUMBER_ID en el .env");
+  }
+
+  if (!to) {
+    throw new Error("Falta el numero de destino");
+  }
+
+  if (!templateName) {
+    throw new Error("Falta el nombre de la plantilla de WhatsApp");
+  }
+
+  const recipient = toMetaRecipient(to);
+
+  if (!recipient) {
+    throw new Error(`Numero de destino no valido: ${to}`);
+  }
+
+  const parameters = variables.map((value) => ({
+    type: "text",
+    text: String(value ?? ""),
+  }));
+
+  const template = {
+    name: templateName,
+    language: { code: languageCode },
+  };
+
+  if (parameters.length) {
+    template.components = [
+      {
+        type: "body",
+        parameters,
+      },
+    ];
+  }
+
+  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: recipient,
+      type: "template",
+      template,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const metaError =
+      data?.error?.message ||
+      data?.error?.error_user_msg ||
+      "Error desconocido al enviar plantilla de WhatsApp con Meta";
+
+    throw new Error(metaError);
+  }
+
+  return {
+    ok: true,
+    provider: "meta",
+    messageId: data?.messages?.[0]?.id || null,
+    templateName,
+    to: recipient,
+    raw: data,
+  };
 }

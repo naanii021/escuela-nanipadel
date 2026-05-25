@@ -308,6 +308,13 @@
   line-height: 1.45;
 }
 
+.profileWhatsappLegal {
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  padding-top: 0.55rem;
+  color: #15803d !important;
+  font-size: 0.8rem !important;
+}
+
 .profilePreferenceTypes {
   display: flex;
   flex-wrap: wrap;

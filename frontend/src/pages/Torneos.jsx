@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../services/api";
 import { getUser, isLogged } from "../services/auth";
+import { requestNotificationsRefresh } from "../services/notificationEvents";
 
 const TOURNAMENT_PHOTOS_MANIFEST = `${process.env.PUBLIC_URL}/tournament-photos-manifest.json`;
 
@@ -340,6 +341,7 @@ function Torneos() {
       if (!data.ok) throw new Error(data.message || "No hemos podido actualizar tu inscripcion.");
       setFeedback(torneo.inscrito ? "Inscripcion cancelada." : "Ya estas apuntado al torneo.");
       await loadTorneos();
+      requestNotificationsRefresh();
       setSelectedTorneo((current) => {
         if (!current || current.id !== torneo.id) return current;
         const delta = torneo.inscrito ? -1 : 1;
@@ -370,6 +372,7 @@ function Torneos() {
       await loadAmericanos();
       await loadAmericanoDetail(data.id);
       setFeedback("Americano creado.");
+      requestNotificationsRefresh();
     } catch (e) {
       setAmericanoError(e.message || "No hemos podido crear el americano.");
     } finally {

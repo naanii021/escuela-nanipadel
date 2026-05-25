@@ -11,62 +11,88 @@ const CLUB_LON = -6.364445;
 
 const PLATFORM_ITEMS = [
   {
-    icon: "🎾",
-    title: "Reservar pista sin complicarte",
+    icon: "Reserva",
+    title: "Reservas online",
     description:
-      "Mira los huecos libres, elige pista y confirma tu reserva en pocos pasos.",
+      "Consulta huecos libres, elige pista y confirma tu reserva sin llamadas ni listas en papel.",
   },
   {
-    icon: "📚",
-    title: "Seguir tus clases de la escuela",
+    icon: "Partidas",
+    title: "Partidas abiertas",
     description:
-      "Consulta grupos, horarios y avisos para entrenar siempre con la informacion clara.",
+      "Crea partidas con jugadores e invitados, controla plazas y avisa cuando el grupo se completa.",
   },
   {
-    icon: "🏆",
-    title: "Estar al dia de torneos y liga",
+    icon: "Clases",
+    title: "Clases y grupos",
     description:
-      "Revisa competiciones, jornadas y momentos del club sin perderte lo importante.",
+      "Organiza alumnos por niveles, horarios y grupos para que cada familia tenga la informacion clara.",
   },
   {
-    icon: "🌦️",
-    title: "Comprobar la pista antes de salir",
+    icon: "Avisos",
+    title: "Avisos internos y WhatsApp",
     description:
-      "Consulta tiempo, viento y recomendacion de juego antes de venir al club.",
+      "Centraliza notificaciones de reservas, clases, torneos y comunicados importantes del club.",
+  },
+  {
+    icon: "Torneos",
+    title: "Torneos y eventos",
+    description:
+      "Publica competiciones, inscripciones y formatos tipo americano para gestionar jornadas completas.",
+  },
+  {
+    icon: "Panel",
+    title: "Panel profesor/admin",
+    description:
+      "Da herramientas al equipo para revisar actividad, crear avisos y administrar la escuela.",
   },
 ];
 
 const QUICK_LINKS = [
   {
-    icon: "🎾",
+    icon: "Reserva",
     title: "Reservar pista",
     description: "Elige hora, pista y juega sin esperas.",
     to: "/reservas",
     accent: "green",
   },
   {
-    icon: "📘",
+    icon: "Clases",
     title: "Clases por niveles",
     description: "Consulta niveles y horarios de la escuela.",
     to: "/clases",
     accent: "blue",
   },
   {
-    icon: "🏆",
+    icon: "Torneos",
     title: "Torneos y liga",
     description: "Mira torneos, plazas y fechas.",
     to: "/torneos",
     accent: "gold",
   },
   {
-    icon: "📸",
-    title: "Galeria del club",
-    description: "Fotos de alumnos, clases y jornadas.",
-    to: "/galeria",
+    icon: "Tienda",
+    title: "Tienda del club",
+    description: "Material y servicios para alumnos.",
+    to: "/tienda",
     accent: "slate",
   },
 ];
 
+const PROJECT_POINTS = [
+  {
+    value: "Backend real",
+    label: "Reservas, avisos, perfil y torneos conectados con Express y MySQL.",
+  },
+  {
+    value: "Menos gestion manual",
+    label: "Reduce mensajes dispersos por WhatsApp y hojas de control en papel.",
+  },
+  {
+    value: "Uso diario",
+    label: "Pensada para alumnos, familias, profesores y administracion del club.",
+  },
+];
 const NEWS_ITEMS = [
   {
     id: 1,
@@ -121,6 +147,7 @@ function formatDay(dateStr) {
 }
 
 function Home() {
+  const loggedIn = isLogged();
   const [weather, setWeather] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState("");
@@ -147,7 +174,7 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    if (!isLogged()) return;
+    if (!loggedIn) return;
     apiGet("/api/notificaciones?limit=3&active=1&important=1")
       .then((data) => {
         setActiveAlerts(data.notifications || []);
@@ -157,30 +184,26 @@ function Home() {
         setActiveAlerts([]);
         setActiveAlertsError("No se pudieron cargar las notificaciones. Inténtalo de nuevo más tarde.");
       });
-  }, []);
+  }, [loggedIn]);
 
   const featuredNews = NEWS_ITEMS.find((item) => item.featured) || NEWS_ITEMS[0];
   const secondaryNews = NEWS_ITEMS.filter((item) => item.id !== featuredNews.id);
 
   return (
-    <section className="home">
-      <section className="hero">
+    <main className="home" aria-labelledby="home-title">
+      <header className="hero">
         <div className="heroCard heroGrid">
           <div className="heroLeft">
             <div className="pill">
               <span className="dot" aria-hidden="true" />
-              Escuela Norba Padel | Clases, reservas y club
+              Escuela NaniPadel | Gestion real del club
             </div>
 
-            <h2>
-              Tu escuela de padel,
-              <br />
-              mas facil de seguir.
-            </h2>
+            <h1 id="home-title">La app para gestionar una escuela de padel.</h1>
 
             <p>
-              Todo lo que necesitas para entrenar, reservar pista y estar al dia con la escuela,
-              tambien con el estado de pista conectado al sensor <strong>XIAO</strong>.
+              NaniPadel centraliza reservas, partidas abiertas, clases, torneos, tienda y avisos
+              para que alumnos, familias y profesores trabajen con la misma informacion.
             </p>
 
             <div className="ctaRow">
@@ -190,6 +213,18 @@ function Home() {
               <Link className="btn btn-ghost" to="/clases">
                 Ver clases
               </Link>
+              <Link className="btn btn-ghost" to="/torneos">
+                Ver torneos
+              </Link>
+              <Link className="btn btn-ghost" to={loggedIn ? "/avisos" : "/login"}>
+                {loggedIn ? "Mis avisos" : "Iniciar sesion"}
+              </Link>
+            </div>
+
+            <div className="heroProof" aria-label="Puntos clave del proyecto">
+              <span>Backend Express + MySQL</span>
+              <span>Notificaciones internas y WhatsApp</span>
+              <span>Panel para profesor/admin</span>
             </div>
           </div>
 
@@ -197,15 +232,15 @@ function Home() {
             <div className="heroStatusStrip" aria-label="Resumen rapido del club">
               <div className="heroStatusItem">
                 <span>Reservas</span>
-                <strong>Rapidas</strong>
+                <strong>Online</strong>
               </div>
               <div className="heroStatusItem">
-                <span>Clases</span>
-                <strong>Por nivel</strong>
+                <span>Partidas</span>
+                <strong>Abiertas</strong>
               </div>
               <div className="heroStatusItem">
-                <span>Club</span>
-                <strong>Activo</strong>
+                <span>Avisos</span>
+                <strong>Conectados</strong>
               </div>
             </div>
 
@@ -213,13 +248,20 @@ function Home() {
             <div
               className="weatherBox weatherBoxClickable"
               onClick={() => weather && setShowWeatherModal(true)}
+              onKeyDown={(event) => {
+                if ((event.key === "Enter" || event.key === " ") && weather) {
+                  event.preventDefault();
+                  setShowWeatherModal(true);
+                }
+              }}
               role="button"
               tabIndex={0}
+              aria-label="Abrir detalle del tiempo y estado de pista"
             >
               <div className="weatherTop">
                 <div>
                   <span className="weatherEyebrow">Tiempo en pista</span>
-                  <h4>Antes de venir a jugar</h4>
+                  <h2>Antes de venir a jugar</h2>
                 </div>
                 <span className="weatherBadge">Ahora</span>
               </div>
@@ -276,14 +318,18 @@ function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </header>
 
       {showWeatherModal && weather && (
         <div className="weatherModalBackdrop" onClick={() => setShowWeatherModal(false)}>
           <div className="weatherModal" onClick={(event) => event.stopPropagation()}>
             <div className="weatherModalHead">
-              <h3>Tiempo en Norba Padel</h3>
-              <button className="weatherCloseBtn" onClick={() => setShowWeatherModal(false)}>
+              <h2>Tiempo en Norba Padel</h2>
+              <button
+                className="weatherCloseBtn"
+                onClick={() => setShowWeatherModal(false)}
+                aria-label="Cerrar detalle del tiempo"
+              >
                 ×
               </button>
             </div>
@@ -330,7 +376,7 @@ function Home() {
 
             {weather.forecast && weather.forecast.length > 0 && (
               <div className="forecastSection">
-                <h4>Prevision de los proximos 7 dias</h4>
+                <h3>Prevision de los proximos 7 dias</h3>
                 <div className="forecastList">
                   {weather.forecast.map((day) => (
                     <div className="forecastDay" key={day.date}>
@@ -358,12 +404,12 @@ function Home() {
         </div>
       )}
 
-      {isLogged() && (
+      {loggedIn && (
         <section className="homeAlerts">
           <div className="sectionHeader sectionHeaderInline">
             <div>
               <span className="sectionEyebrow">Avisos activos</span>
-              <h3>Lo importante del club</h3>
+              <h2>Lo importante del club</h2>
             </div>
             <Link className="newsMoreBtn" to="/avisos">
               Ver todos
@@ -388,14 +434,33 @@ function Home() {
         </section>
       )}
 
+      <section className="projectStory" aria-labelledby="project-story-title">
+        <div className="projectStoryIntro">
+          <span className="sectionEyebrow">Por que existe</span>
+          <h2 id="project-story-title">Una forma mas clara de gestionar el dia a dia.</h2>
+          <p>
+            La escuela puede pasar de mensajes sueltos, llamadas y papel a una plataforma donde
+            cada reserva, grupo, torneo y aviso queda registrado y visible para quien lo necesita.
+          </p>
+        </div>
+        <div className="projectStoryGrid">
+          {PROJECT_POINTS.map((item) => (
+            <article className="projectStoryItem" key={item.value}>
+              <strong>{item.value}</strong>
+              <span>{item.label}</span>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="features">
         <div className="platformBlock">
           <div className="platformIntro">
             <span className="sectionEyebrow">Que puedes hacer</span>
-            <h3>Todo lo importante de la escuela en un mismo sitio</h3>
+            <h2>Todo lo importante de la escuela en un mismo sitio</h2>
             <p>
-              Consulta tus clases, reserva pista, revisa torneos y mira si las condiciones acompanan
-              antes de venir al club.
+              La home resume lo que puede explicar el proyecto en una presentacion corta:
+              reservas, clases, avisos, torneos, tienda y panel de gestion conectados con datos reales.
             </p>
             <div className="platformLeadCard">
               <strong>Hecha para alumnos, familias y el equipo de la escuela.</strong>
@@ -424,10 +489,10 @@ function Home() {
           <div className="sectionHeader sectionHeaderInline">
             <div>
               <span className="sectionEyebrow">Empieza aqui</span>
-              <h3>Lo que mas se usa en el club</h3>
+              <h2>Lo que mas se usa en el club</h2>
             </div>
             <p>
-              Atajos para reservar, consultar clases, ver torneos y seguir la vida de la escuela.
+              Atajos para reservar, consultar clases, ver torneos y entrar en la tienda del club.
             </p>
           </div>
 
@@ -448,7 +513,7 @@ function Home() {
         <div className="sectionHeader sectionHeaderInline">
           <div>
             <span className="sectionEyebrow">Club en marcha</span>
-            <h3>Noticias del club</h3>
+            <h2>Noticias del club</h2>
           </div>
           <Link className="newsMoreBtn" to="/galeria">
             Ver todas
@@ -464,7 +529,7 @@ function Home() {
                 <span className="newsCategory">{featuredNews.category}</span>
                 <span className="newsDate">{featuredNews.date}</span>
               </div>
-              <h4>{featuredNews.title}</h4>
+              <h3>{featuredNews.title}</h3>
               <p>{featuredNews.summary}</p>
               <Link className="newsReadBtn" to="/galeria">
                 Seguir actividad del club
@@ -479,7 +544,7 @@ function Home() {
           </div>
         </div>
       </section>
-    </section>
+    </main>
   );
 }
 

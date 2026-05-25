@@ -9,9 +9,9 @@ function HomeNewsCard({ item }) {
           <span className="newsCategory">{item.category}</span>
           <span className="newsDate">{item.date}</span>
         </div>
-        <strong>{item.title}</strong>
+        <h3>{item.title}</h3>
         <p>{item.summary}</p>
-        <Link className="newsCardLink" to="/galeria">
+        <Link className="newsCardLink" to="/galeria" aria-label={`Ver mas actividad sobre ${item.title}`}>
           Ver mas
         </Link>
       </div>

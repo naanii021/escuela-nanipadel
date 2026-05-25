@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../services/api";
 import { getUser, isLogged } from "../services/auth";
+import { requestNotificationsRefresh } from "../services/notificationEvents";
 
 const HOURS = ["09:00", "10:30", "12:00", "13:30", "15:00", "16:30", "18:00", "19:30", "21:00", "22:30"];
 const TIME_LABELS = { morning: "Manana", afternoon: "Tarde", evening: "Noche" };
@@ -335,6 +336,7 @@ function Reservas() {
       showToast(reserveType === "abierta" ? "Partida abierta creada. Otros jugadores ya pueden apuntarse." : `Reserva confirmada: ${selectedSlot.courtName} · ${selectedSlot.start}-${selectedSlot.end}`);
       closeModal();
       loadReservas();
+      requestNotificationsRefresh();
     } catch (e) {
       showToast(e.message || "No hemos podido conectar con el club. Intentalo de nuevo.", "error");
     } finally {
@@ -351,6 +353,7 @@ function Reservas() {
       showToast(Number(numInvitados) ? `Ya estais apuntados a la partida (${Number(numInvitados) + 1} plazas).` : "Ya estas apuntado a la partida.");
       closeJoinGuestModal();
       loadReservas();
+      requestNotificationsRefresh();
     } catch (e) {
       showToast(e.message || "Ahora mismo no puedes unirte a esta partida.", "error");
     }
@@ -362,6 +365,7 @@ function Reservas() {
       const data = await apiDelete(`/api/reservas/${slot.reservaId}/participantes/me`);
       showToast(data.invitados_cancelados > 0 ? "Has salido de la partida junto con tus invitados." : (data.message || "Has salido de la partida."));
       loadReservas();
+      requestNotificationsRefresh();
     } catch (e) {
       showToast(e.message || "No hemos podido sacarte de la partida.", "error");
     }
@@ -371,7 +375,7 @@ function Reservas() {
     if (!window.confirm("Quieres cancelar esta reserva?")) return;
     try {
       const data = await apiPatch(`/api/reservas/${slot.reservaId}/cancelar`);
-      if (data.ok) { showToast("Reserva cancelada"); loadReservas(); }
+      if (data.ok) { showToast("Reserva cancelada"); loadReservas(); requestNotificationsRefresh(); }
       else showToast(data.message || "No hemos podido cancelar la reserva.", "error");
     } catch (e) {
       showToast(e.message || "No hemos podido conectar con el club.", "error");
