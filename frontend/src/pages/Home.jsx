@@ -30,21 +30,21 @@ const PLATFORM_ITEMS = [
   },
   {
     icon: "Avisos",
-    title: "Avisos internos y WhatsApp",
+    title: "Avisos del club",
     description:
-      "Centraliza notificaciones de reservas, clases, torneos y comunicados importantes del club.",
+      "Recibe comunicaciones importantes sobre reservas, clases, torneos y cambios de ultima hora.",
   },
   {
     icon: "Torneos",
-    title: "Torneos y eventos",
+    title: "Torneos y jornadas",
     description:
-      "Publica competiciones, inscripciones y formatos tipo americano para gestionar jornadas completas.",
+      "Consulta competiciones, fechas, plazas y actividades especiales organizadas por el club.",
   },
   {
-    icon: "Panel",
-    title: "Panel profesor/admin",
+    icon: "Tienda",
+    title: "Tienda del club",
     description:
-      "Da herramientas al equipo para revisar actividad, crear avisos y administrar la escuela.",
+      "Encuentra material, servicios y productos utiles para entrenar y jugar mejor.",
   },
 ];
 
@@ -81,16 +81,16 @@ const QUICK_LINKS = [
 
 const PROJECT_POINTS = [
   {
-    value: "Backend real",
-    label: "Reservas, avisos, perfil y torneos conectados con Express y MySQL.",
+    value: "Menos dudas",
+    label: "La informacion importante queda visible para todos.",
   },
   {
-    value: "Menos gestion manual",
-    label: "Reduce mensajes dispersos por WhatsApp y hojas de control en papel.",
+    value: "Mas rapido",
+    label: "Reservas, partidos y avisos sin depender de mensajes sueltos.",
   },
   {
-    value: "Uso diario",
-    label: "Pensada para alumnos, familias, profesores y administracion del club.",
+    value: "Para el dia a dia",
+    label: "Pensado para alumnos, familias, profesores y equipo del club.",
   },
 ];
 const NEWS_ITEMS = [
@@ -196,14 +196,14 @@ function Home() {
           <div className="heroLeft">
             <div className="pill">
               <span className="dot" aria-hidden="true" />
-              Escuela NaniPadel | Gestion real del club
+              Escuela NaniPadel
             </div>
 
-            <h1 id="home-title">La app para gestionar una escuela de padel.</h1>
+            <h1 id="home-title">Tu escuela de padel, organizada en una sola app.</h1>
 
             <p>
-              NaniPadel centraliza reservas, partidas abiertas, clases, torneos, tienda y avisos
-              para que alumnos, familias y profesores trabajen con la misma informacion.
+              NaniPadel centraliza reservas, partidas abiertas, clases, torneos y avisos del club
+              para que alumnos, familias y profesores tengan toda la informacion siempre a mano.
             </p>
 
             <div className="ctaRow">
@@ -221,10 +221,10 @@ function Home() {
               </Link>
             </div>
 
-            <div className="heroProof" aria-label="Puntos clave del proyecto">
-              <span>Backend Express + MySQL</span>
-              <span>Notificaciones internas y WhatsApp</span>
-              <span>Panel para profesor/admin</span>
+            <div className="heroProof" aria-label="Ventajas principales de NaniPadel">
+              <span>Reservas online</span>
+              <span>Partidas abiertas</span>
+              <span>Avisos del club</span>
             </div>
           </div>
 
@@ -244,7 +244,6 @@ function Home() {
               </div>
             </div>
 
-            {/* El tiempo sigue siendo una pieza principal del valor del proyecto */}
             <div
               className="weatherBox weatherBoxClickable"
               onClick={() => weather && setShowWeatherModal(true)}
@@ -436,11 +435,11 @@ function Home() {
 
       <section className="projectStory" aria-labelledby="project-story-title">
         <div className="projectStoryIntro">
-          <span className="sectionEyebrow">Por que existe</span>
-          <h2 id="project-story-title">Una forma mas clara de gestionar el dia a dia.</h2>
+          <span className="sectionEyebrow">Club organizado</span>
+          <h2 id="project-story-title">Todo el club mejor organizado.</h2>
           <p>
-            La escuela puede pasar de mensajes sueltos, llamadas y papel a una plataforma donde
-            cada reserva, grupo, torneo y aviso queda registrado y visible para quien lo necesita.
+            Evita mensajes perdidos, horarios duplicados y dudas de ultima hora. Cada jugador puede
+            consultar sus reservas, clases, avisos y torneos desde el mismo sitio.
           </p>
         </div>
         <div className="projectStoryGrid">
@@ -459,8 +458,8 @@ function Home() {
             <span className="sectionEyebrow">Que puedes hacer</span>
             <h2>Todo lo importante de la escuela en un mismo sitio</h2>
             <p>
-              La home resume lo que puede explicar el proyecto en una presentacion corta:
-              reservas, clases, avisos, torneos, tienda y panel de gestion conectados con datos reales.
+              Reserva pista, crea partidas abiertas, sigue tus clases, consulta avisos y mantente al
+              dia de torneos, jornadas y servicios del club.
             </p>
             <div className="platformLeadCard">
               <strong>Hecha para alumnos, familias y el equipo de la escuela.</strong>
