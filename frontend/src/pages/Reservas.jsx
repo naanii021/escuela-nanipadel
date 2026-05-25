@@ -359,8 +359,8 @@ function Reservas() {
   const handleLeaveOpenMatch = async (slot) => {
     if (!window.confirm("Quieres salir de esta partida?")) return;
     try {
-      await apiDelete(`/api/reservas/${slot.reservaId}/participantes/me`);
-      showToast("Has salido de la partida.");
+      const data = await apiDelete(`/api/reservas/${slot.reservaId}/participantes/me`);
+      showToast(data.invitados_cancelados > 0 ? "Has salido de la partida junto con tus invitados." : (data.message || "Has salido de la partida."));
       loadReservas();
     } catch (e) {
       showToast(e.message || "No hemos podido sacarte de la partida.", "error");

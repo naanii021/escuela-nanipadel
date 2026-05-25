@@ -94,7 +94,8 @@ export default function Avisos() {
       });
     } catch (e) {
       setNotifications([]);
-      setError(e.message || "No hemos podido cargar los avisos.");
+      setSummary({ unread_count: 0, total: 0 });
+      setError("No se pudieron cargar las notificaciones. Inténtalo de nuevo más tarde.");
     } finally {
       setLoading(false);
     }
@@ -121,7 +122,7 @@ export default function Avisos() {
       await apiPatch(`/api/notificaciones/${id}/read`);
       await loadNotifications();
     } catch (e) {
-      setError(e.message || "No hemos podido marcar el aviso como leido.");
+      setError("No se pudo actualizar la notificación. Inténtalo de nuevo más tarde.");
     }
   };
 
@@ -130,7 +131,7 @@ export default function Avisos() {
       await apiPatch("/api/notificaciones/read-all");
       await loadNotifications();
     } catch (e) {
-      setError(e.message || "No hemos podido marcar los avisos como leidos.");
+      setError("No se pudieron actualizar las notificaciones. Inténtalo de nuevo más tarde.");
     }
   };
 
@@ -243,7 +244,7 @@ export default function Avisos() {
         {error && <p className="avisosError">{error}</p>}
         {loading && <p className="avisosEmpty">Cargando avisos...</p>}
 
-        {!loading && notifications.length === 0 && (
+        {!loading && !error && notifications.length === 0 && (
           <div className="avisosEmpty">
             <strong>No tienes avisos pendientes.</strong>
             <span>Cuando haya novedades del club apareceran aqui.</span>

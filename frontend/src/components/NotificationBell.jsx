@@ -33,7 +33,7 @@ export default function NotificationBell() {
     } catch (e) {
       setNotifications([]);
       setUnread(0);
-      setError(e.message || "No hemos podido cargar tus avisos.");
+      setError("No se pudieron cargar las notificaciones. Inténtalo de nuevo más tarde.");
     } finally {
       setLoading(false);
     }
@@ -65,7 +65,7 @@ export default function NotificationBell() {
       await apiPatch(`/api/notificaciones/${id}/read`);
       await loadNotifications();
     } catch (e) {
-      setError(e.message || "No hemos podido marcar el aviso como leido.");
+      setError("No se pudo actualizar la notificación. Inténtalo de nuevo más tarde.");
     }
   };
 
@@ -77,7 +77,7 @@ export default function NotificationBell() {
       await apiPatch("/api/notificaciones/read-all");
       await loadNotifications();
     } catch (e) {
-      setError(e.message || "No hemos podido marcar los avisos como leidos.");
+      setError("No se pudieron actualizar las notificaciones. Inténtalo de nuevo más tarde.");
     }
   };
 

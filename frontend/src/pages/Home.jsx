@@ -126,6 +126,7 @@ function Home() {
   const [weatherError, setWeatherError] = useState("");
   const [showWeatherModal, setShowWeatherModal] = useState(false);
   const [activeAlerts, setActiveAlerts] = useState([]);
+  const [activeAlertsError, setActiveAlertsError] = useState("");
 
   useEffect(() => {
     const loadWeather = async () => {
@@ -148,8 +149,14 @@ function Home() {
   useEffect(() => {
     if (!isLogged()) return;
     apiGet("/api/notificaciones?limit=3&active=1&important=1")
-      .then((data) => setActiveAlerts(data.notifications || []))
-      .catch(() => setActiveAlerts([]));
+      .then((data) => {
+        setActiveAlerts(data.notifications || []);
+        setActiveAlertsError("");
+      })
+      .catch(() => {
+        setActiveAlerts([]);
+        setActiveAlertsError("No se pudieron cargar las notificaciones. Inténtalo de nuevo más tarde.");
+      });
   }, []);
 
   const featuredNews = NEWS_ITEMS.find((item) => item.featured) || NEWS_ITEMS[0];
@@ -363,7 +370,9 @@ function Home() {
             </Link>
           </div>
 
-          {activeAlerts.length === 0 ? (
+          {activeAlertsError ? (
+            <p className="homeAlertsEmpty">{activeAlertsError}</p>
+          ) : activeAlerts.length === 0 ? (
             <p className="homeAlertsEmpty">No tienes avisos pendientes.</p>
           ) : (
             <div className="homeAlertsGrid">

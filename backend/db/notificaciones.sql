@@ -3,7 +3,7 @@
 
 CREATE TABLE IF NOT EXISTS notification_preferences (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  user_id INT NOT NULL,
+  usuario_id INT NOT NULL,
   email_enabled TINYINT(1) NOT NULL DEFAULT 1,
   whatsapp_enabled TINYINT(1) NOT NULL DEFAULT 0,
   in_app_enabled TINYINT(1) NOT NULL DEFAULT 0,
@@ -15,9 +15,9 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_notification_preferences_user (user_id),
+  UNIQUE KEY uq_notification_preferences_user (usuario_id),
   CONSTRAINT fk_notification_preferences_user
-    FOREIGN KEY (user_id) REFERENCES usuarios(id)
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
     ON DELETE CASCADE
 );
 

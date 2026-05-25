@@ -62,11 +62,13 @@ const emptyProfessional = {
 
 const emptyNotificationPreferences = {
   email_enabled: 1,
+  whatsapp_enabled: 0,
   in_app_enabled: 0,
   notify_reservas: 1,
   notify_clases: 1,
   notify_club: 1,
   notify_torneos: 1,
+  whatsapp_phone: "",
 };
 
 function initials(nombre, apellidos) {
@@ -109,6 +111,7 @@ function toFormNotificationPreferences(preferences) {
       ])
     ),
     email_enabled: 1,
+    whatsapp_phone: preferences?.whatsapp_phone || "",
   };
 }
 
@@ -167,8 +170,16 @@ export default function Perfil() {
     setNotificationForm((current) => ({ ...current, [field]: value }));
   };
 
+  const getWhatsappPhone = () =>
+    String(notificationForm.whatsapp_phone || form.telefono || "").trim();
+
   const savePersonal = async (event) => {
     event.preventDefault();
+    if (Number(notificationForm.whatsapp_enabled) === 1 && !getWhatsappPhone()) {
+      setError("Añade un número de teléfono para recibir avisos por WhatsApp.");
+      return;
+    }
+
     try {
       setSaving(true);
       setError("");
@@ -178,18 +189,27 @@ export default function Perfil() {
         buscar_partidas_abiertas: Number(form.buscar_partidas_abiertas),
       };
       const data = await apiPut("/api/perfil", payload);
-      const notificationData = await apiPut("/api/notificaciones/preferencias", {
-        ...notificationForm,
-        email_enabled: 1,
-        in_app_enabled: Number(notificationForm.in_app_enabled),
-        notify_reservas: Number(notificationForm.notify_reservas),
-        notify_clases: Number(notificationForm.notify_clases),
-        notify_club: Number(notificationForm.notify_club),
-        notify_torneos: Number(notificationForm.notify_torneos),
-      });
+      let notificationData = null;
+      try {
+        notificationData = await apiPut("/api/notificaciones/preferencias", {
+          ...notificationForm,
+          email_enabled: 1,
+          whatsapp_enabled: Number(notificationForm.whatsapp_enabled),
+          in_app_enabled: Number(notificationForm.in_app_enabled),
+          notify_reservas: Number(notificationForm.notify_reservas),
+          notify_clases: Number(notificationForm.notify_clases),
+          notify_club: Number(notificationForm.notify_club),
+          notify_torneos: Number(notificationForm.notify_torneos),
+          whatsapp_phone: getWhatsappPhone() || null,
+        });
+      } catch (notificationError) {
+        setError(notificationError.message || "Perfil guardado, pero no hemos podido guardar las preferencias de aviso.");
+      }
       setProfile(data.profile);
       setForm(toFormProfile(data.profile));
-      setNotificationForm(toFormNotificationPreferences(notificationData.preferences));
+      if (notificationData?.preferences) {
+        setNotificationForm(toFormNotificationPreferences(notificationData.preferences));
+      }
       updateStoredUser({
         nombre: data.profile.nombre,
         email: data.profile.email,
@@ -197,7 +217,7 @@ export default function Perfil() {
         nivel_juego: data.profile.nivel_juego,
         foto_perfil_url: data.profile.foto_perfil_url,
       });
-      showNotice("Perfil guardado.");
+      showNotice(notificationData?.preferences ? "Perfil guardado." : "Perfil guardado. Revisa las preferencias de aviso más tarde.");
     } catch (e) {
       setError(e.message || "No hemos podido guardar tu perfil.");
     } finally {
@@ -312,6 +332,28 @@ export default function Perfil() {
               <input type="checkbox" checked={Number(notificationForm.in_app_enabled) === 1} onChange={(e) => updateNotification("in_app_enabled", e.target.checked ? 1 : 0)} />
               <span><strong>Notificacion interna</strong><small>Avisos visibles en la campana de la web.</small></span>
             </label>
+            <label className="profileToggle profileWhatsappToggle">
+              <input type="checkbox" checked={Number(notificationForm.whatsapp_enabled) === 1} onChange={(e) => updateNotification("whatsapp_enabled", e.target.checked ? 1 : 0)} />
+              <span><strong>Recibir avisos por WhatsApp</strong><small>El backend gestiona los envios; la web solo guarda tu preferencia.</small></span>
+            </label>
+          </div>
+
+          <div className="profileWhatsappBox">
+            <label>
+              Telefono para WhatsApp
+              <input
+                value={notificationForm.whatsapp_phone || ""}
+                onChange={(e) => updateNotification("whatsapp_phone", e.target.value)}
+                placeholder={form.telefono ? `Usar ${form.telefono}` : "Ej: 34600111222"}
+                inputMode="tel"
+                autoComplete="tel"
+              />
+            </label>
+            <p>
+              {Number(notificationForm.whatsapp_enabled) === 1 && !getWhatsappPhone()
+                ? "Añade un número de teléfono para recibir avisos por WhatsApp."
+                : "Puedes dejarlo vacío si quieres usar el teléfono de tus datos personales."}
+            </p>
           </div>
 
           <div className="profilePreferenceTypes">
