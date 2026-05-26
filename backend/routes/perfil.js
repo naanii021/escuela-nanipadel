@@ -1,6 +1,7 @@
 import express from "express";
 import { db } from "../db/connection.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
+import { updateNotificationPreferences } from "../services/notificationService.js";
 
 const router = express.Router();
 const query = (sql, params = []) => db.promise().query(sql, params);
@@ -95,6 +96,37 @@ function validatePersonalPayload(payload) {
   return null;
 }
 
+function hasPayloadField(payload, field) {
+  return Object.prototype.hasOwnProperty.call(payload, field);
+}
+
+function buildNotificationPreferencePayload(payload) {
+  const hasWhatsappEnabled = hasPayloadField(payload, "whatsapp_enabled");
+  const hasWhatsappPhone = hasPayloadField(payload, "whatsapp_phone");
+
+  if (!hasWhatsappEnabled && !hasWhatsappPhone) return null;
+
+  const whatsappEnabled = hasWhatsappEnabled
+    ? normalizeBoolean(payload.whatsapp_enabled)
+    : undefined;
+  const whatsappPhone = hasWhatsappPhone
+    ? String(payload.whatsapp_phone || "").trim()
+    : String(payload.telefono || "").trim();
+
+  if (Number(whatsappEnabled) === 1 && !whatsappPhone) {
+    return {
+      error: "Anade un numero de telefono para recibir avisos por WhatsApp.",
+    };
+  }
+
+  return {
+    preferences: {
+      ...(hasWhatsappEnabled ? { whatsapp_enabled: whatsappEnabled } : {}),
+      whatsapp_phone: whatsappPhone || null,
+    },
+  };
+}
+
 async function fetchProfile(userId) {
   const columns = await getTableColumns("usuarios");
   const selectFields = [
@@ -138,10 +170,15 @@ router.put("/", async (req, res) => {
       return res.status(400).json({ ok: false, message: validationError });
     }
 
+    const notificationPayload = buildNotificationPreferencePayload(payload);
+    if (notificationPayload?.error) {
+      return res.status(400).json({ ok: false, message: notificationPayload.error });
+    }
+
     const columns = await getTableColumns("usuarios");
     const { fields, values } = pickWritableFields(payload, PERSONAL_FIELDS, columns);
 
-    if (!fields.length) {
+    if (!fields.length && !notificationPayload?.preferences) {
       return res.status(400).json({ ok: false, message: "No hay campos validos para actualizar" });
     }
 
@@ -155,10 +192,16 @@ router.put("/", async (req, res) => {
       }
     }
 
-    await query(
-      `UPDATE usuarios SET ${fields.map((field) => `${field} = ?`).join(", ")} WHERE id = ?`,
-      [...values, req.user.id]
-    );
+    if (fields.length) {
+      await query(
+        `UPDATE usuarios SET ${fields.map((field) => `${field} = ?`).join(", ")} WHERE id = ?`,
+        [...values, req.user.id]
+      );
+    }
+
+    if (notificationPayload?.preferences) {
+      await updateNotificationPreferences(req.user.id, notificationPayload.preferences);
+    }
 
     const profile = await fetchProfile(req.user.id);
     res.json({ ok: true, message: "Perfil actualizado", profile });

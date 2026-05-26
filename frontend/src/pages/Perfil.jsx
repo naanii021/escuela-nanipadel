@@ -187,6 +187,8 @@ export default function Perfil() {
         ...form,
         nivel_juego: form.nivel_juego === "" ? null : Number(form.nivel_juego),
         buscar_partidas_abiertas: Number(form.buscar_partidas_abiertas),
+        whatsapp_enabled: Number(notificationForm.whatsapp_enabled),
+        whatsapp_phone: getWhatsappPhone() || null,
       };
       const data = await apiPut("/api/perfil", payload);
       let notificationData = null;
@@ -334,7 +336,7 @@ export default function Perfil() {
             </label>
             <label className="profileToggle profileWhatsappToggle">
               <input type="checkbox" checked={Number(notificationForm.whatsapp_enabled) === 1} onChange={(e) => updateNotification("whatsapp_enabled", e.target.checked ? 1 : 0)} />
-              <span><strong>Recibir avisos por WhatsApp</strong><small>El backend gestiona los envios; la web solo guarda tu preferencia.</small></span>
+              <span><strong>Recibir avisos por WhatsApp</strong><small>Recibe avisos importantes en el numero indicado.</small></span>
             </label>
           </div>
 
