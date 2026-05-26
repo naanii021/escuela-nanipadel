@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet, apiPatch } from "../services/api";
+import { getToken } from "../services/auth";
 import {
   NOTIFICATIONS_REFRESH_EVENT,
   requestNotificationsRefresh,
@@ -29,6 +30,14 @@ export default function NotificationBell() {
   const panelRef = useRef(null);
 
   const refreshNotifications = useCallback(async ({ silent = false } = {}) => {
+    if (!getToken()) {
+      setNotifications([]);
+      setUnread(0);
+      setError("");
+      setLoading(false);
+      return;
+    }
+
     try {
       if (!silent) setLoading(true);
       setError("");
@@ -51,6 +60,8 @@ export default function NotificationBell() {
   }, []);
 
   useEffect(() => {
+    if (!getToken()) return undefined;
+
     refreshNotifications();
 
     const intervalId = window.setInterval(() => {
