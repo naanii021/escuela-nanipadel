@@ -259,6 +259,66 @@ router.get("/resumen", async (req, res) => {
   }
 });
 
+router.get("/usuarios", async (req, res) => {
+  try {
+    const roleFilter = String(req.query.rol || req.query.role || "").toLowerCase();
+    const search = String(req.query.search || "").trim();
+    const limit = Math.min(Number(req.query.limit) || 50, 100);
+    const where = ["COALESCE(u.activo, 1) = 1"];
+    const params = [];
+
+    if (roleFilter === "alumno" || roleFilter === "alumnos") {
+      where.push("(u.rol IN ('alumno', 'usuario') OR a.id IS NOT NULL)");
+    } else if (roleFilter === "profesor" || roleFilter === "profesores") {
+      where.push("u.rol IN ('profesor', 'profe')");
+    }
+
+    if (search) {
+      where.push(`(
+        u.nombre LIKE ? OR
+        u.apellidos LIKE ? OR
+        u.email LIKE ? OR
+        COALESCE(grupos_alumno.grupos, '') LIKE ?
+      )`);
+      const pattern = `%${search}%`;
+      params.push(pattern, pattern, pattern, pattern);
+    }
+
+    const [rows] = await query(
+      `SELECT
+        u.id,
+        u.nombre,
+        u.apellidos,
+        u.email,
+        u.rol,
+        a.id AS alumno_id,
+        COALESCE(grupos_alumno.grupos, '') AS grupos
+       FROM usuarios u
+       LEFT JOIN alumnos a ON a.usuario_id = u.id
+       LEFT JOIN (
+         SELECT
+           a2.usuario_id,
+           GROUP_CONCAT(DISTINCT g.nombre ORDER BY g.hora_inicio SEPARATOR ' | ') AS grupos
+         FROM alumnos a2
+         LEFT JOIN grupo_alumnos ga ON ga.alumno_id = a2.id AND COALESCE(ga.activo, 1) = 1
+         LEFT JOIN grupos g ON g.id = ga.grupo_id AND COALESCE(g.activo, 1) = 1
+         WHERE a2.usuario_id IS NOT NULL
+         GROUP BY a2.usuario_id
+       ) grupos_alumno ON grupos_alumno.usuario_id = u.id
+       WHERE ${where.join(" AND ")}
+       GROUP BY u.id, u.nombre, u.apellidos, u.email, u.rol, a.id, grupos_alumno.grupos
+       ORDER BY u.nombre, u.apellidos
+       LIMIT ?`,
+      [...params, limit]
+    );
+
+    res.json({ ok: true, usuarios: rows });
+  } catch (e) {
+    console.error("Error GET /api/gestion/usuarios:", e);
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
 router.post("/grupos", requireAdmin, async (req, res) => {
   try {
     const columns = await getTableColumns("grupos");

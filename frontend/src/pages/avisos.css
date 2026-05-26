@@ -144,7 +144,9 @@
 }
 
 .avisosWide,
-.avisosChecks {
+.avisosChecks,
+.avisosRecipientPicker,
+.avisosSendSummary {
   grid-column: 1 / -1;
 }
 
@@ -162,6 +164,37 @@
   border-radius: 999px;
   padding: 0.62rem 0.85rem;
   background: #ffffff;
+}
+
+.avisosRecipientPicker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(22, 163, 74, 0.14);
+  border-radius: 18px;
+  background: #f8fafc;
+}
+
+.avisosSendSummary {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 18px;
+  background: #ecfdf5;
+}
+
+.avisosSendSummary strong {
+  color: #14532d;
+  font-size: 0.92rem;
+}
+
+.avisosSendSummary span {
+  color: #166534;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.45;
 }
 
 .avisosPrimaryBtn,
@@ -344,6 +377,7 @@
 
   .avisosHeroStats,
   .avisosForm,
+  .avisosRecipientPicker,
   .avisosGrid {
     grid-template-columns: 1fr;
   }

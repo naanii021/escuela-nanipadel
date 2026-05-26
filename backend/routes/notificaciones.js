@@ -44,7 +44,7 @@ function normalizeAudience(value) {
   if (["professors", "profesores", "solo_profesores"].includes(audience)) return "professors";
   if (["staff", "equipo"].includes(audience)) return "staff";
   if (["group", "grupo", "clase"].includes(audience)) return "group";
-  if (["custom", "usuarios"].includes(audience)) return "custom";
+  if (["custom", "usuarios", "specific_users", "specific_user"].includes(audience)) return "specific_users";
   return "all_users";
 }
 
@@ -53,6 +53,8 @@ async function resolveAvisoRecipientIds({ audience, recipientUserIds = [], group
   if (uniqueIds.length) return uniqueIds;
 
   if (audience === "all_users") return [];
+
+  if (audience === "specific_users") return uniqueIds;
 
   if (audience === "staff" || audience === "professors") {
     const roles = audience === "staff" ? STAFF_ROLES : ["profesor", "profe"];
@@ -293,7 +295,7 @@ router.post(
         ? String(req.body.priority)
         : "normal";
       const audience = normalizeAudience(req.body.audience);
-      const groupId = req.body.groupId || req.body.grupo_id || null;
+      const groupId = req.body.groupId || req.body.grupoId || req.body.grupo_id || null;
       const startsAt = req.body.starts_at || req.body.start_at || req.body.fecha_inicio || null;
       const expiresAt = req.body.expires_at || req.body.end_at || req.body.fecha_fin || null;
       const sendWhatsapp = req.body.sendWhatsapp === true || req.body.sendWhatsapp === 1 || req.body.sendWhatsapp === "1";
@@ -309,6 +311,13 @@ router.post(
         groupId,
       });
 
+      if (audience !== "all_users" && recipientUserIds.length === 0) {
+        return res.status(400).json({
+          ok: false,
+          message: "No se han encontrado destinatarios para este aviso",
+        });
+      }
+
       const channels = ["email"];
       if (sendInApp) channels.push("in_app");
       if (sendWhatsapp) channels.push("whatsapp");
@@ -316,7 +325,7 @@ router.post(
       const result = await notifyEvent({
         type: typeConfig.eventType,
         category: typeConfig.category,
-        audience: recipientUserIds.length ? undefined : "all_users",
+        audience: audience === "all_users" ? "all_users" : undefined,
         recipientUserIds,
         createdByUserId: req.user.id,
         title,

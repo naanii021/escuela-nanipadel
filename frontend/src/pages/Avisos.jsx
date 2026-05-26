@@ -25,7 +25,8 @@ const AUDIENCE_OPTIONS = [
   { value: "all_users", label: "Todos los usuarios" },
   { value: "students", label: "Solo alumnos" },
   { value: "professors", label: "Solo profesores" },
-  { value: "staff", label: "Admin/profesores" },
+  { value: "specific_student", label: "Alumno concreto" },
+  { value: "specific_professor", label: "Profesor concreto" },
   { value: "group", label: "Grupo/clase concreta" },
 ];
 
@@ -60,11 +61,19 @@ const initialForm = {
   priority: "normal",
   audience: "all_users",
   groupId: "",
+  recipientUserId: "",
   sendInApp: true,
   sendWhatsapp: false,
   starts_at: "",
   expires_at: "",
 };
+
+function userLabel(user) {
+  if (!user) return "";
+  const name = `${user.nombre || ""} ${user.apellidos || ""}`.trim() || user.email || `Usuario ${user.id}`;
+  const detail = [user.email, user.grupos].filter(Boolean).join(" - ");
+  return detail ? `${name} (${detail})` : name;
+}
 
 export default function Avisos() {
   const logged = isLogged();
@@ -75,6 +84,10 @@ export default function Avisos() {
   const [notifications, setNotifications] = useState([]);
   const [summary, setSummary] = useState({ unread_count: 0, total: 0 });
   const [groups, setGroups] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [professors, setProfessors] = useState([]);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [professorSearch, setProfessorSearch] = useState("");
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -113,6 +126,26 @@ export default function Avisos() {
       .catch(() => setGroups([]));
   }, [isStaff]);
 
+  useEffect(() => {
+    if (!isStaff) return;
+
+    const loadUsers = async () => {
+      try {
+        const [studentData, professorData] = await Promise.all([
+          apiGet("/api/gestion/usuarios?rol=alumno&limit=100"),
+          apiGet("/api/gestion/usuarios?rol=profesor&limit=100"),
+        ]);
+        setStudents(studentData.usuarios || []);
+        setProfessors(professorData.usuarios || []);
+      } catch {
+        setStudents([]);
+        setProfessors([]);
+      }
+    };
+
+    loadUsers();
+  }, [isStaff]);
+
   const activeCount = useMemo(
     () => notifications.filter((item) => !item.read_at).length,
     [notifications]
@@ -139,18 +172,76 @@ export default function Avisos() {
   };
 
   const updateForm = (field, value) => {
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => {
+      if (field === "audience") {
+        return { ...current, audience: value, groupId: "", recipientUserId: "" };
+      }
+      return { ...current, [field]: value };
+    });
   };
+
+  const filteredStudents = useMemo(() => {
+    const text = studentSearch.trim().toLowerCase();
+    if (!text) return students;
+    return students.filter((item) => userLabel(item).toLowerCase().includes(text));
+  }, [studentSearch, students]);
+
+  const filteredProfessors = useMemo(() => {
+    const text = professorSearch.trim().toLowerCase();
+    if (!text) return professors;
+    return professors.filter((item) => userLabel(item).toLowerCase().includes(text));
+  }, [professorSearch, professors]);
+
+  const selectedStudent = students.find((item) => String(item.id) === String(form.recipientUserId));
+  const selectedProfessor = professors.find((item) => String(item.id) === String(form.recipientUserId));
+  const selectedGroup = groups.find((item) => String(item.id) === String(form.groupId));
+
+  const recipientSummary = useMemo(() => {
+    if (form.audience === "all_users") return "Se enviara a: todos los usuarios activos.";
+    if (form.audience === "students") return "Se enviara a: todos los alumnos.";
+    if (form.audience === "professors") return "Se enviara a: profesores y administracion.";
+    if (form.audience === "specific_student") {
+      return selectedStudent ? `Se enviara a: ${userLabel(selectedStudent)}.` : "Selecciona un alumno.";
+    }
+    if (form.audience === "specific_professor") {
+      return selectedProfessor ? `Se enviara a: ${userLabel(selectedProfessor)}.` : "Selecciona un profesor.";
+    }
+    if (form.audience === "group") {
+      return selectedGroup
+        ? `Se enviara a: ${selectedGroup.nombre || selectedGroup.codigo || `Grupo ${selectedGroup.id}`}.`
+        : "Selecciona un grupo o clase.";
+    }
+    return "";
+  }, [form.audience, selectedGroup, selectedProfessor, selectedStudent]);
 
   const submitAviso = async (event) => {
     event.preventDefault();
+    if (!form.title.trim() || !form.body.trim()) {
+      setError("Titulo y mensaje son obligatorios.");
+      return;
+    }
+
+    if (["specific_student", "specific_professor"].includes(form.audience) && !form.recipientUserId) {
+      setError("Selecciona un destinatario concreto antes de crear el aviso.");
+      return;
+    }
+
+    if (form.audience === "group" && !form.groupId) {
+      setError("Selecciona un grupo o clase antes de crear el aviso.");
+      return;
+    }
+
     try {
       setSaving(true);
       setError("");
       setNotice("");
+      const isSpecific = ["specific_student", "specific_professor"].includes(form.audience);
       await apiPost("/api/notificaciones/avisos", {
         ...form,
+        audience: isSpecific ? "specific_users" : form.audience,
         groupId: form.audience === "group" ? form.groupId : null,
+        grupoId: form.audience === "group" ? form.groupId : null,
+        recipientUserIds: isSpecific ? [Number(form.recipientUserId)] : [],
         sendInApp: Boolean(form.sendInApp),
         sendWhatsapp: Boolean(form.sendWhatsapp),
       });
@@ -210,6 +301,18 @@ export default function Avisos() {
             <label className="avisosWide">Mensaje<textarea value={form.body} onChange={(e) => updateForm("body", e.target.value)} rows={4} required /></label>
             <label>Prioridad<select value={form.priority} onChange={(e) => updateForm("priority", e.target.value)}><option value="normal">Normal</option><option value="importante">Importante</option><option value="urgente">Urgente</option></select></label>
             <label>Destinatarios<select value={form.audience} onChange={(e) => updateForm("audience", e.target.value)}>{AUDIENCE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+            {form.audience === "specific_student" && (
+              <div className="avisosRecipientPicker">
+                <label>Buscar alumno<input value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} placeholder="Nombre, email o grupo" /></label>
+                <label>Alumno<select value={form.recipientUserId} onChange={(e) => updateForm("recipientUserId", e.target.value)}><option value="">Seleccionar alumno</option>{filteredStudents.map((student) => <option key={student.id} value={student.id}>{userLabel(student)}</option>)}</select></label>
+              </div>
+            )}
+            {form.audience === "specific_professor" && (
+              <div className="avisosRecipientPicker">
+                <label>Buscar profesor<input value={professorSearch} onChange={(e) => setProfessorSearch(e.target.value)} placeholder="Nombre o email" /></label>
+                <label>Profesor<select value={form.recipientUserId} onChange={(e) => updateForm("recipientUserId", e.target.value)}><option value="">Seleccionar profesor</option>{filteredProfessors.map((professor) => <option key={professor.id} value={professor.id}>{userLabel(professor)}</option>)}</select></label>
+              </div>
+            )}
             {form.audience === "group" && (
               <label>Grupo<select value={form.groupId} onChange={(e) => updateForm("groupId", e.target.value)}><option value="">Seleccionar grupo</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.nombre || group.codigo || `Grupo ${group.id}`}</option>)}</select></label>
             )}
@@ -218,6 +321,12 @@ export default function Avisos() {
             <div className="avisosChecks">
               <label><input type="checkbox" checked={form.sendInApp} onChange={(e) => updateForm("sendInApp", e.target.checked)} /> Notificacion interna</label>
               <label><input type="checkbox" checked={form.sendWhatsapp} onChange={(e) => updateForm("sendWhatsapp", e.target.checked)} /> Enviar tambien por WhatsApp</label>
+            </div>
+            <div className="avisosSendSummary">
+              <strong>{recipientSummary}</strong>
+              {form.sendWhatsapp && (
+                <span>Solo recibiran WhatsApp los usuarios que tengan numero y avisos por WhatsApp activados.</span>
+              )}
             </div>
             <button className="avisosPrimaryBtn" type="submit" disabled={saving}>{saving ? "Creando..." : "Crear aviso"}</button>
           </form>
