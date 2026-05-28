@@ -243,6 +243,7 @@ export async function sendWhatsAppTemplate({
     ok: true,
     provider: "meta",
     messageId: data?.messages?.[0]?.id || null,
+    provider_message_id: data?.messages?.[0]?.id || null,
     templateName,
     to: recipient,
     raw: data,

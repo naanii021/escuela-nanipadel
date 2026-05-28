@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { apiGet } from "../services/api";
 import { getWeatherForClub } from "../services/weatherService";
 import "./estadoPista.css";
 
@@ -12,10 +13,35 @@ function formatUpdatedAt(value) {
   return new Date(value).toLocaleString("es-ES");
 }
 
+function isRecentReading(value) {
+  if (!value) return false;
+  const createdAt = new Date(value).getTime();
+  if (Number.isNaN(createdAt)) return false;
+  return Date.now() - createdAt < 15 * 60 * 1000;
+}
+
+function formatSensorValue(value, suffix = "") {
+  if (value === null || value === undefined || value === "") return "-";
+  const number = Number(value);
+  if (!Number.isFinite(number)) return `${value}${suffix}`;
+  return `${Math.round(number * 10) / 10}${suffix}`;
+}
+
+function getSensorRecommendation(sensor) {
+  if (!sensor) return "Esperando la ultima lectura del sensor.";
+  if (Number(sensor.humedad) > 80) return "Pista humeda, revisar antes de jugar.";
+  if (Number(sensor.temperatura) > 35) return "Mucho calor, hidratate.";
+  if (Number(sensor.bateria_porcentaje) < 20) return "Bateria baja del sensor.";
+  return "Condiciones buenas para jugar.";
+}
+
 function EstadoPista() {
   const [weather, setWeather] = useState(null);
+  const [sensor, setSensor] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [sensorLoading, setSensorLoading] = useState(true);
+  const [sensorError, setSensorError] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -26,14 +52,27 @@ function EstadoPista() {
         setLoading(true);
         setError("");
 
-        const [weatherData, photosResponse] = await Promise.all([
-          getWeatherForClub(CLUB_LAT, CLUB_LON),
+        const [weatherResult, sensorResult, photosResponse] = await Promise.all([
+          getWeatherForClub(CLUB_LAT, CLUB_LON).then((data) => ({ ok: true, data })).catch((err) => ({ ok: false, err })),
+          apiGet("/api/meteo-xiao/latest").then((data) => ({ ok: true, data })).catch((err) => ({ ok: false, err })),
           fetch(COURT_PHOTOS_MANIFEST, { cache: "no-store" }).catch(() => null),
         ]);
 
         if (!mounted) return;
 
-        setWeather(weatherData);
+        if (weatherResult.ok) {
+          setWeather(weatherResult.data);
+        } else {
+          setError(weatherResult.err?.message || "No hemos podido cargar el tiempo online.");
+        }
+
+        if (sensorResult.ok) {
+          setSensor(sensorResult.data?.meteo || null);
+          setSensorError(sensorResult.data?.meteo ? "" : "No hay lecturas del sensor todavia.");
+        } else {
+          setSensor(null);
+          setSensorError("No hemos podido cargar la lectura del sensor.");
+        }
 
         if (photosResponse?.ok) {
           const manifest = await photosResponse.json();
@@ -45,7 +84,10 @@ function EstadoPista() {
         if (!mounted) return;
         setError(err.message || "No hemos podido cargar el estado de pista.");
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          setSensorLoading(false);
+        }
       }
     }
 
@@ -68,6 +110,14 @@ function EstadoPista() {
           : "-",
     },
     { label: "Estado pista", value: weather?.pista || "-" },
+  ];
+
+  const sensorConnected = sensor && isRecentReading(sensor.creado_en);
+  const sensorMetrics = [
+    { label: "Temperatura", value: formatSensorValue(sensor?.temperatura, "°C") },
+    { label: "Humedad", value: formatSensorValue(sensor?.humedad, "%") },
+    { label: "Presion", value: formatSensorValue(sensor?.presion, " hPa") },
+    { label: "Bateria", value: formatSensorValue(sensor?.bateria_porcentaje, "%") },
   ];
 
   return (
@@ -137,6 +187,53 @@ function EstadoPista() {
             </>
           )}
         </div>
+      </section>
+
+      <section className="estadoSensorCard">
+        <div className="estadoSensorHead">
+          <div>
+            <span className="estadoSectionEyebrow">Sensor del club</span>
+            <h2>Ultima lectura del XIAO</h2>
+          </div>
+          <span className={`estadoSensorBadge ${sensorConnected ? "isConnected" : "isOffline"}`}>
+            {sensorConnected ? "Sensor conectado" : "Sensor sin conexion"}
+          </span>
+        </div>
+
+        {sensorLoading ? (
+          <p className="estadoLoading">Cargando lectura del sensor...</p>
+        ) : sensorError ? (
+          <p className="estadoError">{sensorError}</p>
+        ) : sensor ? (
+          <>
+            <div className="estadoSensorGrid">
+              {sensorMetrics.map((item) => (
+                <article className="estadoMetricCard" key={item.label}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </article>
+              ))}
+            </div>
+
+            <div className="estadoSensorFooter">
+              <div>
+                <span>Estado</span>
+                <strong>{sensor.estado || "Lectura recibida"}</strong>
+              </div>
+              <div>
+                <span>Ultima actualizacion</span>
+                <strong>{formatUpdatedAt(sensor.creado_en)}</strong>
+              </div>
+            </div>
+
+            <div className={`estadoAdvice ${sensorConnected ? "rec-bueno" : "rec-regular"}`}>
+              <strong>Recomendacion del sensor</strong>
+              <p>{getSensorRecommendation(sensor)}</p>
+            </div>
+          </>
+        ) : (
+          <p className="estadoEmpty">Aun no hay lecturas del sensor disponibles.</p>
+        )}
       </section>
 
       <section className="estadoPanel">

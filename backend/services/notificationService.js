@@ -284,69 +284,57 @@ function firstValue(...values) {
   return values.find((value) => value !== undefined && value !== null && String(value).trim() !== "") || "";
 }
 
-function buildWhatsAppTemplateForEvent(event, row) {
-  const payload = event.payload || {};
-  const nombre = firstValue(payload.usuario_nombre, payload.nombre_usuario, row.usuario_nombre, "jugador");
-  const pista = firstValue(payload.pista_nombre, payload.pista, "la pista");
+function buildReservationSummary(payload = {}, row = {}) {
+  const pista = firstValue(payload.pista_nombre, payload.pista, "");
   const fecha = firstValue(payload.fecha_texto, payload.fecha, "");
   const hora = firstValue(payload.hora_texto, payload.hora_inicio, "");
-  const jugador = firstValue(payload.jugador_nombre, "Un jugador");
 
-  if (event.type === NOTIFICATION_EVENTS.RESERVA_CREADA) {
-    if (payload.tipo_reserva === "abierta") {
-      return {
-        templateName: WHATSAPP_TEMPLATES.PARTIDA_ABIERTA_CREADA,
-        variables: [nombre, pista, fecha, hora],
-      };
-    }
+  if (pista || fecha || hora) {
+    return [pista, fecha, hora && `a las ${hora}`]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+  }
 
+  return firstValue(row.mensaje, row.titulo, "tu reserva en NaniPadel");
+}
+
+function buildWhatsAppTemplateData(row, payload = {}) {
+  const nombreUsuario = firstValue(
+    payload.usuario_nombre,
+    payload.nombre_usuario,
+    row.usuario_nombre,
+    "jugador"
+  );
+
+  if (row.tipo === NOTIFICATION_EVENTS.RESERVA_CREADA) {
     return {
       templateName: WHATSAPP_TEMPLATES.RESERVA_CONFIRMADA,
-      variables: [nombre, pista, fecha, hora],
+      languageCode: "es",
+      variables: [
+        nombreUsuario,
+        buildReservationSummary(payload, row),
+      ],
     };
   }
 
-  if (event.type === NOTIFICATION_EVENTS.RESERVA_CANCELADA) {
+  if (row.tipo === NOTIFICATION_EVENTS.RESERVA_CANCELADA) {
     return {
       templateName: WHATSAPP_TEMPLATES.RESERVA_CANCELADA,
-      variables: [nombre, pista, fecha, hora],
-    };
-  }
-
-  if (event.type === NOTIFICATION_EVENTS.PARTIDA_ABIERTA_UNIDO) {
-    return {
-      templateName: WHATSAPP_TEMPLATES.PARTIDA_ABIERTA_UNIDO,
-      variables: [jugador, pista, fecha, hora],
-    };
-  }
-
-  if (event.type === NOTIFICATION_EVENTS.PARTIDA_ABIERTA_SALIDA) {
-    return {
-      templateName: WHATSAPP_TEMPLATES.PARTIDA_ABIERTA_SALIDA,
-      variables: [jugador, pista, fecha, hora],
-    };
-  }
-
-  if (event.type === NOTIFICATION_EVENTS.PARTIDA_ABIERTA_COMPLETA) {
-    return {
-      templateName: WHATSAPP_TEMPLATES.PARTIDA_ABIERTA_COMPLETA,
-      variables: [pista, fecha, hora, firstValue(payload.max_jugadores, "4")],
-    };
-  }
-
-  if (event.type === NOTIFICATION_EVENTS.CLASE_CANCELADA) {
-    return {
-      templateName: WHATSAPP_TEMPLATES.CLASE_CANCELADA,
+      languageCode: "es",
       variables: [
-        nombre,
-        firstValue(payload.clase_nombre, payload.grupo_nombre, "tu clase"),
-        fecha,
-        hora,
+        nombreUsuario,
+        buildReservationSummary(payload, row),
       ],
     };
   }
 
   return null;
+}
+
+function buildWhatsAppTemplateForEvent(event, row) {
+  const payload = event.payload || {};
+  return buildWhatsAppTemplateData(row, payload);
 }
 
 export async function notifyEvent(event) {
@@ -400,6 +388,7 @@ export async function notifyEvent(event) {
             ? await sendWhatsAppTemplate({
                 to: row.whatsapp_phone,
                 templateName: templatePayload.templateName,
+                languageCode: templatePayload.languageCode,
                 variables: templatePayload.variables,
               })
             : await sendWhatsAppMessage({
@@ -411,7 +400,7 @@ export async function notifyEvent(event) {
             `UPDATE notifications
              SET estado = 'sent', sent_at = NOW(), error_message = NULL, provider_message_id = ?
              WHERE id = ?`,
-            [whatsappResult.messageId, result.insertId]
+            [whatsappResult.provider_message_id || whatsappResult.messageId, result.insertId]
           );
 
           created.push({
