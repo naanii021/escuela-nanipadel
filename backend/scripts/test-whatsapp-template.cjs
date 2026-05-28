@@ -22,7 +22,7 @@ async function main() {
     to,
     templateName,
     languageCode,
-    variables: ["Daniel", "NaniPadel - pista 1, hoy a las 19:30"],
+    variables: ["Dani", "Pista 2", "lunes, 25 de Mayo", "18:30h"],
   });
 
   console.log("Plantilla enviada correctamente:", {

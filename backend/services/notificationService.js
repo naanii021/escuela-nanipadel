@@ -238,6 +238,7 @@ function buildChannelRows(user, preferences, event, category) {
   const referenceInfo = getReferenceInfo(event);
   const base = {
     usuario_id: user.id,
+    usuario_nombre: user.nombre || null,
     tipo: event.type,
     titulo: event.title,
     mensaje: event.body,
@@ -284,36 +285,84 @@ function firstValue(...values) {
   return values.find((value) => value !== undefined && value !== null && String(value).trim() !== "") || "";
 }
 
+function buildReservationTemplateFields(payload = {}) {
+  // Sacamos la pista desde distintos nombres posibles
+  const pista = firstValue(
+    payload.pista_nombre,
+    payload.nombre_pista,
+    payload.pista,
+    payload.court_name,
+    payload.court,
+    payload.nombrePista,
+    "NaniPadel"
+  );
+
+  // Sacamos la fecha desde distintos nombres posibles
+  const fecha = firstValue(
+    payload.fecha_texto,
+    payload.fecha_reserva_texto,
+    payload.fechaReservaTexto,
+    payload.fecha,
+    payload.fecha_reserva,
+    payload.reserva_fecha,
+    payload.dia,
+    payload.date,
+    "la fecha indicada"
+  );
+
+  // Sacamos la hora desde distintos nombres posibles
+  const hora = firstValue(
+    payload.hora_texto,
+    payload.hora_inicio_texto,
+    payload.horaInicioTexto,
+    payload.hora_inicio,
+    payload.hora,
+    payload.inicio,
+    payload.time,
+    "la hora indicada"
+  );
+
+  return {
+    pista: String(pista),
+    fecha: String(fecha),
+    hora: String(hora),
+  };
+}
+
 function buildReservationSummary(payload = {}, row = {}) {
-  const pista = firstValue(payload.pista_nombre, payload.pista, "");
-  const fecha = firstValue(payload.fecha_texto, payload.fecha, "");
-  const hora = firstValue(payload.hora_texto, payload.hora_inicio, "");
+  const { pista, fecha, hora } = buildReservationTemplateFields(payload);
 
-  if (pista || fecha || hora) {
-    return [pista, fecha, hora && `a las ${hora}`]
-      .filter(Boolean)
-      .join(" ")
-      .trim();
-  }
-
-  return firstValue(row.mensaje, row.titulo, "tu reserva en NaniPadel");
+  return firstValue(
+    [pista, fecha, hora && `a las ${hora}`].filter(Boolean).join(" ").trim(),
+    row.mensaje,
+    row.titulo,
+    "tu reserva en NaniPadel"
+  );
 }
 
 function buildWhatsAppTemplateData(row, payload = {}) {
   const nombreUsuario = firstValue(
     payload.usuario_nombre,
     payload.nombre_usuario,
+    payload.nombre,
     row.usuario_nombre,
     "jugador"
   );
+
+  const { pista, fecha, hora } = buildReservationTemplateFields(payload);
 
   if (row.tipo === NOTIFICATION_EVENTS.RESERVA_CREADA) {
     return {
       templateName: WHATSAPP_TEMPLATES.RESERVA_CONFIRMADA,
       languageCode: "es",
+
+      // Plantilla reserva_confirmada:
+      // Hola {{1}}, tu reserva en {{2}} ha quedado confirmada para el {{3}} a las {{4}}.
       variables: [
         nombreUsuario,
-        buildReservationSummary(payload, row),
+        pista,
+        fecha,
+        hora,
       ],
     };
   }
@@ -322,9 +371,14 @@ function buildWhatsAppTemplateData(row, payload = {}) {
     return {
       templateName: WHATSAPP_TEMPLATES.RESERVA_CANCELADA,
       languageCode: "es",
+
+      // Ojo: esto asume que reserva_cancelada también tiene 4 variables:
+      // {{1}} nombre, {{2}} pista, {{3}} fecha, {{4}} hora.
       variables: [
         nombreUsuario,
-        buildReservationSummary(payload, row),
+        pista,
+        fecha,
+        hora,
       ],
     };
   }
