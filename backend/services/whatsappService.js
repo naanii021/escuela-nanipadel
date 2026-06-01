@@ -180,7 +180,7 @@ export async function sendWhatsAppTemplate({
   }
 
   if (!to) {
-    throw new Error("Falta el numero de destino");
+    throw new Error("Falta el número de destino");
   }
 
   if (!templateName) {

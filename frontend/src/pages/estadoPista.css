@@ -435,3 +435,119 @@
     grid-column: 1 / -1;
   }
 }
+
+/* Mobile-first compact pass for XIAO sensor and weather state. */
+@media (max-width: 768px) {
+  .estadoPistaPage {
+    gap: 0.95rem;
+    padding: 0.6rem 0 2rem;
+  }
+
+  .estadoHero,
+  .estadoDetailLayout {
+    gap: 0.75rem;
+  }
+
+  .estadoHeroMain,
+  .estadoNowCard,
+  .estadoSensorCard,
+  .estadoPanel,
+  .estadoForecastCard,
+  .estadoModuleCard,
+  .estadoPhotoPlaceholder {
+    padding: 0.9rem;
+    border-radius: 18px;
+  }
+
+  .estadoHeroTitle {
+    max-width: none;
+    font-size: clamp(1.5rem, 8vw, 2.05rem);
+    line-height: 1.05;
+  }
+
+  .estadoHeroText,
+  .estadoHeroMain p,
+  .estadoPanel p,
+  .estadoForecastText {
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+
+  .estadoMetricsGrid,
+  .estadoSensorGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .estadoMetric,
+  .estadoSensorMetric {
+    padding: 0.68rem;
+    border-radius: 14px;
+  }
+
+  .estadoMetric strong,
+  .estadoSensorMetric strong {
+    font-size: 1.05rem;
+  }
+
+  .estadoNowTemp {
+    font-size: 2rem;
+  }
+
+  .estadoSensorStatus,
+  .estadoStatusPill {
+    padding: 0.32rem 0.62rem;
+    font-size: 0.74rem;
+  }
+
+  .estadoForecastList,
+  .estadoModuleList {
+    margin-top: 0.7rem;
+  }
+
+  .estadoForecastRow {
+    grid-template-columns: 54px 28px minmax(0, 1fr) auto;
+    gap: 0.45rem;
+    padding: 0.64rem;
+    border-radius: 13px;
+  }
+
+  .estadoPhotosGrid {
+    gap: 0.6rem;
+  }
+
+  .estadoPhotoImage {
+    height: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .estadoPistaPage {
+    gap: 0.8rem;
+  }
+
+  .estadoHeroMain,
+  .estadoNowCard,
+  .estadoSensorCard,
+  .estadoPanel,
+  .estadoForecastCard,
+  .estadoModuleCard,
+  .estadoPhotoPlaceholder {
+    padding: 0.82rem;
+    border-radius: 16px;
+  }
+
+  .estadoMetricsGrid,
+  .estadoSensorGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .estadoForecastRow {
+    grid-template-columns: 1fr auto;
+  }
+
+  .estadoForecastIcon,
+  .estadoForecastText {
+    display: none;
+  }
+}

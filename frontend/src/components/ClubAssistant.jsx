@@ -19,7 +19,7 @@ const ACTIONS_BY_ROLE = {
   alumno: [
     { key: "mis-clases", label: "Mis clases", icon: "court", description: "Revisa tu grupo y proxima clase." },
     { key: "mis-reservas", label: "Mis reservas", icon: "calendar", description: "Consulta tus pistas activas." },
-    { key: "avisos", label: "Avisos", icon: "bell", description: "Ultimas notificaciones del club." },
+    { key: "avisos", label: "Avisos", icon: "bell", description: "Últimas notificaciones del club." },
     { key: "recuperaciones", label: "Recuperaciones", icon: "repeat", description: "Comprueba clases pendientes." },
     { key: "estado-pista", label: "Estado de pista", icon: "weather", description: "Meteo y condiciones de juego." },
     { key: "ayuda", label: "Ayuda", icon: "help", description: "Dudas habituales de alumnos." },
@@ -27,7 +27,7 @@ const ACTIONS_BY_ROLE = {
   staff: [
     { key: "panel", label: "Panel", icon: "dashboard", description: "Accede a la gestion del club." },
     { key: "grupos", label: "Grupos", icon: "groups", description: "Consulta grupos y clases." },
-    { key: "alumnos", label: "Alumnos", icon: "user", description: "Gestion de alumnos desde el panel." },
+    { key: "alumnos", label: "Alumnos", icon: "user", description: "Gestión de alumnos desde el panel." },
     { key: "avisos", label: "Avisos", icon: "bell", description: "Revisa comunicaciones recientes." },
     { key: "reservas", label: "Reservas", icon: "calendar", description: "Consulta la agenda de pistas." },
     { key: "estado-pista", label: "Estado de pista", icon: "weather", description: "Condiciones actuales de juego." },
@@ -38,19 +38,19 @@ const HELP_OPTIONS = {
   visitante: [
     { label: "No veo mis clases", action: "mis-clases" },
     { label: "Quiero cambiar mi horario", href: CONTACT_HREF },
-    { label: "Tengo una recuperacion pendiente", action: "recuperaciones" },
+    { label: "Tengo una recuperación pendiente", action: "recuperaciones" },
     { label: "Contactar con el club", href: CONTACT_HREF },
   ],
   alumno: [
     { label: "No veo mis clases", action: "mis-clases" },
     { label: "Quiero cambiar mi horario", href: CONTACT_HREF },
-    { label: "Tengo una recuperacion pendiente", action: "recuperaciones" },
+    { label: "Tengo una recuperación pendiente", action: "recuperaciones" },
     { label: "Contactar con el club", href: CONTACT_HREF },
   ],
   staff: [
     { label: "No veo mis clases", action: "grupos" },
     { label: "Quiero cambiar mi horario", href: CONTACT_HREF },
-    { label: "Tengo una recuperacion pendiente", action: "recuperaciones" },
+    { label: "Tengo una recuperación pendiente", action: "recuperaciones" },
     { label: "Contactar con el club", href: CONTACT_HREF },
   ],
 };
@@ -121,9 +121,9 @@ function Icon({ type }) {
 function buildEmptyResponse(title, to) {
   return {
     title,
-    eyebrow: "Sin datos",
-    status: "Sin informacion",
-    text: "No hay informacion disponible ahora mismo.",
+    eyebrow: "Sin datos disponibles",
+    status: "Sin información",
+    text: "No hay información disponible ahora mismo.",
     detail: "Prueba de nuevo en unos segundos. Contacta con el club si necesitas ayuda.",
     cta: to ? { label: "Abrir seccion", to } : { label: "Contactar con el club", href: CONTACT_HREF },
   };
@@ -132,7 +132,7 @@ function buildEmptyResponse(title, to) {
 function buildResponse(action, summary, role) {
   if (!action) {
     return {
-      title: "Que necesitas consultar?",
+      title: "¿Qué necesitas consultar?",
       eyebrow: "Asistente",
       text: "Elige una opcion y te llevo directamente a la seccion correspondiente.",
     };
@@ -216,14 +216,14 @@ function buildResponse(action, summary, role) {
   }
 
   if (action === "avisos") {
-    // El backend de notificaciones ya existe; si no responde, el servicio deja un estado vacio seguro.
+    // El backend de notificaciones ya existe; si no responde, el servicio deja un estado vacío seguro.
     if (!avisos.length) {
       return {
         title: "Avisos",
         eyebrow: "Notificaciones",
         status: unread ? `${unread} sin leer` : "Sin avisos",
         text: unread ? `Tienes ${unread} aviso${unread === 1 ? "" : "s"} sin leer.` : "No tienes avisos recientes ahora mismo.",
-        detail: "Cuando el club publique avisos para tu cuenta, apareceran aqui.",
+        detail: "Cuando el club publique avisos para tu cuenta, aparecerán aquí.",
         cta: { label: role === "staff" ? "Abrir panel" : "Ver clases", to: role === "staff" ? "/panel" : "/clases" },
       };
     }
@@ -244,7 +244,7 @@ function buildResponse(action, summary, role) {
       eyebrow: "Clases",
       status: "Preparado",
       text: "Revisa si tienes recuperaciones pendientes dentro de tu zona de clases.",
-      detail: "El asistente aun no recibe un resumen especifico de recuperaciones; queda preparado para conectarlo cuando exista ese dato en el endpoint.",
+      detail: "El asistente aún no recibe un resumen específico de recuperaciones; queda preparado para conectarlo cuando exista ese dato en el endpoint.",
       cta: { label: "Ver mis clases", to: "/clases" },
     };
   }
@@ -259,7 +259,7 @@ function buildResponse(action, summary, role) {
       eyebrow: "Condiciones",
       status: meteo.estado || "Actualizado",
       text: meteo.estado || "La pista tiene una lectura reciente disponible.",
-      detail: "Consulta el estado antes de jugar si el tiempo esta cambiando.",
+      detail: "Consulta el estado antes de jugar si el tiempo está cambiando.",
       facts: [
         { label: "Temperatura", value: meteo.temperatura != null ? `${meteo.temperatura} C` : "No disponible" },
         { label: "Humedad", value: meteo.humedad != null ? `${meteo.humedad}%` : "No disponible" },
@@ -274,7 +274,7 @@ function buildResponse(action, summary, role) {
     if (!torneos.length) {
       return {
         title: "Torneos",
-        eyebrow: "Competicion",
+        eyebrow: "Competición",
         text: "Revisa las competiciones disponibles del club.",
         cta: { label: "Ver torneos", to: "/torneos" },
       };
@@ -282,7 +282,7 @@ function buildResponse(action, summary, role) {
 
     return {
       title: "Torneos abiertos",
-      eyebrow: "Competicion",
+      eyebrow: "Competición",
       status: `${torneos.length} publicado${torneos.length === 1 ? "" : "s"}`,
       text: "Revisa las competiciones disponibles del club.",
       detail: `Proximo: ${torneos[0].nombre} - ${formatDateTime(torneos[0].fecha_inicio, torneos[0].hora_inicio)}`,
@@ -295,9 +295,9 @@ function buildResponse(action, summary, role) {
     const labels = { panel: "Panel", grupos: "Grupos", alumnos: "Alumnos" };
     return {
       title: labels[action],
-      eyebrow: "Gestion",
+      eyebrow: "Gestión",
       status: "Acceso staff",
-      text: "Abre el panel para consultar informacion de gestion con los permisos de tu cuenta.",
+      text: "Abre el panel para consultar información de gestión con los permisos de tu cuenta.",
       detail: "Desde el asistente no se muestran alumnos, grupos reales ni datos internos completos.",
       cta: { label: "Abrir panel", to: "/panel" },
     };
@@ -314,8 +314,8 @@ function buildResponse(action, summary, role) {
 
   return {
     title: "Ayuda",
-    eyebrow: "Guia rapida",
-    text: "Te oriento con las dudas mas habituales.",
+    eyebrow: "Guía rápida",
+    text: "Te oriento con las dudas más habituales.",
     helpOptions: true,
   };
 }
@@ -348,7 +348,7 @@ export default function ClubAssistant() {
         const data = await getAssistantSummary();
         if (mounted) setSummary(data);
       } catch (err) {
-        if (mounted) setError(err.message || "No he podido cargar la informacion del club.");
+        if (mounted) setError(err.message || "No he podido cargar la información del club.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -400,7 +400,7 @@ export default function ClubAssistant() {
             </div>
           </div>
 
-          <div className="assistantActions" role="list" aria-label="Acciones rapidas">
+          <div className="assistantActions" role="list" aria-label="Acciones rápidas">
             {actions.map((action) => (
               <button
                 className={`assistantActionChip${selectedAction === action.key ? " isActive" : ""}`}
@@ -429,13 +429,13 @@ export default function ClubAssistant() {
             )}
             {!loading && error && (
               <div className="assistantState assistantError">
-                <strong>No he podido cargar la informacion ahora mismo.</strong>
+                <strong>No he podido cargar la información ahora mismo.</strong>
                 <p>Prueba de nuevo en unos segundos o contacta con el club si necesitas ayuda.</p>
               </div>
             )}
             {!loading && !error && summary && !response && (
               <div className="assistantState assistantEmpty">
-                <strong>No hay informacion disponible ahora mismo.</strong>
+                <strong>No hay información disponible ahora mismo.</strong>
                 <p>Prueba de nuevo en unos segundos.</p>
               </div>
             )}

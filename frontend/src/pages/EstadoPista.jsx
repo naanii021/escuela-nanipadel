@@ -29,7 +29,7 @@ function formatSensorValue(value, suffix = "") {
 
 function getSensorRecommendation(sensor) {
   if (!sensor) return "Esperando la ultima lectura del sensor.";
-  if (Number(sensor.humedad) > 80) return "Pista humeda, revisar antes de jugar.";
+  if (Number(sensor.humedad) > 80) return "Pista húmeda, revisar antes de jugar.";
   if (Number(sensor.temperatura) > 35) return "Mucho calor, hidratate.";
   if (Number(sensor.bateria_porcentaje) < 20) return "Bateria baja del sensor.";
   return "Condiciones buenas para jugar.";
@@ -68,7 +68,7 @@ function EstadoPista() {
 
         if (sensorResult.ok) {
           setSensor(sensorResult.data?.meteo || null);
-          setSensorError(sensorResult.data?.meteo ? "" : "No hay lecturas del sensor todavia.");
+          setSensorError(sensorResult.data?.meteo ? "" : "No hay lecturas del sensor todavía.");
         } else {
           setSensor(null);
           setSensorError("No hemos podido cargar la lectura del sensor.");
@@ -146,7 +146,7 @@ function EstadoPista() {
               <h2>Norba Padel</h2>
             </div>
             <span className={`estadoBadge ${weather?.pista === "RIESGO" ? "estadoBadgeRisk" : ""}`}>
-              {weather?.pista || "Sin datos"}
+            {weather?.pista || "Todavía no hay datos disponibles"}
             </span>
           </div>
 
@@ -196,7 +196,7 @@ function EstadoPista() {
             <h2>Ultima lectura del XIAO</h2>
           </div>
           <span className={`estadoSensorBadge ${sensorConnected ? "isConnected" : "isOffline"}`}>
-            {sensorConnected ? "Sensor conectado" : "Sensor sin conexion"}
+            {sensorConnected ? "Sensor conectado" : "Sensor sin conexión"}
           </span>
         </div>
 
@@ -232,7 +232,7 @@ function EstadoPista() {
             </div>
           </>
         ) : (
-          <p className="estadoEmpty">Aun no hay lecturas del sensor disponibles.</p>
+          <p className="estadoEmpty">Aún no hay lecturas del sensor disponibles.</p>
         )}
       </section>
 
@@ -243,7 +243,7 @@ function EstadoPista() {
             <h3>Datos utiles para decidir si jugar</h3>
           </div>
           <p>
-            Una lectura rapida de las condiciones que mas influyen en pista.
+            Una lectura rápida de las condiciones que más influyen en pista.
           </p>
         </div>
 
@@ -260,8 +260,8 @@ function EstadoPista() {
       <section className="estadoDetailLayout">
         <article className="estadoForecastCard">
           <div className="estadoSectionHead">
-            <span className="estadoSectionEyebrow">Prevision</span>
-            <h3>Prevision de los proximos dias</h3>
+            <span className="estadoSectionEyebrow">Previsión</span>
+            <h3>Previsión de los próximos días</h3>
           </div>
 
           <div className="estadoForecastList">
@@ -282,7 +282,7 @@ function EstadoPista() {
                 </div>
               ))
             ) : (
-              <p className="estadoEmpty">La prevision aparecera aqui cuando haya datos disponibles.</p>
+              <p className="estadoEmpty">La previsión aparecerá aquí cuando haya datos disponibles.</p>
             )}
           </div>
         </article>
@@ -295,8 +295,8 @@ function EstadoPista() {
 
           <ul className="estadoModuleList">
             <li>Revisa viento y lluvia antes de salir de casa.</li>
-            <li>Si hay calor, hidrata bien y evita las horas mas duras.</li>
-            <li>Con frio, calienta unos minutos mas antes de jugar.</li>
+            <li>Si hay calor, hidrata bien y evita las horas más duras.</li>
+            <li>Con frío, calienta unos minutos más antes de jugar.</li>
             <li>Si la pista aparece en riesgo, consulta con el club antes de reservar.</li>
           </ul>
         </article>
@@ -322,9 +322,9 @@ function EstadoPista() {
           </div>
         ) : (
           <div className="estadoPhotoPlaceholder">
-            <strong>Aun no hay fotos de pista.</strong>
+            <strong>Aún no hay fotos de pista.</strong>
             <p>
-              Cuando el club anada fotos del entorno de juego, apareceran aqui.
+              Cuando el club añada fotos del entorno de juego, aparecerán aquí.
             </p>
           </div>
         )}

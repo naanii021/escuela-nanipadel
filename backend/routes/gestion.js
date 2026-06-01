@@ -548,11 +548,11 @@ router.post("/alumnos/:id/crear-acceso", requireAdmin, async (req, res) => {
     const password = req.body.password;
 
     if (!email || !password) {
-      return res.status(400).json({ ok: false, message: "Email y contrasena son obligatorios" });
+      return res.status(400).json({ ok: false, message: "Email y contraseña son obligatorios" });
     }
 
     if (String(password).length < 6) {
-      return res.status(400).json({ ok: false, message: "La contrasena debe tener al menos 6 caracteres" });
+      return res.status(400).json({ ok: false, message: "La contraseña debe tener al menos 6 caracteres" });
     }
 
     await connection.beginTransaction();

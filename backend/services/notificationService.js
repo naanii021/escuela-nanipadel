@@ -273,7 +273,7 @@ function buildChannelRows(user, preferences, event, category) {
       estado: preferences.whatsapp_phone ? "pending" : "failed",
       error_message: preferences.whatsapp_phone
         ? null
-        : "WhatsApp activado sin telefono configurado.",
+        : "WhatsApp está activado, pero no hay teléfono configurado.",
       whatsapp_phone: preferences.whatsapp_phone,
     });
   }
@@ -395,7 +395,7 @@ export async function notifyEvent(event) {
   const category = event.category || EVENT_CATEGORY[event.type];
 
   if (!event.type || !category || !event.title || !event.body) {
-    throw new Error("Evento de notificacion incompleto");
+    throw new Error("Evento de notificación incompleto");
   }
 
   const recipients = await resolveRecipients(event);

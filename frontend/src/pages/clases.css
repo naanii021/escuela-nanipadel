@@ -1806,3 +1806,143 @@
     font-size: 1.45rem;
   }
 }
+
+/* Mobile-first compact pass for public, student and staff class views. */
+@media (max-width: 768px) {
+  .clases {
+    gap: 1rem;
+    padding: 0 0.9rem 2rem;
+  }
+
+  .clasesHero,
+  .misClasesSection,
+  .publicSection,
+  .clasesCta,
+  .publicLoginBox,
+  .studentNextClassCard,
+  .studentProfileCard,
+  .studentPanel,
+  .staffDashboard {
+    padding: 0.95rem;
+    border-radius: 18px;
+  }
+
+  .heroContent,
+  .publicSplit,
+  .studentPanels,
+  .staffDashboard {
+    gap: 0.8rem;
+  }
+
+  .heroTitle {
+    font-size: clamp(1.45rem, 8vw, 1.9rem);
+    line-height: 1.05;
+  }
+
+  .heroSub,
+  .sectionHeaderStack p,
+  .publicInfoCard p,
+  .publicFormatCard p,
+  .studentPanel p,
+  .cardTitle {
+    line-height: 1.45;
+  }
+
+  .heroStats {
+    gap: 0.45rem;
+  }
+
+  .statCard,
+  .publicInfoCard,
+  .publicFormatCard,
+  .priceCard,
+  .scheduleCard,
+  .studentMiniRow,
+  .studentInfoGrid div,
+  .studentNextMeta div,
+  .studentClassMeta div {
+    padding: 0.72rem;
+    border-radius: 14px;
+  }
+
+  .publicHeroBadges {
+    gap: 0.35rem;
+  }
+
+  .publicHeroBadges span,
+  .publicCardBadge,
+  .nivelTag,
+  .codeTag {
+    padding: 0.24rem 0.52rem;
+    font-size: 0.72rem;
+  }
+
+  .publicFormatGrid,
+  .publicGrid,
+  .publicPriceGrid,
+  .scheduleGrid,
+  .listaClases,
+  .misClasesGrid {
+    gap: 0.65rem;
+  }
+
+  .filtersBar {
+    gap: 0.45rem;
+  }
+
+  .searchWrap input,
+  .select,
+  .btnClear {
+    min-height: 40px;
+    border-radius: 12px;
+  }
+
+  .claseCard {
+    border-radius: 16px;
+  }
+
+  .cardTop {
+    padding: 0.65rem 0.75rem 0.55rem;
+  }
+
+  .cardBody {
+    padding: 0.72rem;
+  }
+
+  .metaGrid {
+    gap: 0.45rem;
+  }
+
+  .cardFooter {
+    gap: 0.45rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .clases {
+    padding: 0 0.65rem 1.8rem;
+  }
+
+  .clasesHero,
+  .misClasesSection,
+  .publicSection,
+  .clasesCta,
+  .publicLoginBox,
+  .studentNextClassCard,
+  .studentProfileCard,
+  .studentPanel,
+  .staffDashboard {
+    padding: 0.82rem;
+    border-radius: 16px;
+  }
+
+  .heroActions {
+    gap: 0.45rem;
+  }
+
+  .heroCtaBtn,
+  .heroSecondaryBtn {
+    min-height: 40px;
+    padding: 0.58rem 0.8rem;
+  }
+}

@@ -9,11 +9,11 @@ const query = (sql, params = []) => db.promise().query(sql, params);
 const JWT_SECRET = process.env.JWT_SECRET || "nanipadel_secret_2026";
 const STAFF_ROLES = ["admin", "profesor", "profe"];
 const PUBLIC_LEVELS = [
-  { title: "Ninos", text: "Aprendizaje seguro y divertido.", price: "Consultar" },
-  { title: "Iniciacion", text: "Golpes basicos y primeras situaciones reales.", price: "Consultar" },
-  { title: "Medio", text: "Consistencia, colocacion y decisiones.", price: "Consultar" },
-  { title: "Avanzado", text: "Ritmo alto y patrones tacticos.", price: "Consultar" },
-  { title: "Competicion", text: "Entrenamiento exigente y especifico.", price: "Consultar" },
+  { title: "Niños", text: "Aprendizaje seguro y divertido.", price: "Consultar" },
+  { title: "Iniciación", text: "Golpes básicos y primeras situaciones reales.", price: "Consultar" },
+  { title: "Medio", text: "Consistencia, colocación y decisiones.", price: "Consultar" },
+  { title: "Avanzado", text: "Ritmo alto y patrones tácticos.", price: "Consultar" },
+  { title: "Competición", text: "Entrenamiento exigente y específico.", price: "Consultar" },
 ];
 
 function optionalAuth(req, _res, next) {
@@ -87,14 +87,14 @@ async function ensureProfessorCanAccessGroup(user, groupId) {
 async function getAlumnoForUser(userId) {
   const columns = await getTableColumns("alumnos");
   if (!columns.has("usuario_id")) {
-    return { alumno: null, message: "Tu cuenta aun no esta vinculada a un alumno de la escuela." };
+    return { alumno: null, message: "Tu cuenta aún no está vinculada a un alumno de la escuela." };
   }
 
   const activeFilter = columns.has("activo") ? "AND activo = 1" : "";
   const [rows] = await query(`SELECT * FROM alumnos WHERE usuario_id = ? ${activeFilter} LIMIT 1`, [userId]);
   return {
     alumno: rows[0] || null,
-    message: rows.length ? null : "Tu cuenta aun no esta vinculada a un alumno de la escuela.",
+    message: rows.length ? null : "Tu cuenta aún no está vinculada a un alumno de la escuela.",
   };
 }
 
@@ -300,8 +300,8 @@ router.get("/publica", async (_req, res) => {
   res.json({
     ok: true,
     niveles: PUBLIC_LEVELS,
-    formatos: ["Grupos 1 dia/semana", "Grupos 2 dias/semana", "Clases particulares", "Tecnificacion", "Intensivos"],
-    horarios: ["Mananas bajo demanda", "Tardes por niveles", "Fines de semana segun grupo"],
+    formatos: ["Grupos 1 día/semana", "Grupos 2 días/semana", "Clases particulares", "Tecnificación", "Intensivos"],
+    horarios: ["Mañanas bajo demanda", "Tardes por niveles", "Fines de semana según grupo"],
     precios: [{ nombre: "Cuotas de escuela", precio: "Consultar" }],
   });
 });
@@ -400,7 +400,7 @@ router.get("/mis-clases", optionalAuth, async (req, res) => {
       proximas_clases: proximasSesiones,
       asistenciaReciente,
       asistencia: asistenciaReciente,
-      mensaje: clases.length ? null : "Aun no tienes grupo asignado. Contacta con la escuela.",
+      mensaje: clases.length ? null : "Aún no tienes grupo asignado. Contacta con la escuela.",
     });
   } catch (e) {
     console.error("Error GET /api/clases/mis-clases:", e);
@@ -518,12 +518,12 @@ router.patch("/recuperaciones/:id", requireAuth, requireRoles(STAFF_ROLES), asyn
     const [current] = await query("SELECT * FROM recuperaciones_clase WHERE id = ? LIMIT 1", [req.params.id]);
     if (!current.length) return res.status(404).json({ ok: false, message: "Recuperacion no encontrada" });
     if (!isAdmin(req.user) && ref && !(await ensureProfessorCanAccessGroup(req.user, current[0][ref]))) {
-      return res.status(403).json({ ok: false, message: "No tienes permiso sobre esta recuperacion." });
+      return res.status(403).json({ ok: false, message: "No tienes permiso sobre esta recuperación." });
     }
 
     const allowedStates = ["pendiente", "asignada", "recuperada", "cancelada"];
     if (req.body.estado && !allowedStates.includes(req.body.estado)) {
-      return res.status(400).json({ ok: false, message: "Estado de recuperacion no valido." });
+      return res.status(400).json({ ok: false, message: "Estado de recuperación no válido." });
     }
 
     const allowed = ["estado", "fecha_recuperacion", "observaciones"];

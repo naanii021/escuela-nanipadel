@@ -115,7 +115,7 @@ function buildNotificationPreferencePayload(payload) {
 
   if (Number(whatsappEnabled) === 1 && !whatsappPhone) {
     return {
-      error: "Anade un numero de telefono para recibir avisos por WhatsApp.",
+      error: "Añade un número de teléfono para recibir avisos por WhatsApp.",
     };
   }
 

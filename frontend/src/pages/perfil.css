@@ -468,3 +468,132 @@
     width: 100%;
   }
 }
+
+/* Mobile-first compact pass for profile and WhatsApp preferences. */
+@media (max-width: 768px) {
+  .profilePage {
+    width: min(100% - 1.2rem, 1180px);
+    gap: 0.9rem;
+    padding-top: 0.75rem;
+    padding-bottom: 2rem;
+  }
+
+  .profileHero,
+  .profileCard,
+  .profileProfessional {
+    border-radius: 18px;
+    padding: 0.95rem;
+  }
+
+  .profileHero {
+    gap: 0.75rem;
+  }
+
+  .profileIdentity {
+    gap: 0.75rem;
+  }
+
+  .profileAvatar {
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+  }
+
+  .profileHero h1 {
+    font-size: clamp(1.45rem, 7vw, 1.9rem);
+  }
+
+  .profileHero p,
+  .profileCardHeader p,
+  .profileWhatsappBox p {
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+
+  .profileGrid,
+  .profileProfessional,
+  .profileFormGrid,
+  .profilePreferenceGrid {
+    gap: 0.65rem;
+  }
+
+  .profileCardHeader {
+    gap: 0.65rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .profileCardHeader > span {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .profileFormGrid input,
+  .profileFormGrid select,
+  .profileFormGrid textarea,
+  .profilePreferenceGrid input[type="text"],
+  .profilePreferenceGrid input:not([type]),
+  .profileWhatsappBox input {
+    min-height: 42px;
+    padding: 0.62rem 0.72rem;
+    border-radius: 12px;
+  }
+
+  .profileFormGrid textarea {
+    min-height: 82px;
+  }
+
+  .profileToggle {
+    min-height: auto;
+    padding: 0.68rem;
+    border-radius: 14px;
+  }
+
+  .profileWhatsappBox {
+    gap: 0.38rem;
+    padding: 0.72rem;
+    border-radius: 14px;
+  }
+
+  .profilePreferenceTypes {
+    gap: 0.45rem;
+  }
+
+  .profilePreferenceTypes label {
+    min-height: 38px;
+    padding: 0.42rem 0.62rem;
+  }
+
+  .profileActionsBar {
+    gap: 0.5rem;
+  }
+
+  .profilePrimaryBtn,
+  .profileSecondaryBtn {
+    min-height: 42px;
+    padding: 0.65rem 0.9rem;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .profilePage {
+    width: calc(100% - 0.9rem);
+  }
+
+  .profileHero,
+  .profileCard,
+  .profileProfessional {
+    padding: 0.85rem;
+    border-radius: 16px;
+  }
+
+  .profileIdentity {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .profileAvatar {
+    width: 52px;
+    height: 52px;
+  }
+}

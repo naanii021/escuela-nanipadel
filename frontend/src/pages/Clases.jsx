@@ -4,44 +4,44 @@ import { Link } from "react-router-dom";
 import { apiGet } from "../services/api";
 import { getUser, isLogged } from "../services/auth";
 
-const DAY_LABELS = { L: "Lunes", M: "Martes", X: "Miercoles", J: "Jueves", V: "Viernes", S: "Sabado", D: "Domingo" };
+const DAY_LABELS = { L: "Lunes", M: "Martes", X: "Miércoles", J: "Jueves", V: "Viernes", S: "Sábado", D: "Domingo" };
 const STAFF_ROLES = ["admin", "profesor", "profe"];
 const CONTACT_HREF = "mailto:info@nanipadel.com";
 
 const PUBLIC_LEVELS = [
-  { title: "Ninos", text: "Aprendizaje seguro y divertido, con juegos, tecnica basica y habitos de pista." },
-  { title: "Iniciacion", text: "Para quienes empiezan desde cero o quieren ganar confianza con los golpes basicos." },
-  { title: "Medio", text: "Para jugadores que ya pelotean y buscan mejorar colocacion, consistencia y toma de decisiones." },
-  { title: "Avanzado", text: "Ritmo alto, patrones tacticos y trabajo especifico para competir mejor." },
-  { title: "Competicion", text: "Entrenamientos exigentes para jugadores que compiten o quieren preparar partidos." },
+  { title: "Niños", text: "Aprendizaje seguro y divertido, con juegos, técnica básica y hábitos de pista." },
+  { title: "Iniciación", text: "Para quienes empiezan desde cero o quieren ganar confianza con los golpes básicos." },
+  { title: "Medio", text: "Para jugadores que ya pelotean y buscan mejorar colocación, consistencia y toma de decisiones." },
+  { title: "Avanzado", text: "Ritmo alto, patrones tácticos y trabajo específico para competir mejor." },
+  { title: "Competición", text: "Entrenamientos exigentes para jugadores que compiten o quieren preparar partidos." },
 ];
 
 const CLASS_FORMATS = [
-  { title: "Grupos 1 dia/semana", text: "Ideal para mantener ritmo y mejorar poco a poco.", badge: "Ritmo semanal", icon: "calendar" },
-  { title: "Grupos 2 dias/semana", text: "La opcion mas completa para progresar con continuidad.", badge: "Mas progreso", icon: "repeat" },
+  { title: "Grupos 1 día/semana", text: "Ideal para mantener ritmo y mejorar poco a poco.", badge: "Ritmo semanal", icon: "calendar" },
+  { title: "Grupos 2 días/semana", text: "La opción más completa para progresar con continuidad.", badge: "Más progreso", icon: "repeat" },
   { title: "Clases particulares", text: "Entrenamientos personalizados para trabajar objetivos concretos.", badge: "A medida", icon: "target" },
-  { title: "Tecnificacion", text: "Sesiones enfocadas en golpes, tactica y situaciones reales de partido.", badge: "Detalle tecnico", icon: "court" },
+  { title: "Tecnificación", text: "Sesiones enfocadas en golpes, táctica y situaciones reales de partido.", badge: "Detalle técnico", icon: "court" },
   { title: "Intensivos", text: "Entrenamientos puntuales para avanzar en periodos concretos.", badge: "Por temporada", icon: "spark" },
 ];
 
 const METHOD_ITEMS = [
   { title: "Grupos organizados por nivel", text: "Buscamos que entrenes con alumnos de ritmo parecido para que la clase fluya." },
-  { title: "Seguimiento del progreso", text: "El objetivo es que cada alumno sepa que esta trabajando y que debe reforzar." },
-  { title: "Avisos y comunicacion con el profesor", text: "Cuando formes parte de la escuela, tendras tu zona para consultar informacion de clase." },
-  { title: "Entrenamientos adaptados a cada grupo", text: "No todos los grupos necesitan lo mismo: ajustamos tecnica, tactica y partido." },
+  { title: "Seguimiento del progreso", text: "El objetivo es que cada alumno sepa qué está trabajando y qué debe reforzar." },
+  { title: "Avisos y comunicación con el profesor", text: "Cuando formes parte de la escuela, tendrás tu zona para consultar información de clase." },
+  { title: "Entrenamientos adaptados a cada grupo", text: "No todos los grupos necesitan lo mismo: ajustamos técnica, táctica y partido." },
 ];
 
 const PRICE_ITEMS = [
-  { title: "Clases en grupo", text: "Consultar cuota segun dias y grupo" },
+  { title: "Clases en grupo", text: "Consultar cuota según días y grupo" },
   { title: "Clases particulares", text: "Consultar disponibilidad" },
-  { title: "Intensivos", text: "Segun temporada" },
-  { title: "Tecnificacion", text: "Consultar plazas" },
+  { title: "Intensivos", text: "Según temporada" },
+  { title: "Tecnificación", text: "Consultar plazas" },
 ];
 
 const ORIENTATIVE_SCHEDULES = [
   { title: "Tardes entre semana", text: "La mayor parte de grupos se organiza en franjas de tarde." },
   { title: "Grupos por nivel", text: "Te orientamos hacia el grupo que mejor encaje con tu juego." },
-  { title: "Opciones para ninos y adultos", text: "Clases pensadas para diferentes edades, objetivos y ritmos." },
+  { title: "Opciones para niños y adultos", text: "Clases pensadas para diferentes edades, objetivos y ritmos." },
   { title: "Intensivos puntuales", text: "Puede haber sesiones especiales en periodos concretos." },
 ];
 
@@ -61,7 +61,7 @@ function formatHora(horaInicio, duracionMin) {
 }
 
 function nivelLabel(nivel) {
-  const map = { ninos: "Ninos", iniciacion: "Iniciacion", medio: "Medio", avanzado: "Avanzado", competicion: "Competicion", avanzado_plus: "Avanzado +" };
+  const map = { ninos: "Niños", iniciacion: "Iniciación", medio: "Medio", avanzado: "Avanzado", competicion: "Competición", avanzado_plus: "Avanzado +" };
   return map[nivel] || nivel || "-";
 }
 
@@ -140,7 +140,7 @@ function GroupCard({ grupo }) {
       <div className="cardBody">
         <h3 className="cardTitle">{grupo.nombre}</h3>
         <div className="metaGrid">
-          <div className="metaItem"><span className="metaLabel"><IcCalendar /> Dias</span><span className="metaValue">{formatDias(grupo.dia1, grupo.dia2)}</span></div>
+          <div className="metaItem"><span className="metaLabel"><IcCalendar /> Días</span><span className="metaValue">{formatDias(grupo.dia1, grupo.dia2)}</span></div>
           <div className="metaItem"><span className="metaLabel"><IcClock /> Hora</span><span className="metaValue">{formatHora(grupo.hora_inicio, grupo.duracion_min)}</span></div>
           <div className="metaItem"><span className="metaLabel"><IcCourt /> Pista</span><span className="metaValue">{grupo.pista_habitual || "-"}</span></div>
           <div className="metaItem"><span className="metaLabel"><IcUser /> Profesor</span><span className="metaValue">{grupo.profesor || "-"}</span></div>
@@ -174,7 +174,7 @@ function StudentGroupCard({ grupo }) {
       </div>
       <h3>{grupo.nombre || "Grupo de clases"}</h3>
       <div className="studentClassMeta">
-        <div><span><IcCalendar /> Dias</span><strong>{formatDias(grupo.dia1, grupo.dia2)}</strong></div>
+        <div><span><IcCalendar /> Días</span><strong>{formatDias(grupo.dia1, grupo.dia2)}</strong></div>
         <div><span><IcClock /> Hora</span><strong>{formatHora(grupo.hora_inicio, grupo.duracion_min)}</strong></div>
         <div><span><IcCourt /> Pista</span><strong>{grupo.pista_habitual || "Pendiente"}</strong></div>
         <div><span><IcUser /> Profesor</span><strong>{grupo.profesor || "Pendiente"}</strong></div>
@@ -190,17 +190,17 @@ function PublicClassesLanding({ notice }) {
         <div className="heroContent">
           <div className="heroText">
             <span className="publicEyebrow">Escuela NaniPadel</span>
-            <h1 className="heroTitle">Clases de padel para todos los niveles</h1>
+            <h1 className="heroTitle">Clases de pádel para todos los niveles</h1>
             <p className="heroSub">Entrena en grupos reducidos, mejora tu juego y encuentra el horario que mejor encaje contigo.</p>
             <div className="heroActions">
-              <a href={CONTACT_HREF} className="heroCtaBtn">Solicitar informacion <IcArrow /></a>
+              <a href={CONTACT_HREF} className="heroCtaBtn">Solicitar información <IcArrow /></a>
               <a href="#niveles" className="heroSecondaryBtn">Ver niveles</a>
             </div>
             <div className="publicHeroBadges" aria-label="Tipos de clases disponibles">
-              <span>Ninos y adultos</span>
+              <span>Niños y adultos</span>
               <span>Grupos por nivel</span>
               <span>Clases particulares</span>
-              <span>Tecnificacion</span>
+              <span>Tecnificación</span>
             </div>
           </div>
           <div className="publicHeroVisual" aria-hidden="true">
@@ -217,7 +217,7 @@ function PublicClassesLanding({ notice }) {
 
       {notice && (
         <div className="accountNotice">
-          <strong>Tu cuenta aun no esta vinculada como alumno de la escuela.</strong>
+          <strong>Tu cuenta aún no está vinculada como alumno de la escuela.</strong>
           <p>{notice}</p>
           <a href={CONTACT_HREF} className="inlineHelpBtn">Contactar con el club</a>
         </div>
@@ -226,8 +226,8 @@ function PublicClassesLanding({ notice }) {
       <section className="publicSection">
         <div className="sectionHeaderStack">
           <span className="publicEyebrow">Formatos</span>
-          <h2 className="sectionTitle">Que tipo de clase buscas?</h2>
-          <p>Clases para ninos, adultos y jugadores de competicion, con opciones para entrenar de forma regular o trabajar objetivos concretos.</p>
+          <h2 className="sectionTitle">¿Qué tipo de clase buscas?</h2>
+          <p>Clases para niños, adultos y jugadores de competición, con opciones para entrenar de forma regular o trabajar objetivos concretos.</p>
         </div>
         <div className="publicFormatGrid">
           {CLASS_FORMATS.map((item) => (
@@ -245,7 +245,7 @@ function PublicClassesLanding({ notice }) {
         <div className="sectionHeaderStack">
           <span className="publicEyebrow">Niveles</span>
           <h2 className="sectionTitle">Entrena con alumnos de tu nivel</h2>
-          <p>Si no tienes claro donde encajas, cuentanos como juegas y te ayudamos a encontrar el grupo adecuado.</p>
+          <p>Si no tienes claro dónde encajas, cuéntanos cómo juegas y te ayudamos a encontrar el grupo adecuado.</p>
         </div>
         <div className="publicGrid levelGrid">
           {PUBLIC_LEVELS.map((item) => (
@@ -260,8 +260,8 @@ function PublicClassesLanding({ notice }) {
 
       <section className="publicSection publicMethod">
         <div className="sectionHeaderStack">
-          <span className="publicEyebrow">Metodo</span>
-          <h2 className="sectionTitle">Como trabajamos en la escuela</h2>
+          <span className="publicEyebrow">Método</span>
+          <h2 className="sectionTitle">Cómo trabajamos en la escuela</h2>
           <p>Clases con estructura, correcciones claras y ejercicios pensados para que notes mejora en pista.</p>
         </div>
         <div className="methodList">
@@ -281,7 +281,7 @@ function PublicClassesLanding({ notice }) {
         <div className="sectionHeaderStack">
           <span className="publicEyebrow">Cuotas</span>
           <h2 className="sectionTitle">Precios orientativos</h2>
-          <p>Te informamos segun grupo y horario. No publicamos precios cerrados porque dependen del formato y de la disponibilidad.</p>
+          <p>Te informamos según grupo y horario. No publicamos precios cerrados porque dependen del formato y de la disponibilidad.</p>
         </div>
         <div className="publicPriceGrid">
           {PRICE_ITEMS.map((item) => (
@@ -291,7 +291,7 @@ function PublicClassesLanding({ notice }) {
             </article>
           ))}
         </div>
-        <p className="publicNote">Las cuotas pueden variar segun el numero de dias, tipo de grupo y disponibilidad de pista.</p>
+        <p className="publicNote">Las cuotas pueden variar según el número de días, tipo de grupo y disponibilidad de pista.</p>
       </section>
 
       <section className="publicSection">
@@ -313,10 +313,10 @@ function PublicClassesLanding({ notice }) {
 
       <section className="clasesCta">
         <span className="publicEyebrow">Contacto</span>
-        <h2>Quieres encontrar tu grupo?</h2>
-        <p>Cuentanos tu nivel, disponibilidad y edad, y te ayudamos a buscar la mejor opcion dentro de la escuela.</p>
+        <h2>¿Quieres encontrar tu grupo?</h2>
+        <p>Cuéntanos tu nivel, disponibilidad y edad, y te ayudamos a buscar la mejor opción dentro de la escuela.</p>
         <div className="heroActions">
-          <a href={CONTACT_HREF} className="heroCtaBtn">Solicitar informacion</a>
+          <a href={CONTACT_HREF} className="heroCtaBtn">Solicitar información</a>
           <a href={CONTACT_HREF} className="heroSecondaryBtn">Contactar con el club</a>
         </div>
       </section>
@@ -324,7 +324,7 @@ function PublicClassesLanding({ notice }) {
       <section className="publicLoginBox">
         <div>
           <h2>Ya eres alumno?</h2>
-          <p>Entra a tu zona de clases para consultar tu informacion.</p>
+          <p>Entra a tu zona de clases para consultar tu información.</p>
         </div>
         <Link to="/login" className="heroSecondaryBtn">Entrar a mi zona de clases</Link>
       </section>
@@ -360,7 +360,7 @@ function StaffClassesSummary({ classData, grupos, loading, err, q, setQ, nivelFi
         <div className="heroContent">
           <div className="heroText">
             <h1 className="heroTitle">Resumen de clases</h1>
-            <p className="heroSub">Un vistazo rapido a los grupos, alumnos y tareas pendientes de la escuela.</p>
+            <p className="heroSub">Un vistazo rápido a los grupos, alumnos y tareas pendientes de la escuela.</p>
             <Link to="/panel" className="heroCtaBtn">Ir al panel <IcArrow /></Link>
           </div>
           <div className="heroStats">
@@ -392,20 +392,20 @@ function StaffClassesSummary({ classData, grupos, loading, err, q, setQ, nivelFi
         <div className="filtersBar">
           <div className="searchWrap">
             <span className="searchIcon"><IcSearch /></span>
-            <input className="searchInput" type="text" placeholder="Buscar grupo, profe, pista, codigo..." value={q} onChange={(e) => setQ(e.target.value)} />
+            <input className="searchInput" type="text" placeholder="Buscar grupo, profe, pista, código..." value={q} onChange={(e) => setQ(e.target.value)} />
             {q && <button className="searchClear" onClick={() => setQ("")} aria-label="Limpiar busqueda">x</button>}
           </div>
           <select className="select" value={nivelFilt} onChange={(e) => setNivelFilt(e.target.value)}>
             <option value="">Nivel</option>
-            <option value="ninos">Ninos</option>
-            <option value="iniciacion">Iniciacion</option>
+            <option value="ninos">Niños</option>
+            <option value="iniciacion">Iniciación</option>
             <option value="medio">Medio</option>
             <option value="avanzado">Avanzado</option>
             <option value="avanzado_plus">Avanzado +</option>
-            <option value="competicion">Competicion</option>
+            <option value="competicion">Competición</option>
           </select>
           <select className="select" value={dia} onChange={(e) => setDia(e.target.value)}>
-            <option value="">Dia</option>
+            <option value="">Día</option>
             {Object.entries(DAY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
           <select className="select" value={profesor} onChange={(e) => setProfesor(e.target.value)}>
@@ -416,7 +416,7 @@ function StaffClassesSummary({ classData, grupos, loading, err, q, setQ, nivelFi
         </div>
 
         {loading && <div className="skeletonGrid">{Array.from({ length: 4 }).map((_, i) => <div className="skeletonCard" key={i} />)}</div>}
-        {!loading && err && <div className="errorBox"><strong>No hemos podido cargar la informacion.</strong><p>{err}</p></div>}
+        {!loading && err && <div className="errorBox"><strong>No hemos podido cargar la información.</strong><p>{err}</p></div>}
         {!loading && !err && filtered.length === 0 && <div className="emptyBox"><IcSearch /><strong>Sin resultados</strong><p>No hay grupos para los filtros seleccionados.</p></div>}
         {!loading && !err && filtered.length > 0 && <div className="listaClases">{filtered.map((g) => <GroupCard key={g.id} grupo={g} />)}</div>}
       </section>
@@ -455,16 +455,16 @@ function StudentClassesDashboard({ classData, user, loading }) {
       <section className="studentNextClassCard">
         <div>
           <span className="studentSectionEyebrow">Proxima clase</span>
-          <h2>{nextGroup?.nombre || "Aun sin clase programada"}</h2>
+          <h2>{nextGroup?.nombre || "Aún sin clase programada"}</h2>
           <p>
             {nextSession
               ? `${nextSession.fecha || "Fecha pendiente"} - ${formatHora(nextSession.hora_inicio, nextSession.duracion_min || nextGroup?.duracion_min || 60)}`
-              : "Aun no tienes una proxima clase registrada."}
+              : "Aún no tienes una próxima clase registrada."}
           </p>
         </div>
         <div className="studentNextMeta">
           <div><span>Nivel</span><strong>{nivelLabel(nextGroup?.nivel || alumno.nivel_juego || alumno.nivel)}</strong></div>
-          <div><span>Dias</span><strong>{nextGroup ? formatDias(nextGroup.dia1, nextGroup.dia2) : "No disponible"}</strong></div>
+          <div><span>Días</span><strong>{nextGroup ? formatDias(nextGroup.dia1, nextGroup.dia2) : "No disponible"}</strong></div>
           <div><span>Pista</span><strong>{nextSession?.pista_habitual || nextGroup?.pista_habitual || "Pendiente"}</strong></div>
           <div><span>Profesor</span><strong>{nextGroup?.profesor || classData?.profesor?.nombre || "Pendiente"}</strong></div>
         </div>
@@ -477,9 +477,9 @@ function StudentClassesDashboard({ classData, user, loading }) {
           <p>{classData?.mensaje || "Estos son los datos principales de tu clase en la escuela."}</p>
         </div>
         <div className="studentInfoGrid">
-          <div><span>Grupo</span><strong>{grupo?.nombre || "Aun sin grupo asignado"}</strong></div>
+          <div><span>Grupo</span><strong>{grupo?.nombre || "Aún sin grupo asignado"}</strong></div>
           <div><span>Profesor</span><strong>{classData?.profesor?.nombre || grupo?.profesor || "No disponible"}</strong></div>
-          <div><span>Dias</span><strong>{grupo ? formatDias(grupo.dia1, grupo.dia2) : "No disponible"}</strong></div>
+          <div><span>Días</span><strong>{grupo ? formatDias(grupo.dia1, grupo.dia2) : "No disponible"}</strong></div>
           <div><span>Horario</span><strong>{grupo ? formatHora(grupo.hora_inicio, grupo.duracion_min) : "No disponible"}</strong></div>
           <div><span>Pista</span><strong>{classData?.pista || grupo?.pista_habitual || "No disponible"}</strong></div>
           <div><span>Estado</span><strong>{Number(alumno.activo ?? 1) ? "Activo" : "Inactivo"}</strong></div>
@@ -498,8 +498,8 @@ function StudentClassesDashboard({ classData, user, loading }) {
         ) : (
           <div className="studentEmptyState">
             <IcCourt />
-            <strong>Aun no tienes clases asignadas.</strong>
-            <p>Contacta con el club para mas informacion.</p>
+            <strong>Aún no tienes clases asignadas.</strong>
+            <p>Contacta con el club para más información.</p>
             <a href={CONTACT_HREF} className="heroCtaBtn">Contactar con el club</a>
           </div>
         )}
@@ -513,7 +513,7 @@ function StudentClassesDashboard({ classData, user, loading }) {
               <strong>{sesion.fecha || "Fecha pendiente"}</strong>
               <span>{formatHora(sesion.hora_inicio, sesion.duracion_min || grupo?.duracion_min || 60)} - {sesion.pista_habitual || grupo?.pista_habitual || "Pista pendiente"} - {sesion.estado || "programada"}</span>
             </article>
-          )) : <p className="softEmpty">Todavia no hay proximas clases registradas.</p>}
+          )) : <p className="softEmpty">Todavía no hay próximas clases registradas.</p>}
         </div>
         <div className="studentPanel">
           <h2>Avisos del profesor</h2>
@@ -528,7 +528,7 @@ function StudentClassesDashboard({ classData, user, loading }) {
           <h2>Recuperaciones pendientes</h2>
           {recuperaciones.length ? recuperaciones.map((recuperacion) => (
             <article className="studentMiniRow" key={recuperacion.id}>
-              <strong>{recuperacion.motivo || "Recuperacion"}</strong>
+              <strong>{recuperacion.motivo || "Recuperación"}</strong>
               <span>{recuperacion.fecha_original || "Fecha pendiente"} - {recuperacion.estado || "pendiente"}</span>
             </article>
           )) : <p className="positiveEmpty">No tienes clases pendientes de recuperar.</p>}
@@ -540,7 +540,7 @@ function StudentClassesDashboard({ classData, user, loading }) {
               <strong>{asistencia.grupo || "Clase"}</strong>
               <span>{asistencia.fecha || "Fecha pendiente"} - {asistencia.estado || "sin estado"}</span>
             </article>
-          )) : <p className="softEmpty">Todavia no hay asistencia registrada.</p>}
+          )) : <p className="softEmpty">Todavía no hay asistencia registrada.</p>}
         </div>
       </section>
 
@@ -590,7 +590,7 @@ export default function Clases() {
           return;
         }
 
-        // Con sesion, el backend decide la vista y filtra los datos autorizados.
+        // Con sesión, el backend decide la vista y filtra los datos autorizados.
         const profile = await apiGet("/api/clases/mis-clases");
         setClassData(profile);
         if (profile.tipoVista === "profesor" || profile.tipoVista === "admin") {
@@ -601,7 +601,7 @@ export default function Clases() {
           setPublicData(data);
         }
       } catch (e) {
-        setErr(e.message || "Intentalo de nuevo en unos segundos.");
+        setErr(e.message || "Inténtalo de nuevo en unos segundos.");
       } finally {
         setLoading(false);
       }

@@ -92,7 +92,7 @@ router.get("/summary", optionalAuth, async (req, res) => {
         estadoPista: meteoRows[0] || null,
         help: [
           "Puedes revisar reservas, clases, torneos y estado de pista desde el asistente.",
-          "Si no has iniciado sesion, el asistente muestra informacion general del club.",
+          "Si no has iniciado sesión, el asistente muestra información general del club.",
         ],
       },
       personal: {

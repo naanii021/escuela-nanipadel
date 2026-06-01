@@ -11,8 +11,8 @@ function HomeNewsCard({ item }) {
         </div>
         <h3>{item.title}</h3>
         <p>{item.summary}</p>
-        <Link className="newsCardLink" to="/galeria" aria-label={`Ver mas actividad sobre ${item.title}`}>
-          Ver mas
+        <Link className="newsCardLink" to="/galeria" aria-label={`Ver más actividad sobre ${item.title}`}>
+          Ver más
         </Link>
       </div>
     </article>

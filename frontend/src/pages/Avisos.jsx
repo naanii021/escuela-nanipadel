@@ -197,18 +197,18 @@ export default function Avisos() {
   const selectedGroup = groups.find((item) => String(item.id) === String(form.groupId));
 
   const recipientSummary = useMemo(() => {
-    if (form.audience === "all_users") return "Se enviara a: todos los usuarios activos.";
-    if (form.audience === "students") return "Se enviara a: todos los alumnos.";
-    if (form.audience === "professors") return "Se enviara a: profesores y administracion.";
+    if (form.audience === "all_users") return "Se enviará a: todos los usuarios activos.";
+    if (form.audience === "students") return "Se enviará a: todos los alumnos.";
+    if (form.audience === "professors") return "Se enviará a: profesores y administración.";
     if (form.audience === "specific_student") {
-      return selectedStudent ? `Se enviara a: ${userLabel(selectedStudent)}.` : "Selecciona un alumno.";
+      return selectedStudent ? `Se enviará a: ${userLabel(selectedStudent)}.` : "Selecciona un alumno.";
     }
     if (form.audience === "specific_professor") {
-      return selectedProfessor ? `Se enviara a: ${userLabel(selectedProfessor)}.` : "Selecciona un profesor.";
+      return selectedProfessor ? `Se enviará a: ${userLabel(selectedProfessor)}.` : "Selecciona un profesor.";
     }
     if (form.audience === "group") {
       return selectedGroup
-        ? `Se enviara a: ${selectedGroup.nombre || selectedGroup.codigo || `Grupo ${selectedGroup.id}`}.`
+        ? `Se enviará a: ${selectedGroup.nombre || selectedGroup.codigo || `Grupo ${selectedGroup.id}`}.`
         : "Selecciona un grupo o clase.";
     }
     return "";
@@ -217,7 +217,7 @@ export default function Avisos() {
   const submitAviso = async (event) => {
     event.preventDefault();
     if (!form.title.trim() || !form.body.trim()) {
-      setError("Titulo y mensaje son obligatorios.");
+      setError("Título y mensaje son obligatorios.");
       return;
     }
 
@@ -289,14 +289,14 @@ export default function Avisos() {
         <section className="avisosComposer">
           <div className="avisosSectionHead">
             <div>
-              <span>Gestion</span>
+              <span>Gestión</span>
               <h2>Nuevo aviso</h2>
             </div>
-            <p>WhatsApp se solicita al backend; nunca se envia desde el navegador.</p>
+            <p>WhatsApp se solicita al backend; nunca se envía desde el navegador.</p>
           </div>
 
           <form className="avisosForm" onSubmit={submitAviso}>
-            <label>Titulo<input value={form.title} onChange={(e) => updateForm("title", e.target.value)} required /></label>
+            <label>Título<input value={form.title} onChange={(e) => updateForm("title", e.target.value)} required /></label>
             <label>Tipo<select value={form.type} onChange={(e) => updateForm("type", e.target.value)}>{TYPE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
             <label className="avisosWide">Mensaje<textarea value={form.body} onChange={(e) => updateForm("body", e.target.value)} rows={4} required /></label>
             <label>Prioridad<select value={form.priority} onChange={(e) => updateForm("priority", e.target.value)}><option value="normal">Normal</option><option value="importante">Importante</option><option value="urgente">Urgente</option></select></label>
@@ -319,13 +319,13 @@ export default function Avisos() {
             <label>Inicio<input type="datetime-local" value={form.starts_at} onChange={(e) => updateForm("starts_at", e.target.value)} /></label>
             <label>Caducidad<input type="datetime-local" value={form.expires_at} onChange={(e) => updateForm("expires_at", e.target.value)} /></label>
             <div className="avisosChecks">
-              <label><input type="checkbox" checked={form.sendInApp} onChange={(e) => updateForm("sendInApp", e.target.checked)} /> Notificacion interna</label>
-              <label><input type="checkbox" checked={form.sendWhatsapp} onChange={(e) => updateForm("sendWhatsapp", e.target.checked)} /> Enviar tambien por WhatsApp</label>
+              <label><input type="checkbox" checked={form.sendInApp} onChange={(e) => updateForm("sendInApp", e.target.checked)} /> Notificación interna</label>
+              <label><input type="checkbox" checked={form.sendWhatsapp} onChange={(e) => updateForm("sendWhatsapp", e.target.checked)} /> Enviar también por WhatsApp</label>
             </div>
             <div className="avisosSendSummary">
               <strong>{recipientSummary}</strong>
               {form.sendWhatsapp && (
-                <span>Solo recibiran WhatsApp los usuarios que tengan numero y avisos por WhatsApp activados.</span>
+                <span>Solo recibirán WhatsApp los usuarios que tengan número y avisos por WhatsApp activados.</span>
               )}
             </div>
             <button className="avisosPrimaryBtn" type="submit" disabled={saving}>{saving ? "Creando..." : "Crear aviso"}</button>
@@ -339,7 +339,7 @@ export default function Avisos() {
             <span>Tus avisos</span>
             <h2>{activeCount ? `${activeCount} activos` : "Sin pendientes"}</h2>
           </div>
-          {summary.unread_count > 0 && <button className="avisosGhostBtn" onClick={markAll}>Marcar todos como leidos</button>}
+          {summary.unread_count > 0 && <button className="avisosGhostBtn" onClick={markAll}>Marcar todos como leídos</button>}
         </div>
 
         <div className="avisosFilters">
@@ -349,7 +349,7 @@ export default function Avisos() {
           <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Estado de lectura">
             <option value="all">Todos</option>
             <option value="unread">Activos</option>
-            <option value="read">Leidos</option>
+            <option value="read">Leídos</option>
           </select>
         </div>
 
@@ -360,7 +360,7 @@ export default function Avisos() {
         {!loading && !error && notifications.length === 0 && (
           <div className="avisosEmpty">
             <strong>No tienes avisos pendientes.</strong>
-            <span>Cuando haya novedades del club apareceran aqui.</span>
+            <span>Cuando haya novedades del club aparecerán aquí.</span>
           </div>
         )}
 
@@ -375,9 +375,9 @@ export default function Avisos() {
               <p>{item.body}</p>
               <div className="avisoMeta">
                 <time>{formatDate(item.created_at)}</time>
-                <em>{item.read_at ? "Leido" : "Sin leer"}</em>
+                <em>{item.read_at ? "Leído" : "Sin leer"}</em>
               </div>
-              {!item.read_at && <button onClick={() => markAsRead(item.id)}>Marcar como leido</button>}
+              {!item.read_at && <button onClick={() => markAsRead(item.id)}>Marcar como leído</button>}
             </article>
           ))}
         </div>

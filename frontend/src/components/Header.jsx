@@ -74,7 +74,7 @@ function Header() {
               Estado pista
             </NavLink>
             <NavLink to="/galeria" className={navClass} onClick={closeMobileMenu}>
-              Galeria
+              Galería
             </NavLink>
             {logged && (
               <NavLink to="/avisos" className={navClass} onClick={closeMobileMenu}>

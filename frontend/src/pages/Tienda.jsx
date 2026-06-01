@@ -30,10 +30,10 @@ const SHOP_ITEMS = [
     featuredLabel: "Recomendado por la escuela",
     badge: "Recomendado",
     details: [
-      ["Nivel recomendado", "Iniciacion a medio"],
+      ["Nivel recomendado", "Iniciación a medio"],
       ["Tipo de jugador", "Control y consistencia"],
       ["Sensacion", "Comoda, manejable y estable"],
-      ["Uso", "Clases, partidos y progresion tecnica"],
+      ["Uso", "Clases, partidos y progresión técnica"],
     ],
   },
   {
@@ -44,7 +44,7 @@ const SHOP_ITEMS = [
     type: "producto",
     typeLabel: "Producto",
     description: "Agarre comodo para entrenos y partidos, con buena sensacion en la mano.",
-    longDescription: "Pack practico para renovar el agarre de la pala antes de entrenar o competir. Ayuda a jugar con mas seguridad cuando el grip empieza a perder tacto.",
+    longDescription: "Pack práctico para renovar el agarre de la pala antes de entrenar o competir. Ayuda a jugar con más seguridad cuando el grip empieza a perder tacto.",
     price: "9 EUR",
     image: shopImage("overgrips.jpg"),
     badge: "Producto de escuela",
@@ -65,7 +65,7 @@ const SHOP_ITEMS = [
     longDescription: "Servicio para revisar el estado general de la pala, valorar pequenos ajustes y recomendar la mejor solucion antes de cambiar de material.",
     price: "Consultar",
     image: shopImage("reparacion-pala.jpg"),
-    featuredLabel: "Servicio mas solicitado",
+    featuredLabel: "Servicio más solicitado",
     badge: "Servicio del club",
     details: [
       ["Incluye", "Revision de desgaste y protector"],
@@ -116,7 +116,7 @@ const SHOP_ITEMS = [
     categoryLabel: "Otros servicios",
     type: "servicio",
     typeLabel: "Servicio",
-    description: "Te orientamos para elegir pala, grip y accesorios segun tu nivel y forma de jugar.",
+    description: "Te orientamos para elegir pala, grip y accesorios según tu nivel y forma de jugar.",
     longDescription: "Te ayudamos a elegir material con criterio: nivel, frecuencia de juego, sensaciones que buscas y presupuesto. Ideal si no sabes que pala o accesorio te encaja.",
     price: "Consultar",
     image: shopImage("material-padel.jpg"),
@@ -210,11 +210,11 @@ function Tienda() {
       <section className="tiendaControls">
         <div className="tiendaControlsHead">
           <div>
-            <span className="tiendaSectionEyebrow">Catalogo</span>
+            <span className="tiendaSectionEyebrow">Catálogo</span>
             <h3>Material y servicios del club</h3>
           </div>
           <p>
-            Filtra por categoria para encontrar palas, grips, mochila o servicios de la escuela.
+            Filtra por categoría para encontrar palas, grips, mochila o servicios de la escuela.
           </p>
         </div>
 
@@ -279,7 +279,7 @@ function Tienda() {
             ))}
           </div>
         ) : (
-          <div className="tiendaEmpty">No hay productos disponibles en esta categoria por ahora.</div>
+          <div className="tiendaEmpty">No hay productos disponibles en esta categoría por ahora.</div>
         )}
       </section>
 

@@ -414,3 +414,133 @@
     flex-direction: column;
   }
 }
+
+/* Mobile-first compact pass for notification lists and filters. */
+@media (max-width: 768px) {
+  .avisosPage {
+    gap: 0.75rem;
+    padding: 0.75rem 0 2rem;
+  }
+
+  .avisosHero,
+  .avisosComposer,
+  .avisosBoard {
+    border-radius: 18px;
+    padding: 0.9rem;
+  }
+
+  .avisosHero {
+    gap: 0.8rem;
+  }
+
+  .avisosHero h1,
+  .avisosSectionHead h2 {
+    font-size: clamp(1.25rem, 7vw, 1.75rem);
+  }
+
+  .avisosHero p,
+  .avisosSectionHead p,
+  .avisoCard p {
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+
+  .avisosHeroStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  .avisosHeroStats div {
+    padding: 0.65rem;
+    border-radius: 13px;
+  }
+
+  .avisosSectionHead {
+    gap: 0.55rem;
+  }
+
+  .avisosForm,
+  .avisosRecipientPicker {
+    gap: 0.55rem;
+  }
+
+  .avisosForm input,
+  .avisosForm select,
+  .avisosFilters select {
+    min-height: 40px;
+    padding: 0 0.68rem;
+  }
+
+  .avisosForm textarea {
+    min-height: 86px;
+    padding: 0.68rem;
+  }
+
+  .avisosChecks label,
+  .avisosSendSummary,
+  .avisosRecipientPicker {
+    padding: 0.65rem;
+    border-radius: 13px;
+  }
+
+  .avisosFilters {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+    margin: 0 -0.15rem;
+    overflow-x: auto;
+    padding-bottom: 0.2rem;
+    scrollbar-width: none;
+  }
+
+  .avisosFilters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .avisosFilters button,
+  .avisosFilters select {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 38px;
+    padding: 0.52rem 0.72rem;
+    white-space: nowrap;
+  }
+
+  .avisosGrid {
+    gap: 0.6rem;
+  }
+
+  .avisoCard {
+    gap: 0.45rem;
+    padding: 0.78rem;
+    border-radius: 15px;
+  }
+
+  .avisoCard h3 {
+    font-size: 0.98rem;
+  }
+
+  .avisoCard button {
+    width: auto;
+    min-height: 38px;
+    padding: 0.5rem 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .avisosPage {
+    width: calc(100% - 0.9rem);
+    gap: 0.65rem;
+  }
+
+  .avisosHero,
+  .avisosComposer,
+  .avisosBoard {
+    padding: 0.8rem;
+    border-radius: 16px;
+  }
+
+  .avisosHeroStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

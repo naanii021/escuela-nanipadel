@@ -1313,3 +1313,191 @@
     display: none;
   }
 }
+
+/* Mobile-first compact pass: keep the home screen scannable on phones. */
+@media (max-width: 768px) {
+  .home {
+    gap: 1rem;
+    padding: 0.6rem 0 2rem;
+  }
+
+  .heroGrid,
+  .heroLeft,
+  .heroRight,
+  .platformBlock,
+  .projectStory,
+  .newsLayout {
+    gap: 0.85rem;
+  }
+
+  .heroCard {
+    border-radius: 20px;
+    padding: 1.05rem;
+  }
+
+  .heroLeft {
+    gap: 0.75rem;
+    padding-right: 0;
+  }
+
+  .heroLeft h1 {
+    font-size: clamp(1.72rem, 9vw, 2.35rem);
+    line-height: 1;
+  }
+
+  .heroLeft p,
+  .sectionHeader p,
+  .platformIntro p,
+  .projectStoryIntro p {
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  .pill,
+  .sectionEyebrow {
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+  }
+
+  .heroProof {
+    gap: 0.35rem;
+  }
+
+  .heroProof span {
+    min-height: 30px;
+    padding: 0.28rem 0.56rem;
+    font-size: 0.72rem;
+  }
+
+  .ctaRow {
+    gap: 0.45rem;
+    margin-top: 0;
+  }
+
+  .heroStatusStrip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .heroStatusItem,
+  .weatherStatusCard,
+  .projectStoryItem,
+  .quickCard,
+  .platformLeadCard,
+  .platformItem,
+  .homeAlerts {
+    padding: 0.72rem;
+    border-radius: 14px;
+  }
+
+  .heroStatusItem span,
+  .weatherStatusCard span {
+    font-size: 0.62rem;
+    letter-spacing: 0.05em;
+  }
+
+  .heroStatusItem strong,
+  .weatherStatusCard strong {
+    font-size: 0.82rem;
+  }
+
+  .weatherBox {
+    padding: 0.85rem;
+    border-radius: 16px;
+  }
+
+  .weatherMain {
+    gap: 0.7rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .weatherIcon {
+    font-size: 2.15rem;
+  }
+
+  .weatherTemp {
+    font-size: 1.65rem;
+  }
+
+  .weatherStatusRow,
+  .platformGrid,
+  .quickGrid,
+  .homeAlertsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .sectionHeader {
+    margin-bottom: 0.8rem;
+  }
+
+  .sectionHeader h2,
+  .sectionHeader h3,
+  .platformIntro h2,
+  .platformIntro h3,
+  .projectStoryIntro h2 {
+    font-size: clamp(1.2rem, 6vw, 1.55rem);
+    line-height: 1.12;
+  }
+
+  .platformIntro,
+  .projectStory,
+  .newsSection {
+    padding: 0.9rem;
+    border-radius: 18px;
+  }
+
+  .platformItem {
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 0.65rem;
+  }
+
+  .platformIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    font-size: 0.56rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .home {
+    gap: 0.85rem;
+  }
+
+  .heroCard,
+  .homeAlerts,
+  .quickCard,
+  .newsSection,
+  .projectStory,
+  .platformBlock {
+    padding: 0.85rem;
+  }
+
+  .heroStatusStrip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .heroStatusItem {
+    padding: 0.58rem 0.46rem;
+  }
+
+  .weatherStatusRow,
+  .platformGrid,
+  .quickGrid,
+  .homeAlertsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .ctaRow {
+    flex-direction: row;
+  }
+
+  .heroLeft .btn,
+  .ctaRow .btn {
+    width: auto;
+    flex: 1 1 145px;
+    min-height: 42px;
+    padding: 0.68rem 0.85rem;
+  }
+}

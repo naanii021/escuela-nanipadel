@@ -245,7 +245,7 @@ router.patch("/:id/read", async (req, res) => {
   try {
     const notificationId = Number(req.params.id);
     if (!Number.isInteger(notificationId) || notificationId <= 0) {
-      return res.status(400).json({ ok: false, message: "Notificacion no valida" });
+      return res.status(400).json({ ok: false, message: "Notificación no válida" });
     }
 
     const [result] = await query(
@@ -256,10 +256,10 @@ router.patch("/:id/read", async (req, res) => {
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ ok: false, message: "Notificacion no encontrada" });
+      return res.status(404).json({ ok: false, message: "Notificación no encontrada" });
     }
 
-    res.json({ ok: true, message: "Notificacion marcada como leida" });
+    res.json({ ok: true, message: "Notificación marcada como leída" });
   } catch (e) {
     console.error("Error PATCH /api/notificaciones/:id/read:", e);
     res.status(500).json({ ok: false, message: e.message });
@@ -275,7 +275,7 @@ router.patch("/read-all", async (req, res) => {
       [req.user.id]
     );
 
-    res.json({ ok: true, message: "Notificaciones marcadas como leidas" });
+    res.json({ ok: true, message: "Notificaciones marcadas como leídas" });
   } catch (e) {
     console.error("Error PATCH /api/notificaciones/read-all:", e);
     res.status(500).json({ ok: false, message: e.message });
@@ -302,7 +302,7 @@ router.post(
       const sendInApp = req.body.sendInApp !== false && req.body.inApp !== false;
 
       if (!title || !body) {
-        return res.status(400).json({ ok: false, message: "Titulo y mensaje son obligatorios" });
+        return res.status(400).json({ ok: false, message: "Título y mensaje son obligatorios" });
       }
 
       const recipientUserIds = await resolveAvisoRecipientIds({

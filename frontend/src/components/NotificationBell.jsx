@@ -174,7 +174,7 @@ export default function NotificationBell() {
                   </div>
                   {!item.read_at && (
                     <button type="button" onClick={() => markAsRead(item.id)}>
-                      Marcar como leido
+                      Marcar como leído
                     </button>
                   )}
                 </article>

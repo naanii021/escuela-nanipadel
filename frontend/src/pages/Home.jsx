@@ -26,7 +26,7 @@ const PLATFORM_ITEMS = [
     icon: "Clases",
     title: "Clases y grupos",
     description:
-      "Organiza alumnos por niveles, horarios y grupos para que cada familia tenga la informacion clara.",
+      "Organiza alumnos por niveles, horarios y grupos para que cada familia tenga la información clara.",
   },
   {
     icon: "Avisos",
@@ -82,10 +82,10 @@ const QUICK_LINKS = [
 const PROJECT_POINTS = [
   {
     value: "Menos dudas",
-    label: "La informacion importante queda visible para todos.",
+    label: "La información importante queda visible para todos.",
   },
   {
-    value: "Mas rapido",
+    value: "Más rápido",
     label: "Reservas, partidos y avisos sin depender de mensajes sueltos.",
   },
   {
@@ -108,7 +108,7 @@ const NEWS_ITEMS = [
     id: 2,
     category: "Clases",
     date: "24 abr 2026",
-    title: "Sesion tecnica para mejorar bandeja y red",
+    title: "Sesión técnica para mejorar bandeja y red",
     summary:
       "Los grupos trabajan situaciones reales de partido para ganar confianza y ordenar mejor el juego.",
     image: `${process.env.PUBLIC_URL}/fotosClase/clases.jpeg`,
@@ -199,11 +199,11 @@ function Home() {
               Escuela NaniPadel
             </div>
 
-            <h1 id="home-title">Tu escuela de padel, organizada en una sola app.</h1>
+            <h1 id="home-title">Tu escuela de pádel, organizada en una sola app.</h1>
 
             <p>
               NaniPadel centraliza reservas, partidas abiertas, clases, torneos y avisos del club
-              para que alumnos, familias y profesores tengan toda la informacion siempre a mano.
+              para que alumnos, familias y profesores tengan toda la información siempre a mano.
             </p>
 
             <div className="ctaRow">
@@ -217,7 +217,7 @@ function Home() {
                 Ver torneos
               </Link>
               <Link className="btn btn-ghost" to={loggedIn ? "/avisos" : "/login"}>
-                {loggedIn ? "Mis avisos" : "Iniciar sesion"}
+                {loggedIn ? "Mis avisos" : "Iniciar sesión"}
               </Link>
             </div>
 
@@ -229,7 +229,7 @@ function Home() {
           </div>
 
           <div className="heroRight">
-            <div className="heroStatusStrip" aria-label="Resumen rapido del club">
+            <div className="heroStatusStrip" aria-label="Resumen rápido del club">
               <div className="heroStatusItem">
                 <span>Reservas</span>
                 <strong>Online</strong>
@@ -303,7 +303,7 @@ function Home() {
                   </div>
 
                   <p className="weatherHint">
-                    Pulsa para ver la prevision y recomendaciones antes de reservar.
+                    Pulsa para ver la previsión y recomendaciones antes de reservar.
                   </p>
                   <Link
                     className="weatherPageLink"
@@ -375,7 +375,7 @@ function Home() {
 
             {weather.forecast && weather.forecast.length > 0 && (
               <div className="forecastSection">
-                <h3>Prevision de los proximos 7 dias</h3>
+                <h3>Previsión de los próximos 7 días</h3>
                 <div className="forecastList">
                   {weather.forecast.map((day) => (
                     <div className="forecastDay" key={day.date}>
@@ -455,7 +455,7 @@ function Home() {
       <section className="features">
         <div className="platformBlock">
           <div className="platformIntro">
-            <span className="sectionEyebrow">Que puedes hacer</span>
+            <span className="sectionEyebrow">Qué puedes hacer</span>
             <h2>Todo lo importante de la escuela en un mismo sitio</h2>
             <p>
               Reserva pista, crea partidas abiertas, sigue tus clases, consulta avisos y mantente al
@@ -464,7 +464,7 @@ function Home() {
             <div className="platformLeadCard">
               <strong>Hecha para alumnos, familias y el equipo de la escuela.</strong>
               <span>
-                Menos dudas, menos mensajes sueltos y mas informacion clara para entrenar y jugar.
+                Menos dudas, menos mensajes sueltos y más información clara para entrenar y jugar.
               </span>
             </div>
           </div>
@@ -487,8 +487,8 @@ function Home() {
         <div className="quickCard">
           <div className="sectionHeader sectionHeaderInline">
             <div>
-              <span className="sectionEyebrow">Empieza aqui</span>
-              <h2>Lo que mas se usa en el club</h2>
+              <span className="sectionEyebrow">Empieza aquí</span>
+              <h2>Lo que más se usa en el club</h2>
             </div>
             <p>
               Atajos para reservar, consultar clases, ver torneos y entrar en la tienda del club.

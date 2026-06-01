@@ -62,7 +62,7 @@ function Login() {
         navigate("/reservas");
       }
     } catch (e) {
-      setError("No hemos podido conectar con el club. Intentalo de nuevo en unos segundos.");
+      setError("No hemos podido conectar con el club. Inténtalo de nuevo en unos segundos.");
     } finally {
       setLoading(false);
     }

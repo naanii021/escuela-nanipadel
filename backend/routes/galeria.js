@@ -148,7 +148,7 @@ router.post("/upload", requireAuth, handleUpload, async (req, res) => {
       estado,
       message: estado === "aprobada"
         ? "Foto subida y publicada correctamente."
-        : "Foto enviada. Un administrador la revisara antes de publicarla.",
+        : "Foto enviada. Un administrador la revisará antes de publicarla.",
     });
   } catch (e) {
     console.error("Error POST /api/galeria/upload:", e);

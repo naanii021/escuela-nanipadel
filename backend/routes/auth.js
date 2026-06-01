@@ -121,7 +121,7 @@ router.get("/me", async (req, res) => {
       user: { id: decoded.id, nombre: decoded.nombre, email: decoded.email, rol: decoded.rol, nivel_juego: decoded.nivel_juego ?? null },
     });
   } catch (e) {
-    return res.status(401).json({ ok: false, message: "Token inválido o expirado" });
+    return res.status(401).json({ ok: false, message: "Tu sesión ha caducado. Vuelve a iniciar sesión." });
   }
 });
 

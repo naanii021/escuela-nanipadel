@@ -29,7 +29,7 @@ function requireAuth(req, res, next) {
     req.user = jwt.verify(authHeader.split(" ")[1], JWT_SECRET);
     next();
   } catch {
-    return res.status(401).json({ ok: false, message: "Token inválido o expirado" });
+    return res.status(401).json({ ok: false, message: "Tu sesión ha caducado. Vuelve a iniciar sesión." });
   }
 }
 

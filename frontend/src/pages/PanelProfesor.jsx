@@ -9,20 +9,20 @@ const NIVELES = ["ninos", "iniciacion", "avanzado", "avanzado_plus", "competicio
 const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
 const GAME_LEVELS = [
   { value: "", label: "Sin nivel de juego" },
-  { value: 0, label: "0 - Iniciacion" },
+  { value: 0, label: "0 - Iniciación" },
   { value: 1, label: "1 - Principiante" },
   { value: 2, label: "2 - Medio bajo" },
   { value: 3, label: "3 - Medio" },
   { value: 4, label: "4 - Medio alto" },
   { value: 5, label: "5 - Avanzado" },
-  { value: 6, label: "6 - Competicion / profesional" },
+  { value: 6, label: "6 - Competición / profesional" },
 ];
 const GROUP_QUICK_FILTERS = [
   { key: "todos", label: "Todos" },
-  { key: "ninos", label: "Ninos" },
-  { key: "iniciacion", label: "Iniciacion" },
+  { key: "ninos", label: "Niños" },
+  { key: "iniciacion", label: "Iniciación" },
   { key: "avanzado", label: "Avanzado" },
-  { key: "competicion", label: "Competicion" },
+  { key: "competicion", label: "Competición" },
   { key: "con-huecos", label: "Con huecos" },
   { key: "completos", label: "Completos" },
   { key: "inactivos", label: "Inactivos" },
@@ -45,10 +45,10 @@ const PANEL_SECTIONS = [
 const WEEK_DAYS = [
   { key: "L", label: "Lunes" },
   { key: "M", label: "Martes" },
-  { key: "X", label: "Miercoles" },
+  { key: "X", label: "Miércoles" },
   { key: "J", label: "Jueves" },
   { key: "V", label: "Viernes" },
-  { key: "S", label: "Sabado" },
+  { key: "S", label: "Sábado" },
 ];
 const ATTENDANCE_STATUS = [
   { key: "presente", label: "Presente", tone: "positive" },
@@ -108,7 +108,7 @@ function canAccess(user) {
 }
 
 function formatDias(d1, d2) {
-  const map = { L: "Lunes", M: "Martes", X: "Miercoles", J: "Jueves", V: "Viernes", S: "Sabado", D: "Domingo" };
+  const map = { L: "Lunes", M: "Martes", X: "Miércoles", J: "Jueves", V: "Viernes", S: "Sábado", D: "Domingo" };
   return [d1, d2].filter(Boolean).map((dia) => map[dia] || dia).join(" y ") || "-";
 }
 
@@ -124,11 +124,11 @@ function formatHora(horaInicio, duracionMin) {
 
 function nivelLabel(nivel) {
   const map = {
-    ninos: "Ninos",
-    iniciacion: "Iniciacion",
+    ninos: "Niños",
+    iniciacion: "Iniciación",
     avanzado: "Avanzado",
     avanzado_plus: "Avanzado +",
-    competicion: "Competicion",
+    competicion: "Competición",
   };
   return map[nivel] || nivel || "-";
 }
@@ -449,7 +449,7 @@ export default function PanelProfesor() {
 
   const deactivateGroup = async (group) => {
     if (!isAdmin || !group) return;
-    const confirmed = window.confirm(`Quieres desactivar el grupo "${group.nombre}"?`);
+    const confirmed = window.confirm(`¿Quieres desactivar el grupo "${group.nombre}"?`);
     if (!confirmed) return;
 
     try {
@@ -475,7 +475,7 @@ export default function PanelProfesor() {
       showNotice("Alumno anadido al grupo.");
       await loadPanel();
     } catch (e) {
-      setError(e.message || "No hemos podido anadir el alumno al grupo.");
+      setError(e.message || "No hemos podido añadir el alumno al grupo.");
     } finally {
       setSaving(false);
     }
@@ -483,7 +483,7 @@ export default function PanelProfesor() {
 
   const removeStudentFromGroup = async (alumno) => {
     if (!isAdmin || !selectedGroup || !alumno) return;
-    const confirmed = window.confirm(`Quieres quitar a ${alumno.nombre} ${alumno.apellidos} de este grupo?`);
+    const confirmed = window.confirm(`¿Quieres quitar a ${alumno.nombre} ${alumno.apellidos} de este grupo?`);
     if (!confirmed) return;
 
     try {
@@ -586,7 +586,7 @@ export default function PanelProfesor() {
       <header className="staffHero">
         <div className="staffHeroText">
           <span className="staffEyebrow">Panel de escuela</span>
-          <h1>Gestion de la escuela</h1>
+          <h1>Gestión de la escuela</h1>
           <p>
             {scope === "admin"
               ? "Organiza grupos, alumnos, horarios y accesos desde un mismo sitio."
@@ -604,7 +604,7 @@ export default function PanelProfesor() {
 
       {notice && <div className="staffNotice">{notice}</div>}
 
-      <nav className="staffSectionNav" aria-label="Secciones de gestion">
+      <nav className="staffSectionNav" aria-label="Secciones de gestión">
         {PANEL_SECTIONS.map((section) => (
           <button
             key={section.key}
@@ -639,7 +639,7 @@ export default function PanelProfesor() {
       </div>
 
       <div className="staffFilters">
-        <div className="quickFilters" aria-label={activeView === "grupos" ? "Filtros rapidos de grupos" : "Filtros rapidos de alumnos"}>
+        <div className="quickFilters" aria-label={activeView === "grupos" ? "Filtros rápidos de grupos" : "Filtros rápidos de alumnos"}>
           {(activeView === "grupos" ? GROUP_QUICK_FILTERS : STUDENT_QUICK_FILTERS).map((item) => {
             const active = activeView === "grupos" ? groupQuickFilter === item.key : studentQuickFilter === item.key;
             return (
@@ -679,7 +679,7 @@ export default function PanelProfesor() {
         <div className="staffError">
           <strong>No hemos podido cargar el panel</strong>
           <p>{error}</p>
-          <Link to="/login">Volver a iniciar sesion</Link>
+          <Link to="/login">Volver a iniciar sesión</Link>
         </div>
       )}
 
@@ -722,7 +722,7 @@ export default function PanelProfesor() {
                     <span className={nivelClass(selectedGroup.nivel)}>{nivelLabel(selectedGroup.nivel)}</span>
                     <h2>{selectedGroup.nombre}</h2>
                     <p className="groupSubtitle">
-                      <span>{selectedGroup.codigo || "Sin codigo"}</span>
+                      <span>{selectedGroup.codigo || "Sin código"}</span>
                       <span>{selectedGroup.profesor || "Profesor sin asignar"}</span>
                     </p>
                   </div>
@@ -739,7 +739,7 @@ export default function PanelProfesor() {
 
                 <div className="groupMetaGrid">
                   <div><span>Profesor</span><strong>{selectedGroup.profesor || "No disponible"}</strong></div>
-                  <div><span>Dias</span><strong>{formatDias(selectedGroup.dia1, selectedGroup.dia2)}</strong></div>
+                  <div><span>Días</span><strong>{formatDias(selectedGroup.dia1, selectedGroup.dia2)}</strong></div>
                   <div><span>Horario</span><strong>{formatHora(selectedGroup.hora_inicio, selectedGroup.duracion_min)}</strong></div>
                   <div><span>Pista</span><strong>{selectedGroup.pista_habitual || "-"}</strong></div>
                   <div><span>Cupo</span><strong>{selectedGroup.cupo || "-"}</strong></div>
@@ -749,12 +749,12 @@ export default function PanelProfesor() {
                 {isAdmin && (
                   <div className="addStudentBar">
                     <select value={studentToAdd} onChange={(e) => setStudentToAdd(e.target.value)}>
-                      <option value="">Anadir alumno existente</option>
+                      <option value="">Añadir alumno existente</option>
                       {studentsAvailableForGroup.map((alumno) => (
                         <option key={alumno.id} value={alumno.id}>{alumno.nombre} {alumno.apellidos} - {nivelLabel(alumno.nivel)}</option>
                       ))}
                     </select>
-                    <button onClick={addStudentToGroup} disabled={!studentToAdd || saving}>Anadir alumno</button>
+                    <button onClick={addStudentToGroup} disabled={!studentToAdd || saving}>Añadir alumno</button>
                   </div>
                 )}
 
@@ -777,7 +777,7 @@ export default function PanelProfesor() {
                   ))}
                 </div>
 
-                {(!selectedGroup.alumnos || selectedGroup.alumnos.length === 0) && <div className="staffEmpty">Este grupo todavia no tiene alumnos asignados.</div>}
+                {(!selectedGroup.alumnos || selectedGroup.alumnos.length === 0) && <div className="staffEmpty">Este grupo todavía no tiene alumnos asignados.</div>}
               </>
             ) : (
               <div className="staffEmpty">Selecciona un grupo para ver su detalle.</div>
@@ -880,7 +880,7 @@ export default function PanelProfesor() {
         <section className="schoolOpsPanel">
           <div className="opsPanelHeader">
             <div>
-              <span className="staffEyebrow">Sesion diaria</span>
+              <span className="staffEyebrow">Sesión diaria</span>
               <h2>Control de clases</h2>
               <p>Pasa lista y revisa el estado de la clase desde una vista clara.</p>
             </div>
@@ -957,8 +957,8 @@ export default function PanelProfesor() {
                 })}
               </div>
 
-              {(!controlGroup?.alumnos || controlGroup.alumnos.length === 0) && <div className="staffEmpty">Este grupo todavia no tiene alumnos para pasar lista.</div>}
-              <div className="preparedNotice">La asistencia se podra guardar cuando actives el registro de sesiones.</div>
+              {(!controlGroup?.alumnos || controlGroup.alumnos.length === 0) && <div className="staffEmpty">Este grupo todavía no tiene alumnos para pasar lista.</div>}
+              <div className="preparedNotice">La asistencia se podrá guardar cuando actives el registro de sesiones.</div>
             </main>
           </div>
         </section>
@@ -979,12 +979,12 @@ export default function PanelProfesor() {
               <span className="statusDot warning" />
               <div>
                 <strong>Sin recuperaciones registradas</strong>
-                <p>Cuando registres una clase pendiente, aparecera aqui con alumno, fecha, motivo y estado.</p>
+                <p>Cuando registres una clase pendiente, aparecerá aquí con alumno, fecha, motivo y estado.</p>
               </div>
               <button className="staffSecondaryBtn" type="button" disabled>Marcar como recuperada</button>
             </article>
             <article className="recoveryPlan">
-              <h3>Datos de cada recuperacion</h3>
+              <h3>Datos de cada recuperación</h3>
               <div className="trackingTags">
                 <span>Alumno o grupo</span>
                 <span>Fecha perdida</span>
@@ -1034,7 +1034,7 @@ export default function PanelProfesor() {
                 {(trackingGroup?.alumnos || []).slice(0, 6).map((alumno) => (
                   <span key={alumno.id}>{alumno.nombre} {alumno.apellidos}</span>
                 ))}
-                {(!trackingGroup?.alumnos || trackingGroup.alumnos.length === 0) && <span>Este grupo todavia no tiene alumnos.</span>}
+                {(!trackingGroup?.alumnos || trackingGroup.alumnos.length === 0) && <span>Este grupo todavía no tiene alumnos.</span>}
               </div>
             </article>
           </div>
@@ -1061,13 +1061,13 @@ export default function PanelProfesor() {
             </div>
 
             <div className="profileInfoGrid">
-              <div><span>Telefono</span><strong>{studentProfile.telefono || "No disponible"}</strong></div>
+              <div><span>Teléfono</span><strong>{studentProfile.telefono || "No disponible"}</strong></div>
               <div><span>Email</span><strong>{studentProfile.email || "No disponible"}</strong></div>
               <div><span>Nivel de juego</span><strong>{gameLevelLabel(studentProfile.nivel_juego)}</strong></div>
               <div><span>Acceso plataforma</span><strong>{studentProfile.usuario_id ? "Con acceso" : "Sin acceso"}</strong></div>
               <div><span>Grupo</span><strong>{studentProfile.grupos || "No disponible"}</strong></div>
               <div><span>Profesor</span><strong>{studentProfile.profesores || studentProfileGroup?.profesor || "No disponible"}</strong></div>
-              <div><span>Dias</span><strong>{studentProfileGroup ? formatDias(studentProfileGroup.dia1, studentProfileGroup.dia2) : "No disponible"}</strong></div>
+              <div><span>Días</span><strong>{studentProfileGroup ? formatDias(studentProfileGroup.dia1, studentProfileGroup.dia2) : "No disponible"}</strong></div>
               <div><span>Horario</span><strong>{studentProfile.horarios || (studentProfileGroup ? formatHora(studentProfileGroup.hora_inicio, studentProfileGroup.duracion_min) : "No disponible")}</strong></div>
               <div><span>Pista</span><strong>{studentProfile.pistas || studentProfileGroup?.pista_habitual || "No disponible"}</strong></div>
             </div>
@@ -1109,13 +1109,13 @@ export default function PanelProfesor() {
             <div className="modalHeader"><h2>{editingGroup ? "Editar grupo" : "Crear grupo"}</h2><button type="button" onClick={() => setGroupFormOpen(false)}>Cerrar</button></div>
             <div className="formGrid">
               <label>Nombre<input value={groupForm.nombre} onChange={(e) => setGroupForm({ ...groupForm, nombre: e.target.value })} required /></label>
-              <label>Codigo<input value={groupForm.codigo} onChange={(e) => setGroupForm({ ...groupForm, codigo: e.target.value })} /></label>
+              <label>Código<input value={groupForm.codigo} onChange={(e) => setGroupForm({ ...groupForm, codigo: e.target.value })} /></label>
               <label>Nivel<select value={groupForm.nivel} onChange={(e) => setGroupForm({ ...groupForm, nivel: e.target.value })}>{NIVELES.map((item) => <option key={item} value={item}>{nivelLabel(item)}</option>)}</select></label>
               <label>Profesor<select value={groupForm.profesor_id} onChange={(e) => setGroupForm({ ...groupForm, profesor_id: e.target.value })}><option value="">Sin profesor</option>{profesores.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-              <label>Dia 1<select value={groupForm.dia1} onChange={(e) => setGroupForm({ ...groupForm, dia1: e.target.value })}>{DIAS.map((dia) => <option key={dia} value={dia}>{formatDias(dia)}</option>)}</select></label>
-              <label>Dia 2<select value={groupForm.dia2} onChange={(e) => setGroupForm({ ...groupForm, dia2: e.target.value })}><option value="">Sin segundo dia</option>{DIAS.map((dia) => <option key={dia} value={dia}>{formatDias(dia)}</option>)}</select></label>
+              <label>Día 1<select value={groupForm.dia1} onChange={(e) => setGroupForm({ ...groupForm, dia1: e.target.value })}>{DIAS.map((dia) => <option key={dia} value={dia}>{formatDias(dia)}</option>)}</select></label>
+              <label>Día 2<select value={groupForm.dia2} onChange={(e) => setGroupForm({ ...groupForm, dia2: e.target.value })}><option value="">Sin segundo día</option>{DIAS.map((dia) => <option key={dia} value={dia}>{formatDias(dia)}</option>)}</select></label>
               <label>Hora<input type="time" value={groupForm.hora_inicio} onChange={(e) => setGroupForm({ ...groupForm, hora_inicio: e.target.value })} /></label>
-              <label>Duracion<input type="number" min="30" step="15" value={groupForm.duracion_min} onChange={(e) => setGroupForm({ ...groupForm, duracion_min: Number(e.target.value) })} /></label>
+              <label>Duración<input type="number" min="30" step="15" value={groupForm.duracion_min} onChange={(e) => setGroupForm({ ...groupForm, duracion_min: Number(e.target.value) })} /></label>
               <label>Pista<input list="pistas-list" value={groupForm.pista_habitual} onChange={(e) => setGroupForm({ ...groupForm, pista_habitual: e.target.value })} /></label>
               <label>Cupo<input type="number" min="1" value={groupForm.cupo} onChange={(e) => setGroupForm({ ...groupForm, cupo: Number(e.target.value) })} /></label>
               <label>Activo<select value={groupForm.activo} onChange={(e) => setGroupForm({ ...groupForm, activo: Number(e.target.value) })}><option value={1}>Activo</option><option value={0}>Inactivo</option></select></label>
@@ -1135,7 +1135,7 @@ export default function PanelProfesor() {
               <label>Apellidos<input value={studentForm.apellidos || ""} onChange={(e) => setStudentForm({ ...studentForm, apellidos: e.target.value })} /></label>
               <label>Nivel<select value={studentForm.nivel || ""} onChange={(e) => setStudentForm({ ...studentForm, nivel: e.target.value })}>{NIVELES.map((item) => <option key={item} value={item}>{nivelLabel(item)}</option>)}</select></label>
               <label>Nivel de juego<select value={studentForm.nivel_juego ?? ""} onChange={(e) => setStudentForm({ ...studentForm, nivel_juego: e.target.value === "" ? null : Number(e.target.value) })}>{GAME_LEVELS.map((item) => <option key={String(item.value)} value={item.value}>{item.label}</option>)}</select></label>
-              <label>Telefono<input value={studentForm.telefono || ""} onChange={(e) => setStudentForm({ ...studentForm, telefono: e.target.value })} /></label>
+              <label>Teléfono<input value={studentForm.telefono || ""} onChange={(e) => setStudentForm({ ...studentForm, telefono: e.target.value })} /></label>
               <label>Email<input type="email" value={studentForm.email || ""} onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })} /></label>
               <label>Activo<select value={studentForm.activo ?? 1} onChange={(e) => setStudentForm({ ...studentForm, activo: Number(e.target.value) })}><option value={1}>Activo</option><option value={0}>Inactivo</option></select></label>
               {creatingStudent && (

@@ -6,22 +6,22 @@ import "./perfil.css";
 
 const GAME_LEVELS = [
   { value: "", label: "Sin nivel configurado" },
-  { value: 0, label: "0 - Iniciacion" },
+  { value: 0, label: "0 - Iniciación" },
   { value: 1, label: "1 - Principiante" },
   { value: 2, label: "2 - Medio bajo" },
   { value: 3, label: "3 - Medio" },
   { value: 4, label: "4 - Medio alto" },
   { value: 5, label: "5 - Avanzado" },
-  { value: 6, label: "6 - Competicion / profesional" },
+  { value: 6, label: "6 - Competición / profesional" },
 ];
 
 const SPECIALTIES = [
-  "Ninos",
+  "Niños",
   "Adultos iniciacion",
   "Adultos avanzado",
-  "Competicion",
+  "Competición",
   "Clases particulares",
-  "Tecnificacion",
+  "Tecnificación",
   "Torneos",
   "Preparacion fisica",
 ];
@@ -288,7 +288,7 @@ export default function Perfil() {
             <label>Nombre<input value={form.nombre || ""} onChange={(e) => updateForm("nombre", e.target.value)} required /></label>
             <label>Apellidos<input value={form.apellidos || ""} onChange={(e) => updateForm("apellidos", e.target.value)} /></label>
             <label>Email<input type="email" value={form.email || ""} onChange={(e) => updateForm("email", e.target.value)} required /></label>
-            <label>Telefono<input value={form.telefono || ""} onChange={(e) => updateForm("telefono", e.target.value)} /></label>
+            <label>Teléfono<input value={form.telefono || ""} onChange={(e) => updateForm("telefono", e.target.value)} /></label>
             <label>Ciudad<input value={form.ciudad || ""} onChange={(e) => updateForm("ciudad", e.target.value)} /></label>
             <label>Club habitual<input value={form.club_habitual || ""} onChange={(e) => updateForm("club_habitual", e.target.value)} /></label>
           </div>
@@ -297,13 +297,13 @@ export default function Perfil() {
         <article className="profileCard">
           <div className="profileCardHeader">
             <span>02</span>
-            <div><h2>Datos de padel</h2><p>Nos ayudan a ajustar mejor las partidas abiertas.</p></div>
+          <div><h2>Datos de pádel</h2><p>Nos ayudan a ajustar mejor las partidas abiertas.</p></div>
           </div>
           <div className="profileFormGrid">
             <label>Nivel de juego<select value={form.nivel_juego ?? ""} onChange={(e) => updateForm("nivel_juego", e.target.value)}>{GAME_LEVELS.map((level) => <option key={String(level.value)} value={level.value}>{level.label}</option>)}</select></label>
             <label>Mano dominante<select value={form.mano_dominante || ""} onChange={(e) => updateForm("mano_dominante", e.target.value)}><option value="">Sin indicar</option><option value="derecha">Derecha</option><option value="izquierda">Izquierda</option></select></label>
             <label>Lado preferido<select value={form.lado_preferido || ""} onChange={(e) => updateForm("lado_preferido", e.target.value)}><option value="">Sin indicar</option><option value="drive">Drive</option><option value="reves">Reves</option><option value="ambos">Ambos</option></select></label>
-            <label>Disponibilidad<select value={form.disponibilidad_general || ""} onChange={(e) => updateForm("disponibilidad_general", e.target.value)}><option value="">Sin indicar</option><option value="mananas">Mananas</option><option value="tardes">Tardes</option><option value="noches">Noches</option><option value="fines_semana">Fines de semana</option><option value="variable">Variable</option></select></label>
+            <label>Disponibilidad<select value={form.disponibilidad_general || ""} onChange={(e) => updateForm("disponibilidad_general", e.target.value)}><option value="">Sin indicar</option><option value="mananas">Mañanas</option><option value="tardes">Tardes</option><option value="noches">Noches</option><option value="fines_semana">Fines de semana</option><option value="variable">Variable</option></select></label>
             <label>Buscar partidas abiertas<select value={Number(form.buscar_partidas_abiertas ?? 1)} onChange={(e) => updateForm("buscar_partidas_abiertas", Number(e.target.value))}><option value={1}>Si</option><option value={0}>No</option></select></label>
             <label>Notificaciones<input value={form.preferencias_notificacion || ""} onChange={(e) => updateForm("preferencias_notificacion", e.target.value)} placeholder="Email, avisos web, partidas..." /></label>
           </div>
@@ -312,7 +312,7 @@ export default function Perfil() {
         <article className="profileCard">
           <div className="profileCardHeader">
             <span>03</span>
-            <div><h2>Foto y privacidad</h2><p>Elige como quieres aparecer en la plataforma.</p></div>
+            <div><h2>Foto y privacidad</h2><p>Elige cómo quieres aparecer en la plataforma.</p></div>
           </div>
           <div className="profileFormGrid">
             <label className="profileWide">URL foto de perfil<input value={form.foto_perfil_url || ""} onChange={(e) => updateForm("foto_perfil_url", e.target.value)} placeholder="https://..." /></label>
@@ -332,17 +332,17 @@ export default function Perfil() {
             </label>
             <label className="profileToggle">
               <input type="checkbox" checked={Number(notificationForm.in_app_enabled) === 1} onChange={(e) => updateNotification("in_app_enabled", e.target.checked ? 1 : 0)} />
-              <span><strong>Notificacion interna</strong><small>Avisos visibles en la campana de la web.</small></span>
+              <span><strong>Notificación interna</strong><small>Avisos visibles en la campana de la web.</small></span>
             </label>
             <label className="profileToggle profileWhatsappToggle">
               <input type="checkbox" checked={Number(notificationForm.whatsapp_enabled) === 1} onChange={(e) => updateNotification("whatsapp_enabled", e.target.checked ? 1 : 0)} />
-              <span><strong>Recibir avisos por WhatsApp</strong><small>Recibe avisos importantes en el numero indicado.</small></span>
+              <span><strong>Recibir avisos por WhatsApp</strong><small>Recibe avisos importantes en el número indicado.</small></span>
             </label>
           </div>
 
           <div className="profileWhatsappBox">
             <label>
-              Telefono para WhatsApp
+              Teléfono para WhatsApp
               <input
                 value={notificationForm.whatsapp_phone || ""}
                 onChange={(e) => updateNotification("whatsapp_phone", e.target.value)}
@@ -403,14 +403,14 @@ export default function Perfil() {
             <label>Zona de trabajo<input value={professionalForm.zona_trabajo || ""} onChange={(e) => updateProfessional("zona_trabajo", e.target.value)} /></label>
             <label>Ciudad base<input value={professionalForm.ciudad_base || ""} onChange={(e) => updateProfessional("ciudad_base", e.target.value)} /></label>
             <label>Club principal<input value={professionalForm.club_principal || ""} onChange={(e) => updateProfessional("club_principal", e.target.value)} /></label>
-            <label>Telefono profesional<input value={professionalForm.telefono_profesional || ""} onChange={(e) => updateProfessional("telefono_profesional", e.target.value)} /></label>
+            <label>Teléfono profesional<input value={professionalForm.telefono_profesional || ""} onChange={(e) => updateProfessional("telefono_profesional", e.target.value)} /></label>
             <label>Tiene club propio<select value={Number(professionalForm.tiene_club_propio ?? 0)} onChange={(e) => updateProfessional("tiene_club_propio", Number(e.target.value))}><option value={0}>No</option><option value={1}>Si</option></select></label>
             <label>Nombre club propio<input value={professionalForm.nombre_club_propio || ""} onChange={(e) => updateProfessional("nombre_club_propio", e.target.value)} /></label>
-            <label>Anos experiencia<input type="number" min="0" max="80" value={professionalForm.anos_experiencia ?? ""} onChange={(e) => updateProfessional("anos_experiencia", e.target.value)} /></label>
+            <label>Años de experiencia<input type="number" min="0" max="80" value={professionalForm.anos_experiencia ?? ""} onChange={(e) => updateProfessional("anos_experiencia", e.target.value)} /></label>
             <label>Instagram profesional<input value={professionalForm.instagram_profesional || ""} onChange={(e) => updateProfessional("instagram_profesional", e.target.value)} placeholder="@usuario" /></label>
             <label className="profileWide">Pueblos de trabajo<textarea value={professionalForm.pueblos_trabajo || ""} onChange={(e) => updateProfessional("pueblos_trabajo", e.target.value)} /></label>
             <label className="profileWide">Otros clubes<textarea value={professionalForm.otros_clubes || ""} onChange={(e) => updateProfessional("otros_clubes", e.target.value)} /></label>
-            <label className="profileWide">Especialidades<input value={professionalForm.especialidades || ""} onChange={(e) => updateProfessional("especialidades", e.target.value)} list="specialties-list" placeholder="Ninos, competicion, tecnificacion..." /></label>
+            <label className="profileWide">Especialidades<input value={professionalForm.especialidades || ""} onChange={(e) => updateProfessional("especialidades", e.target.value)} list="specialties-list" placeholder="Niños, competición, tecnificación..." /></label>
             <label>Niveles que entrena<input value={professionalForm.niveles_que_entrena || ""} onChange={(e) => updateProfessional("niveles_que_entrena", e.target.value)} /></label>
             <label className="profileWide">Disponibilidad laboral<textarea value={professionalForm.disponibilidad_laboral || ""} onChange={(e) => updateProfessional("disponibilidad_laboral", e.target.value)} /></label>
             <label className="profileWide">Biografia profesional<textarea value={professionalForm.biografia_profesional || ""} onChange={(e) => updateProfessional("biografia_profesional", e.target.value)} /></label>

@@ -194,7 +194,7 @@ function canJoinReservation(reserva, user, userLevel, userParticipant) {
   if (!user) {
     return {
       puede_unirse: false,
-      motivo_no_unirse: "Debes iniciar sesion para unirte.",
+      motivo_no_unirse: "Debes iniciar sesión para unirte.",
     };
   }
 
@@ -208,14 +208,14 @@ function canJoinReservation(reserva, user, userLevel, userParticipant) {
   if (reserva.estado === "cancelada") {
     return {
       puede_unirse: false,
-      motivo_no_unirse: "La partida esta cancelada.",
+      motivo_no_unirse: "La partida está cancelada.",
     };
   }
 
   if (userParticipant) {
     return {
       puede_unirse: false,
-      motivo_no_unirse: "Ya estas en esta partida.",
+      motivo_no_unirse: "Ya estás en esta partida.",
     };
   }
 
@@ -911,7 +911,7 @@ router.post("/", requireAuth, async (req, res) => {
       await connection.rollback();
       return res.status(409).json({
         ok: false,
-        message: "Esa pista ya esta reservada en esa fecha y hora",
+        message: "Esa pista ya está reservada en esa fecha y hora",
       });
     }
 
@@ -1082,7 +1082,7 @@ router.post("/:id/unirse", requireAuth, async (req, res) => {
       await connection.rollback();
       return res.status(409).json({
         ok: false,
-        message: "Ya estas en esta partida.",
+        message: "Ya estás en esta partida.",
       });
     }
 
@@ -1211,7 +1211,7 @@ if (participantRows.length === 0) {
   await connection.rollback();
   return res.status(404).json({
     ok: false,
-    message: "No estas apuntado a esta partida.",
+    message: "No estás apuntado a esta partida.",
   });
 }
 

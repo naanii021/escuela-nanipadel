@@ -9,13 +9,13 @@ const HOURS = ["09:00", "10:30", "12:00", "13:30", "15:00", "16:30", "18:00", "1
 const TIME_LABELS = { morning: "Manana", afternoon: "Tarde", evening: "Noche" };
 const AVATAR_COLORS = ["#2563eb", "#16a34a", "#9333ea", "#dc2626", "#ea580c", "#0891b2", "#be185d"];
 const GAME_LEVELS = [
-  { value: 0, label: "0 - Iniciacion" },
+  { value: 0, label: "0 - Iniciación" },
   { value: 1, label: "1 - Principiante" },
   { value: 2, label: "2 - Medio bajo" },
   { value: 3, label: "3 - Medio" },
   { value: 4, label: "4 - Medio alto" },
   { value: 5, label: "5 - Avanzado" },
-  { value: 6, label: "6 - Competicion / profesional" },
+  { value: 6, label: "6 - Competición / profesional" },
 ];
 
 function getTimeOfDay(hhmm) {
@@ -98,7 +98,7 @@ function slotStateLabel(slot) {
 
 function compatibilityText(slot) {
   if (!slot || slot.tipoReserva !== "abierta") return null;
-  if (slot.motivoNoUnirse === "Ya estas en esta partida.") return "Ya formas parte de esta partida.";
+  if (slot.motivoNoUnirse === "Ya estás en esta partida.") return "Ya formas parte de esta partida.";
   if (slot.puedeUnirse) return "Tu nivel encaja con esta partida.";
   return slot.motivoNoUnirse || "No puedes unirte a esta partida.";
 }
@@ -313,7 +313,7 @@ function Reservas() {
 
   const handleReserve = async () => {
     if (reserveType === "completa" && !reserveName.trim()) { showToast("Escribe tu nombre para completar la reserva.", "error"); return; }
-    if (reserveType === "completa" && !reservePhone.trim()) { showToast("Escribe un telefono de contacto.", "error"); return; }
+    if (reserveType === "completa" && !reservePhone.trim()) { showToast("Escribe un teléfono de contacto.", "error"); return; }
     if (reserveType === "abierta" && Number(levelMin) > Number(levelMax)) { showToast("El nivel minimo no puede ser mayor que el maximo.", "error"); return; }
 
     setSubmitting(true);
@@ -338,7 +338,7 @@ function Reservas() {
       loadReservas();
       requestNotificationsRefresh();
     } catch (e) {
-      showToast(e.message || "No hemos podido conectar con el club. Intentalo de nuevo.", "error");
+      showToast(e.message || "No hemos podido conectar con el club. Inténtalo de nuevo.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -350,7 +350,7 @@ function Reservas() {
       await apiPost(`/api/reservas/${slot.reservaId}/unirse`, {
         num_invitados: Number(numInvitados),
       });
-      showToast(Number(numInvitados) ? `Ya estais apuntados a la partida (${Number(numInvitados) + 1} plazas).` : "Ya estas apuntado a la partida.");
+      showToast(Number(numInvitados) ? `Ya estáis apuntados a la partida (${Number(numInvitados) + 1} plazas).` : "Ya estás apuntado a la partida.");
       closeJoinGuestModal();
       loadReservas();
       requestNotificationsRefresh();
@@ -360,7 +360,7 @@ function Reservas() {
   };
 
   const handleLeaveOpenMatch = async (slot) => {
-    if (!window.confirm("Quieres salir de esta partida?")) return;
+    if (!window.confirm("¿Quieres salir de esta partida?")) return;
     try {
       const data = await apiDelete(`/api/reservas/${slot.reservaId}/participantes/me`);
       showToast(data.invitados_cancelados > 0 ? "Has salido de la partida junto con tus invitados." : (data.message || "Has salido de la partida."));
@@ -372,7 +372,7 @@ function Reservas() {
   };
 
   const handleCancel = async (slot) => {
-    if (!window.confirm("Quieres cancelar esta reserva?")) return;
+    if (!window.confirm("¿Quieres cancelar esta reserva?")) return;
     try {
       const data = await apiPatch(`/api/reservas/${slot.reservaId}/cancelar`);
       if (data.ok) { showToast("Reserva cancelada"); loadReservas(); requestNotificationsRefresh(); }
@@ -515,7 +515,7 @@ function Reservas() {
                         <div className="openMatchActions">
                           {slot.puedeUnirse ? (
                             <button className="reserveBtn btnJoin" onClick={(event) => { event.stopPropagation(); openJoinGuestModal(slot); }}>Unirme</button>
-                          ) : slot.motivoNoUnirse === "Ya estas en esta partida." ? (
+                          ) : slot.motivoNoUnirse === "Ya estás en esta partida." ? (
                             <button className="reserveBtn btnCancel" onClick={(event) => { event.stopPropagation(); handleLeaveOpenMatch(slot); }}>Salir de partida</button>
                           ) : (
                             <button className="reserveBtn btnOcupada" disabled>{slot.motivoNoUnirse || "No disponible"}</button>
@@ -621,7 +621,7 @@ function Reservas() {
               ) : detailSlot.tipoReserva === "abierta" ? (
                 <>
                   {detailSlot.puedeUnirse && <button className="btnPrimary" onClick={() => openJoinGuestModal(detailSlot)}>Unirme</button>}
-                  {detailSlot.motivoNoUnirse === "Ya estas en esta partida." && <button className="btnGhost" onClick={() => handleLeaveOpenMatch(detailSlot)}>Salir de la partida</button>}
+                  {detailSlot.motivoNoUnirse === "Ya estás en esta partida." && <button className="btnGhost" onClick={() => handleLeaveOpenMatch(detailSlot)}>Salir de la partida</button>}
                   {detailSlot.reservaUserId === getUser()?.id && <button className="btnDanger" onClick={() => handleCancel(detailSlot)}>Cancelar partida</button>}
                 </>
               ) : detailSlot.reservaUserId === getUser()?.id ? (
@@ -666,7 +666,7 @@ function Reservas() {
               {reserveType === "completa" ? (
                 <>
                   <label>Nombre<input value={reserveName} onChange={(e) => setReserveName(e.target.value)} placeholder="Ej: Nani Garcia" autoComplete="name" /></label>
-                  <label>Telefono<input value={reservePhone} onChange={(e) => setReservePhone(e.target.value)} placeholder="Ej: 600 123 456" autoComplete="tel" inputMode="tel" /></label>
+                  <label>Teléfono<input value={reservePhone} onChange={(e) => setReservePhone(e.target.value)} placeholder="Ej: 600 123 456" autoComplete="tel" inputMode="tel" /></label>
                 </>
               ) : (
                 <div className="levelRangeGrid">

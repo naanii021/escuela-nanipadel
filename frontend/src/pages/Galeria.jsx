@@ -145,7 +145,7 @@ function Galeria() {
 
   const openUpload = () => {
     if (!logged) {
-      setUploadStatus({ type: "info", message: "Inicia sesion para enviar fotos al club." });
+      setUploadStatus({ type: "info", message: "Inicia sesión para enviar fotos al club." });
       setUploadOpen(true);
       return;
     }
@@ -221,16 +221,16 @@ function Galeria() {
     <section className="galeria">
       <header className="galeriaHero">
         <div className="galeriaHeroCopy">
-          <span className="galeriaEyebrow">Escuela de padel</span>
-          <h1>Galeria</h1>
+          <span className="galeriaEyebrow">Escuela de pádel</span>
+          <h1>Galería</h1>
           <p className="galeriaLead">
-            Fotos de clases, torneos y momentos del club. Tambien puedes enviar tus fotos para que el equipo las revise.
+            Fotos de clases, torneos y momentos del club. También puedes enviar tus fotos para que el equipo las revise.
           </p>
 
           <div className="galeriaStats">
             <article className="statCard">
               <strong>{stats.total}</strong>
-              <span>Imagenes</span>
+              <span>Imágenes</span>
             </article>
             <article className="statCard">
               <strong>{stats.clases}</strong>
@@ -250,7 +250,7 @@ function Galeria() {
             <button type="button" className="galleryUploadBtn" onClick={openUpload}>
               Enviar foto al club
             </button>
-            {!logged && <span>Inicia sesion para enviar tus fotos al club.</span>}
+            {!logged && <span>Inicia sesión para enviar tus fotos al club.</span>}
           </div>
         </div>
 
@@ -271,7 +271,7 @@ function Galeria() {
             </>
           ) : (
             <div className="heroPanelEmpty">
-              {manifestLoaded ? "No hay imagenes disponibles todavia." : "Cargando galeria..."}
+              {manifestLoaded ? "No hay imágenes disponibles todavía." : "Cargando galería..."}
             </div>
           )}
         </div>
@@ -292,8 +292,8 @@ function Galeria() {
         <section className="galleryModeration">
           <div className="moderationHeader">
             <div>
-              <span className="galeriaEyebrow">Moderacion</span>
-              <h2>Fotos pendientes de revision</h2>
+              <span className="galeriaEyebrow">Moderación</span>
+              <h2>Fotos pendientes de revisión</h2>
             </div>
             <strong>{pendingPhotos.length}</strong>
           </div>
@@ -367,9 +367,9 @@ function Galeria() {
 
       {manifestLoaded && filteredPhotos.length === 0 && (
         <section className="galleryEmpty">
-          <strong>Aun no hay fotos en esta categoria.</strong>
+          <strong>Aún no hay fotos en esta categoría.</strong>
           <p>
-            Cuando el club apruebe nuevas fotos, apareceran aqui junto a las imagenes actuales.
+            Cuando el club apruebe nuevas fotos, aparecerán aquí junto a las imágenes actuales.
           </p>
         </section>
       )}
@@ -396,7 +396,7 @@ function Galeria() {
 
             {!logged ? (
               <div className="uploadLoginBox">
-                <p>Inicia sesion para enviar fotos al club.</p>
+                <p>Inicia sesión para enviar fotos al club.</p>
                 <a href="/login" className="galleryUploadBtn">Entrar</a>
               </div>
             ) : (
@@ -406,21 +406,21 @@ function Galeria() {
                   <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setUploadForm((current) => ({ ...current, imagen: e.target.files?.[0] || null }))} />
                 </label>
                 <label>
-                  Titulo
+                  Título
                   <input value={uploadForm.titulo} maxLength={150} onChange={(e) => setUploadForm((current) => ({ ...current, titulo: e.target.value }))} required />
                 </label>
                 <label>
-                  Categoria
+                  Categoría
                   <select value={uploadForm.categoria} onChange={(e) => setUploadForm((current) => ({ ...current, categoria: e.target.value }))}>
                     {UPLOAD_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
                   </select>
                 </label>
                 <label>
-                  Descripcion opcional
+                  Descripción opcional
                   <textarea value={uploadForm.descripcion} rows="4" onChange={(e) => setUploadForm((current) => ({ ...current, descripcion: e.target.value }))} />
                 </label>
                 <button type="submit" className="galleryUploadBtn" disabled={uploading}>
-                  {uploading ? "Enviando..." : isAdmin ? "Subir y publicar" : "Enviar para revision"}
+                  {uploading ? "Enviando..." : isAdmin ? "Subir y publicar" : "Enviar para revisión"}
                 </button>
               </>
             )}

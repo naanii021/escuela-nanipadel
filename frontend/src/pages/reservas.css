@@ -1913,3 +1913,196 @@
   .badgeDisponible::before { animation: none; }
   .reservaCard.disponible:hover { transform: none; }
 }
+
+/* Mobile-first compact pass for the booking flow. */
+@media (max-width: 768px) {
+  .reservas {
+    min-height: auto;
+    padding-bottom: 2.5rem;
+  }
+
+  .reservasHeader,
+  .toolbar,
+  .dayTitle,
+  .courtsColumns,
+  .loadingSlots {
+    width: min(100% - 1.2rem, 1160px);
+  }
+
+  .reservasHeader {
+    gap: 0.75rem;
+    padding-top: 1.1rem;
+  }
+
+  .reservasTitle {
+    font-size: clamp(1.55rem, 8vw, 2rem);
+  }
+
+  .reservasIntro {
+    max-width: 44ch;
+    font-size: 0.86rem;
+    line-height: 1.48;
+  }
+
+  .summary {
+    gap: 0.45rem;
+  }
+
+  .summaryItem {
+    padding: 0.58rem 0.5rem;
+    border-radius: 13px;
+  }
+
+  .summaryItem strong {
+    font-size: 1.2rem;
+  }
+
+  .toolbar {
+    gap: 0.55rem;
+    margin-top: 0.8rem;
+    padding: 0.62rem;
+    border-radius: 16px;
+  }
+
+  .datePills {
+    gap: 0.38rem;
+  }
+
+  .pillBtn,
+  .datePicker,
+  .filters select,
+  .searchHour,
+  .check {
+    min-height: 40px;
+    padding: 0.42rem 0.68rem;
+    border-radius: 12px;
+    font-size: 0.82rem;
+  }
+
+  .dayTitle {
+    margin-top: 0.9rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .courtsColumns {
+    gap: 0.7rem;
+  }
+
+  .courtColumn {
+    border-radius: 16px;
+  }
+
+  .courtHeader {
+    padding: 0.72rem 0.85rem;
+  }
+
+  .slotsGrid {
+    gap: 0.55rem;
+  }
+
+  .reservaCard {
+    gap: 0.5rem;
+    padding: 0.72rem;
+    border-radius: 15px;
+  }
+
+  .timeVal {
+    font-size: 1.18rem;
+  }
+
+  .metaRow,
+  .cardTop,
+  .playerInfo,
+  .cardBottomRow {
+    gap: 0.38rem;
+  }
+
+  .playerSlots,
+  .openMatchBox {
+    padding: 0.6rem;
+    border-radius: 13px;
+  }
+
+  .playerAvatar {
+    width: 30px;
+    height: 30px;
+  }
+
+  .btnReserve,
+  .btnJoin,
+  .btnCancel,
+  .btnGhost,
+  .btnPrimary {
+    min-height: 40px;
+    padding: 0.58rem 0.8rem;
+    border-radius: 12px;
+  }
+
+  .modal {
+    max-height: calc(100dvh - 0.8rem);
+  }
+
+  .modalHead {
+    padding-top: 1rem;
+    padding-bottom: 0.85rem;
+  }
+
+  .modalHead h3 {
+    font-size: 1.2rem;
+  }
+
+  .modalInfo,
+  .reservationTypeGrid,
+  .form,
+  .detailSummary,
+  .detailSection,
+  .compatibilityBox,
+  .detailActions {
+    gap: 0.55rem;
+  }
+
+  .modalInfoRow,
+  .reservationTypeCard {
+    padding: 0.72rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .reservasHeader,
+  .toolbar,
+  .dayTitle,
+  .courtsColumns,
+  .loadingSlots {
+    width: calc(100% - 0.9rem);
+  }
+
+  .summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .datePills {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .filters {
+    gap: 0.45rem;
+  }
+
+  .reservaCard {
+    padding: 0.66rem;
+  }
+
+  .playerSlots {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .modalBackdrop {
+    padding: 0.35rem;
+  }
+
+  .modal,
+  .reservationDetail {
+    border-radius: 18px;
+  }
+}

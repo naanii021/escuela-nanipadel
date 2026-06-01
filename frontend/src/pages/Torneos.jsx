@@ -21,7 +21,7 @@ const CATEGORY_META = {
     accentClass: "catMixto",
   },
   competicion: {
-    label: "Competicion",
+    label: "Competición",
     accentClass: "catCompeticion",
   },
   liga_interna: {
@@ -32,7 +32,7 @@ const CATEGORY_META = {
 
 const STATUS_META = {
   abierto: { label: "Abierto", className: "statusAbierto" },
-  proximo: { label: "Proximo", className: "statusProximo" },
+  proximo: { label: "Próximo", className: "statusProximo" },
   en_curso: { label: "En curso", className: "statusCurso" },
   completo: { label: "Completo", className: "statusCompleto" },
   cerrado: { label: "Cerrado", className: "statusCerrado" },
@@ -45,7 +45,7 @@ const CATEGORY_FILTERS = [
   { key: "adultos", label: "Adultos" },
   { key: "menores", label: "Menores" },
   { key: "mixto", label: "Mixto" },
-  { key: "competicion", label: "Competicion" },
+  { key: "competicion", label: "Competición" },
   { key: "liga_interna", label: "Liga" },
 ];
 
@@ -338,8 +338,8 @@ function Torneos() {
       setActionId(torneo.id);
       setFeedback("");
       const data = torneo.inscrito ? await apiPatch(endpoint) : await apiPost(endpoint, {});
-      if (!data.ok) throw new Error(data.message || "No hemos podido actualizar tu inscripcion.");
-      setFeedback(torneo.inscrito ? "Inscripcion cancelada." : "Ya estas apuntado al torneo.");
+      if (!data.ok) throw new Error(data.message || "No hemos podido actualizar tu inscripción.");
+      setFeedback(torneo.inscrito ? "Inscripción cancelada." : "Ya estás apuntado al torneo.");
       await loadTorneos();
       requestNotificationsRefresh();
       setSelectedTorneo((current) => {
@@ -352,7 +352,7 @@ function Torneos() {
         };
       });
     } catch (e) {
-      setFeedback(e.message || "No hemos podido actualizar tu inscripcion.");
+      setFeedback(e.message || "No hemos podido actualizar tu inscripción.");
     } finally {
       setActionId(null);
     }
@@ -389,7 +389,7 @@ function Torneos() {
       setAmericanoDetail(data);
       setSelectedAlumnoIds([]);
     } catch (e) {
-      setAmericanoError(e.message || "No hemos podido anadir participantes.");
+      setAmericanoError(e.message || "No hemos podido añadir participantes.");
     }
   };
 
@@ -448,11 +448,11 @@ function Torneos() {
           <div className="torneosHeroCopy">
             <span className="torneosEyebrow">
               <span className="eyebrowDot" aria-hidden="true" />
-              Competicion del club
+              Competición del club
             </span>
             <h2 className="torneosTitle">Torneos y jornadas del club</h2>
             <p className="intro">
-              Consulta torneos activos, revisa plazas disponibles y apunta tu pareja cuando haya inscripciones abiertas.
+              Consulta torneos activos, revisa plazas disponibles y apunta a tu pareja cuando haya inscripciones abiertas.
             </p>
           </div>
 
@@ -477,12 +477,12 @@ function Torneos() {
         </section>
 
         {canManageAmericanos && (
-          <section className="americanoPanel" aria-label="Gestion de Americanos y Judex">
+          <section className="americanoPanel" aria-label="Gestión de Americanos y Judex">
             <div className="americanoPanelHead">
               <div>
                 <span className="torneosSectionEyebrow">Americanos / Judex</span>
-                <h3>Gestion rapida en pista</h3>
-                <p>Crea un americano, elige alumnos, anota mini partidos y revisa la clasificacion al momento.</p>
+                <h3>Gestión rápida en pista</h3>
+                <p>Crea un americano, elige alumnos, anota mini partidos y revisa la clasificación al momento.</p>
               </div>
               <button
                 type="button"
@@ -498,15 +498,15 @@ function Torneos() {
                 <form className="americanoCreateCard" onSubmit={createAmericano}>
                   <div className="americanoCardHead">
                     <strong>Nuevo americano</strong>
-                    <span>Evento rapido</span>
+                    <span>Evento rápido</span>
                   </div>
                   <div className="americanoFormGrid">
                     <label>Nombre<input value={americanoForm.nombre} onChange={(e) => setAmericanoForm((current) => ({ ...current, nombre: e.target.value }))} placeholder="Judex sub-12 viernes" required /></label>
                     <label>Fecha<input type="date" value={americanoForm.fecha} onChange={(e) => setAmericanoForm((current) => ({ ...current, fecha: e.target.value }))} required /></label>
-                    <label>Categoria<input value={americanoForm.categoria} onChange={(e) => setAmericanoForm((current) => ({ ...current, categoria: e.target.value }))} placeholder="Judex" /></label>
+                    <label>Categoría<input value={americanoForm.categoria} onChange={(e) => setAmericanoForm((current) => ({ ...current, categoria: e.target.value }))} placeholder="Judex" /></label>
                     <label>Pistas<input value={americanoForm.pistas} onChange={(e) => setAmericanoForm((current) => ({ ...current, pistas: e.target.value }))} placeholder="Pista 1 y 2" /></label>
-                    <label>Duracion<input type="number" min="0" value={americanoForm.duracion_min} onChange={(e) => setAmericanoForm((current) => ({ ...current, duracion_min: e.target.value }))} placeholder="90" /></label>
-                    <label className="americanoWide">Observaciones<textarea value={americanoForm.observaciones} onChange={(e) => setAmericanoForm((current) => ({ ...current, observaciones: e.target.value }))} rows={3} placeholder="Niños nivel iniciacion, rotaciones cortas..." /></label>
+                    <label>Duración<input type="number" min="0" value={americanoForm.duracion_min} onChange={(e) => setAmericanoForm((current) => ({ ...current, duracion_min: e.target.value }))} placeholder="90" /></label>
+                    <label className="americanoWide">Observaciones<textarea value={americanoForm.observaciones} onChange={(e) => setAmericanoForm((current) => ({ ...current, observaciones: e.target.value }))} rows={3} placeholder="Niños nivel iniciación, rotaciones cortas..." /></label>
                   </div>
                   <button type="submit" className="americanoPrimaryBtn" disabled={americanoLoading}>{americanoLoading ? "Creando..." : "Crear americano"}</button>
                 </form>
@@ -546,7 +546,7 @@ function Torneos() {
                               <option key={alumno.id} value={alumno.id}>{alumnoLabel(alumno)}</option>
                             ))}
                           </select>
-                          <button type="button" className="americanoSecondaryBtn" onClick={addParticipants} disabled={!selectedAlumnoIds.length}>Anadir seleccionados</button>
+                          <button type="button" className="americanoSecondaryBtn" onClick={addParticipants} disabled={!selectedAlumnoIds.length}>Añadir seleccionados</button>
                         </div>
                         <div className="participantesList">
                           {(americanoDetail.participantes || []).map((item) => (
@@ -555,14 +555,14 @@ function Torneos() {
                               <button type="button" onClick={() => removeParticipant(item.alumno_id)} aria-label={`Quitar ${item.nombre}`}>x</button>
                             </span>
                           ))}
-                          {!americanoDetail.participantes?.length && <p>Aun no hay participantes.</p>}
+                          {!americanoDetail.participantes?.length && <p>Aún no hay participantes.</p>}
                         </div>
                       </section>
 
                       <section className="americanoCard rankingCard">
                         <div className="americanoCardHead">
-                          <strong>Clasificacion</strong>
-                          <span>Ordenada automaticamente</span>
+                          <strong>Clasificación</strong>
+                          <span>Ordenada automáticamente</span>
                         </div>
                         <div className="rankingTable">
                           {(americanoDetail.clasificacion || []).map((row, index) => (
@@ -573,14 +573,14 @@ function Torneos() {
                               <small>{row.partidos} PJ · {row.victorias} V · Dif {row.diferencia}</small>
                             </div>
                           ))}
-                          {!americanoDetail.clasificacion?.length && <p>La clasificacion aparecera al anadir alumnos.</p>}
+                          {!americanoDetail.clasificacion?.length && <p>La clasificación aparecerá al añadir alumnos.</p>}
                         </div>
                       </section>
 
                       <section className="americanoCard partidosCard">
                         <div className="americanoCardHead">
                           <strong>Mini partidos</strong>
-                          <span>Creacion manual preparada para automatizar despues</span>
+                          <span>Creación manual preparada para automatizar después</span>
                         </div>
 
                         <form className="matchForm" onSubmit={createMatch}>
@@ -611,7 +611,7 @@ function Torneos() {
                               </div>
                             </article>
                           ))}
-                          {!americanoDetail.partidos?.length && <p>No hay mini partidos creados todavia.</p>}
+                          {!americanoDetail.partidos?.length && <p>No hay mini partidos creados todavía.</p>}
                         </div>
                       </section>
                     </div>
@@ -629,12 +629,12 @@ function Torneos() {
             <div className="torneosControlHead">
               <div>
                 <span className="torneosSectionEyebrow">Inscripciones</span>
-                <h3>Torneos activos y proximos</h3>
+                <h3>Torneos activos y próximos</h3>
               </div>
-              <p>Filtra por categoria y revisa fechas, plazas y estado de cada torneo.</p>
+              <p>Filtra por categoría y revisa fechas, plazas y estado de cada torneo.</p>
             </div>
 
-            <nav className="torneosFilters" aria-label="Filtrar torneos por categoria">
+            <nav className="torneosFilters" aria-label="Filtrar torneos por categoría">
               {CATEGORY_FILTERS.map((f) => (
                 <button
                   key={f.key}
@@ -675,8 +675,8 @@ function Torneos() {
         {!loading && !err && filteredTorneos.length === 0 && (
           <div className="torneosMessage" role="status">
             {activeFilter !== "todos"
-              ? "No hay torneos en esta categoria por ahora."
-              : "Aun no hay torneos publicados. Cuando el club abra uno, aparecera aqui."}
+              ? "No hay torneos en esta categoría por ahora."
+              : "Aún no hay torneos publicados. Cuando el club abra uno, aparecerá aquí."}
           </div>
         )}
 
@@ -748,7 +748,7 @@ function Torneos() {
                       {(torneo.edad_min || torneo.edad_max) && (
                         <div className="torneoDetails">
                           <span className="detailChip">
-                            Edad {torneo.edad_min || "?"} - {torneo.edad_max || "?"} anos
+                            Edad {torneo.edad_min || "?"} - {torneo.edad_max || "?"} años
                           </span>
                         </div>
                       )}
@@ -819,7 +819,7 @@ function Torneos() {
                 <span className="torneosSectionEyebrow">Ambiente competitivo</span>
                 <h3>Fotos de jornadas y torneos</h3>
               </div>
-              <p>Momentos de competicion y ambiente de club.</p>
+              <p>Momentos de competición y ambiente de club.</p>
             </div>
 
             <div className="torneosGalleryGrid">
@@ -873,11 +873,11 @@ function Torneos() {
                     {getStatusMeta(selectedTorneo.estado).label}
                   </span>
                 </div>
-                <p>{selectedTorneo.descripcion || "El club publicara mas informacion de este torneo proximamente."}</p>
+                <p>{selectedTorneo.descripcion || "El club publicará más información de este torneo próximamente."}</p>
                 <div className="torneoModalMeta">
                   <div><span>Fecha</span><strong>{formatFecha(selectedTorneo.fecha_inicio)}</strong></div>
                   <div><span>Hora</span><strong>{formatHora(selectedTorneo.hora_inicio)}</strong></div>
-                  <div><span>Categoria</span><strong>{getCategoryMeta(selectedTorneo.categoria).label}</strong></div>
+                  <div><span>Categoría</span><strong>{getCategoryMeta(selectedTorneo.categoria).label}</strong></div>
                   <div><span>Precio</span><strong>{formatPrecio(selectedTorneo.precio)}</strong></div>
                   <div><span>Nivel</span><strong>{selectedTorneo.nivel || "Todos"}</strong></div>
                   <div><span>Plazas</span><strong>{getCapacityText(selectedTorneo)}</strong></div>
@@ -892,7 +892,7 @@ function Torneos() {
                     {actionId === selectedTorneo.id
                       ? "Procesando..."
                       : selectedTorneo.inscrito
-                        ? "Cancelar inscripcion"
+                        ? "Cancelar inscripción"
                         : "Inscribirme"}
                   </button>
                 ) : (
