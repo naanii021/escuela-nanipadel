@@ -56,6 +56,17 @@ function normalizeOptionalNumber(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function normalizeOptionalJson(value) {
+  if (value === "" || value === null || value === undefined) return null;
+  return typeof value === "string" ? value : JSON.stringify(value);
+}
+
+function pushInsertField(columns, insertColumns, insertValues, field, value) {
+  if (!columns.has(field)) return;
+  insertColumns.push(field);
+  insertValues.push(value);
+}
+
 async function fetchAmericanoDetail(americanoId) {
   const alumnoColumns = await getTableColumns("alumnos");
   const alumnoName = alumnoNameSelect(alumnoColumns);
@@ -410,21 +421,45 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
       nombre, descripcion, categoria, modalidad,
       fecha_inicio, fecha_fin, hora_inicio, nivel,
       edad_min, edad_max, max_parejas, precio, estado,
+      tipo_torneo, configuracion_formato, plazas_maximas,
+      pistas_necesarias, cartel_url, imagen_url,
     } = req.body;
 
     if (!nombre || !categoria || !fecha_inicio) {
       return res.status(400).json({ ok: false, message: "Faltan campos obligatorios (nombre, categoria, fecha_inicio)" });
     }
 
+    const columns = await getTableColumns("torneos");
+    const insertColumns = [];
+    const insertValues = [];
+    const maxParejas = normalizeOptionalNumber(max_parejas) || normalizeOptionalNumber(plazas_maximas) || 16;
+    const selectedFormat = tipo_torneo || "americano";
+
+    pushInsertField(columns, insertColumns, insertValues, "nombre", nombre);
+    pushInsertField(columns, insertColumns, insertValues, "descripcion", descripcion || null);
+    pushInsertField(columns, insertColumns, insertValues, "categoria", categoria);
+    pushInsertField(columns, insertColumns, insertValues, "modalidad", modalidad || selectedFormat || null);
+    pushInsertField(columns, insertColumns, insertValues, "fecha_inicio", fecha_inicio);
+    pushInsertField(columns, insertColumns, insertValues, "fecha_fin", fecha_fin || null);
+    pushInsertField(columns, insertColumns, insertValues, "hora_inicio", hora_inicio || null);
+    pushInsertField(columns, insertColumns, insertValues, "nivel", nivel || null);
+    pushInsertField(columns, insertColumns, insertValues, "edad_min", normalizeOptionalNumber(edad_min));
+    pushInsertField(columns, insertColumns, insertValues, "edad_max", normalizeOptionalNumber(edad_max));
+    pushInsertField(columns, insertColumns, insertValues, "max_parejas", maxParejas);
+    pushInsertField(columns, insertColumns, insertValues, "plazas_maximas", maxParejas);
+    pushInsertField(columns, insertColumns, insertValues, "precio", normalizeOptionalNumber(precio) || 0);
+    pushInsertField(columns, insertColumns, insertValues, "estado", estado || "proximo");
+    pushInsertField(columns, insertColumns, insertValues, "creado_por", req.user.id);
+    pushInsertField(columns, insertColumns, insertValues, "tipo_torneo", selectedFormat);
+    pushInsertField(columns, insertColumns, insertValues, "configuracion_formato", normalizeOptionalJson(configuracion_formato));
+    pushInsertField(columns, insertColumns, insertValues, "pistas_necesarias", normalizeOptionalNumber(pistas_necesarias));
+    pushInsertField(columns, insertColumns, insertValues, "cartel_url", cartel_url || imagen_url || null);
+    pushInsertField(columns, insertColumns, insertValues, "imagen_url", imagen_url || cartel_url || null);
+
     const [result] = await query(
-      `INSERT INTO torneos (nombre, descripcion, categoria, modalidad, fecha_inicio, fecha_fin, hora_inicio, nivel, edad_min, edad_max, max_parejas, precio, estado, creado_por)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        nombre, descripcion || null, categoria, modalidad || null,
-        fecha_inicio, fecha_fin || null, hora_inicio || null, nivel || null,
-        edad_min || null, edad_max || null, max_parejas || 16, precio || 0,
-        estado || "proximo", req.user.id,
-      ]
+      `INSERT INTO torneos (${insertColumns.join(", ")})
+       VALUES (${insertColumns.map(() => "?").join(", ")})`,
+      insertValues
     );
 
     res.status(201).json({ ok: true, id: result.insertId, message: "Torneo creado" });

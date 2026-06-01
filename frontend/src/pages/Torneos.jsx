@@ -31,6 +31,8 @@ const CATEGORY_META = {
 };
 
 const STATUS_META = {
+  borrador: { label: "Borrador", className: "statusDefault" },
+  publicado: { label: "Publicado", className: "statusAbierto" },
   abierto: { label: "Abierto", className: "statusAbierto" },
   proximo: { label: "Próximo", className: "statusProximo" },
   en_curso: { label: "En curso", className: "statusCurso" },
@@ -48,6 +50,130 @@ const CATEGORY_FILTERS = [
   { key: "competicion", label: "Competición" },
   { key: "liga_interna", label: "Liga" },
 ];
+
+const TOURNAMENT_FORMATS = [
+  {
+    key: "americano",
+    title: "Americano",
+    description: "Formato social con rotación de parejas y puntuación individual.",
+    status: "Automatización actual disponible en Gestión",
+  },
+  {
+    key: "mexicano",
+    title: "Mexicano",
+    description: "Formato dinámico que empareja jugadores según clasificación para crear partidos igualados.",
+    status: "Preparado",
+  },
+  {
+    key: "round_robin",
+    title: "Liga / Round Robin",
+    description: "Todos contra todos. Ideal para torneos de varias jornadas o grupos reducidos.",
+    status: "Preparado",
+  },
+  {
+    key: "eliminatoria",
+    title: "Eliminatoria",
+    description: "Cuadro directo por rondas hasta semifinal y final.",
+    status: "Preparado",
+  },
+  {
+    key: "grupos_playoff",
+    title: "Grupos + Playoff",
+    description: "Primero fase de grupos y después cuadro final con los mejores clasificados.",
+    status: "Preparado",
+  },
+  {
+    key: "rey_pista",
+    title: "Rey de pista / Pozo",
+    description: "Las parejas suben o bajan de pista según el resultado de cada ronda.",
+    status: "Preparado",
+  },
+  {
+    key: "beat_the_box",
+    title: "Beat the Box",
+    description: "Jugadores divididos en grupos pequeños que se reorganizan según rendimiento.",
+    status: "Preparado",
+  },
+  {
+    key: "equipos",
+    title: "Por equipos",
+    description: "Equipos completos compiten entre sí sumando puntos por enfrentamiento.",
+    status: "Preparado",
+  },
+  {
+    key: "express",
+    title: "Express",
+    description: "Torneo rápido de una mañana o una tarde, con partidos cortos.",
+    status: "Preparado",
+  },
+];
+
+const FORMAT_RULE_FIELDS = {
+  americano: [
+    { key: "numero_rondas", label: "Número de rondas", type: "number", defaultValue: 4 },
+    { key: "puntos_por_partido", label: "Puntos por partido", type: "number", defaultValue: 24 },
+    { key: "parejas_rotativas", label: "Parejas rotativas", type: "checkbox", defaultValue: true },
+    { key: "puntuacion_individual", label: "Puntuación individual", type: "checkbox", defaultValue: true },
+  ],
+  mexicano: [
+    { key: "numero_rondas", label: "Número de rondas", type: "number", defaultValue: 4 },
+    { key: "puntos_por_partido", label: "Puntos por partido", type: "number", defaultValue: 24 },
+    { key: "emparejamiento_por_clasificacion", label: "Emparejamiento por clasificación", type: "checkbox", defaultValue: true },
+  ],
+  round_robin: [
+    { key: "numero_grupos", label: "Número de grupos", type: "number", defaultValue: 1 },
+    { key: "parejas_por_grupo", label: "Parejas por grupo", type: "number", defaultValue: 4 },
+    { key: "puntos_victoria", label: "Puntos victoria", type: "number", defaultValue: 3 },
+    { key: "puntos_empate", label: "Puntos empate", type: "number", defaultValue: 1 },
+    { key: "pasan_por_grupo", label: "Pasan por grupo", type: "number", defaultValue: 2 },
+  ],
+  eliminatoria: [
+    { key: "tamaño_cuadro", label: "Tamaño del cuadro", type: "number", defaultValue: 8 },
+    { key: "tercer_cuarto_puesto", label: "Tercer y cuarto puesto", type: "checkbox", defaultValue: false },
+  ],
+  grupos_playoff: [
+    { key: "numero_grupos", label: "Número de grupos", type: "number", defaultValue: 2 },
+    { key: "parejas_por_grupo", label: "Parejas por grupo", type: "number", defaultValue: 4 },
+    { key: "pasan_por_grupo", label: "Pasan por grupo", type: "number", defaultValue: 2 },
+    { key: "tipo_playoff", label: "Tipo de playoff", type: "text", defaultValue: "Semifinales y final" },
+  ],
+  rey_pista: [
+    { key: "numero_rondas", label: "Número de rondas", type: "number", defaultValue: 5 },
+    { key: "tiempo_por_ronda", label: "Tiempo por ronda", type: "number", defaultValue: 15 },
+    { key: "subir_bajar_pista", label: "Subir / bajar pista", type: "checkbox", defaultValue: true },
+  ],
+  beat_the_box: [
+    { key: "tamaño_box", label: "Tamaño del box", type: "number", defaultValue: 4 },
+    { key: "numero_rondas", label: "Número de rondas", type: "number", defaultValue: 4 },
+    { key: "subir_bajar_box", label: "Subir / bajar box", type: "checkbox", defaultValue: true },
+  ],
+  equipos: [
+    { key: "numero_equipos", label: "Número de equipos", type: "number", defaultValue: 4 },
+    { key: "jugadores_por_equipo", label: "Jugadores por equipo", type: "number", defaultValue: 4 },
+    { key: "partidos_por_enfrentamiento", label: "Partidos por enfrentamiento", type: "number", defaultValue: 3 },
+  ],
+  express: [
+    { key: "duracion_total", label: "Duración total", type: "number", defaultValue: 180 },
+    { key: "tiempo_por_partido", label: "Tiempo por partido", type: "number", defaultValue: 20 },
+    { key: "formato_base", label: "Formato base", type: "text", defaultValue: "americano" },
+  ],
+};
+
+const emptyTournamentForm = {
+  nombre: "",
+  descripcion: "",
+  categoria: "adultos",
+  nivel: "",
+  fecha_inicio: new Date().toISOString().slice(0, 10),
+  hora_inicio: "",
+  fecha_fin: "",
+  precio: "",
+  plazas_maximas: 16,
+  pistas_necesarias: "",
+  imagen: "",
+  estado: "borrador",
+  tipo_torneo: "americano",
+};
 
 const emptyAmericanoForm = {
   nombre: "",
@@ -141,6 +267,36 @@ function canRegisterTournament(torneo) {
   return torneo?.estado === "abierto" && getAvailableSlots(torneo) !== 0;
 }
 
+function getFormatMeta(tipoTorneo) {
+  return TOURNAMENT_FORMATS.find((format) => format.key === tipoTorneo) || TOURNAMENT_FORMATS[0];
+}
+
+function getTournamentFormatKey(torneo) {
+  return torneo?.tipo_torneo || torneo?.tipoTorneo || (torneo?.modalidad === "Americano" ? "americano" : "");
+}
+
+function getTournamentFormatLabel(torneo) {
+  const formatKey = getTournamentFormatKey(torneo);
+  return formatKey ? getFormatMeta(formatKey).title : torneo?.modalidad || "A definir";
+}
+
+function buildDefaultRules(tipoTorneo) {
+  return (FORMAT_RULE_FIELDS[tipoTorneo] || []).reduce((rules, field) => {
+    rules[field.key] = field.defaultValue;
+    return rules;
+  }, {});
+}
+
+function normalizeRuleValue(field, value) {
+  if (field.type === "checkbox") return Boolean(value);
+  if (field.type === "number") {
+    if (value === "") return "";
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : field.defaultValue;
+  }
+  return value;
+}
+
 function isClosedTournament(torneo) {
   return ["cerrado", "cancelado", "finalizado", "completo"].includes(torneo?.estado);
 }
@@ -194,8 +350,16 @@ function Torneos() {
   const [americanoLoading, setAmericanoLoading] = useState(false);
   const [americanoError, setAmericanoError] = useState("");
   const [selectedTorneo, setSelectedTorneo] = useState(null);
+  const [adminTab, setAdminTab] = useState("activos");
+  const [tournamentForm, setTournamentForm] = useState(emptyTournamentForm);
+  const [formatRules, setFormatRules] = useState(() => buildDefaultRules(emptyTournamentForm.tipo_torneo));
+  const [creatingTournament, setCreatingTournament] = useState(false);
+  const [creatorError, setCreatorError] = useState("");
+  const [creatorNotice, setCreatorNotice] = useState("");
 
   const canManageAmericanos = isStaffUser();
+  const selectedFormat = getFormatMeta(tournamentForm.tipo_torneo);
+  const selectedFormatFields = FORMAT_RULE_FIELDS[tournamentForm.tipo_torneo] || [];
 
   const loadTorneos = useCallback(async () => {
     try {
@@ -323,6 +487,69 @@ function Torneos() {
     [alumnosCatalog, selectedParticipantIds]
   );
   const participantOptions = americanoDetail?.participantes || [];
+
+  const updateTournamentForm = (field, value) => {
+    setTournamentForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const selectTournamentFormat = (formatKey) => {
+    setTournamentForm((current) => ({ ...current, tipo_torneo: formatKey }));
+    setFormatRules(buildDefaultRules(formatKey));
+  };
+
+  const updateFormatRule = (field, value, meta) => {
+    setFormatRules((current) => ({
+      ...current,
+      [field]: normalizeRuleValue(meta, value),
+    }));
+  };
+
+  const createTournament = async (event) => {
+    event.preventDefault();
+
+    try {
+      setCreatingTournament(true);
+      setCreatorError("");
+      setCreatorNotice("");
+
+      const formatMeta = getFormatMeta(tournamentForm.tipo_torneo);
+      const plazasMaximas = Number(tournamentForm.plazas_maximas) || 16;
+      const payload = {
+        nombre: tournamentForm.nombre.trim(),
+        descripcion: tournamentForm.descripcion.trim() || null,
+        categoria: tournamentForm.categoria,
+        modalidad: formatMeta.title,
+        nivel: tournamentForm.nivel.trim() || null,
+        fecha_inicio: tournamentForm.fecha_inicio,
+        hora_inicio: tournamentForm.hora_inicio || null,
+        fecha_fin: tournamentForm.fecha_fin || null,
+        precio: tournamentForm.precio === "" ? 0 : Number(tournamentForm.precio),
+        max_parejas: plazasMaximas,
+        plazas_maximas: plazasMaximas,
+        pistas_necesarias: tournamentForm.pistas_necesarias === "" ? null : Number(tournamentForm.pistas_necesarias),
+        cartel_url: tournamentForm.imagen.trim() || null,
+        imagen_url: tournamentForm.imagen.trim() || null,
+        estado: tournamentForm.estado,
+        tipo_torneo: tournamentForm.tipo_torneo,
+        configuracion_formato: formatRules,
+      };
+
+      const data = await apiPost("/api/torneos", payload);
+      if (!data.ok) throw new Error(data.message || "No se ha podido crear el torneo.");
+
+      setTournamentForm(emptyTournamentForm);
+      setFormatRules(buildDefaultRules(emptyTournamentForm.tipo_torneo));
+      setCreatorNotice("Torneo guardado. Ya aparece en el listado si está publicado.");
+      setFeedback("Torneo guardado. Ya aparece en el listado si está publicado.");
+      setAdminTab("activos");
+      await loadTorneos();
+      requestNotificationsRefresh();
+    } catch (e) {
+      setCreatorError(e.message || "No se ha podido crear el torneo.");
+    } finally {
+      setCreatingTournament(false);
+    }
+  };
 
   const handleInscripcion = async (torneo) => {
     if (!isLogged()) {
@@ -466,7 +693,7 @@ function Torneos() {
               <strong>{stats.abiertos}</strong>
             </div>
             <div className="torneosMetricCard" role="listitem">
-              <span>Proximos</span>
+              <span>Próximos</span>
               <strong>{stats.proximos}</strong>
             </div>
             <div className="torneosMetricCard" role="listitem">
@@ -477,6 +704,205 @@ function Torneos() {
         </section>
 
         {canManageAmericanos && (
+          <section className="torneosAdminPanel" aria-label="Administración de torneos">
+            <div className="torneosAdminHead">
+              <div>
+                <span className="torneosSectionEyebrow">Administración</span>
+                <h3>Torneos del club</h3>
+                <p>Crea torneos por formato, publica jornadas y conserva la gestión actual de americanos.</p>
+              </div>
+              <button type="button" className="adminCreateBtn" onClick={() => setAdminTab("crear")}>
+                Crear torneo
+              </button>
+            </div>
+
+            <div className="torneosAdminTabs" role="tablist" aria-label="Secciones de torneos">
+              {[
+                ["activos", "Torneos activos"],
+                ["crear", "Crear torneo"],
+                ["gestion", "Gestión"],
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={adminTab === key ? "isActive" : ""}
+                  onClick={() => setAdminTab(key)}
+                  aria-pressed={adminTab === key}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {adminTab === "activos" && (
+              <div className="torneosAdminSummary">
+                <article>
+                  <span>Publicados</span>
+                  <strong>{publicTorneos.length}</strong>
+                  <p>Torneos visibles en la página pública.</p>
+                </article>
+                <article>
+                  <span>Con inscripción</span>
+                  <strong>{stats.abiertos}</strong>
+                  <p>Eventos abiertos ahora mismo.</p>
+                </article>
+                <article>
+                  <span>Formatos</span>
+                  <strong>{TOURNAMENT_FORMATS.length}</strong>
+                  <p>Americano, mexicano, liga, eliminatoria y más.</p>
+                </article>
+              </div>
+            )}
+
+            {adminTab === "crear" && (
+              <form className="tournamentCreator" onSubmit={createTournament}>
+                <section className="creatorStep">
+                  <div className="creatorStepHead">
+                    <span>Paso 1</span>
+                    <h4>Datos básicos</h4>
+                  </div>
+                  <div className="creatorGrid">
+                    <label className="creatorField creatorWide">
+                      Nombre
+                      <input value={tournamentForm.nombre} onChange={(e) => updateTournamentForm("nombre", e.target.value)} placeholder="Torneo primavera NaniPadel" required />
+                    </label>
+                    <label className="creatorField creatorWide">
+                      Descripción
+                      <textarea value={tournamentForm.descripcion} onChange={(e) => updateTournamentForm("descripcion", e.target.value)} rows={3} placeholder="Resumen breve para alumnos y jugadores." />
+                    </label>
+                    <label className="creatorField">
+                      Categoría
+                      <select value={tournamentForm.categoria} onChange={(e) => updateTournamentForm("categoria", e.target.value)}>
+                        {Object.entries(CATEGORY_META).map(([key, meta]) => (
+                          <option key={key} value={key}>{meta.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="creatorField">
+                      Nivel
+                      <input value={tournamentForm.nivel} onChange={(e) => updateTournamentForm("nivel", e.target.value)} placeholder="Todos, medio, avanzado..." />
+                    </label>
+                    <label className="creatorField">
+                      Fecha inicio
+                      <input type="date" value={tournamentForm.fecha_inicio} onChange={(e) => updateTournamentForm("fecha_inicio", e.target.value)} required />
+                    </label>
+                    <label className="creatorField">
+                      Hora inicio
+                      <input type="time" value={tournamentForm.hora_inicio} onChange={(e) => updateTournamentForm("hora_inicio", e.target.value)} />
+                    </label>
+                    <label className="creatorField">
+                      Fecha fin
+                      <input type="date" value={tournamentForm.fecha_fin} onChange={(e) => updateTournamentForm("fecha_fin", e.target.value)} />
+                    </label>
+                    <label className="creatorField">
+                      Precio
+                      <input type="number" min="0" step="0.01" value={tournamentForm.precio} onChange={(e) => updateTournamentForm("precio", e.target.value)} placeholder="0" />
+                    </label>
+                    <label className="creatorField creatorWide">
+                      Cartel o imagen
+                      <input value={tournamentForm.imagen} onChange={(e) => updateTournamentForm("imagen", e.target.value)} placeholder="URL del cartel si ya está publicado" />
+                    </label>
+                  </div>
+                </section>
+
+                <section className="creatorStep">
+                  <div className="creatorStepHead">
+                    <span>Paso 2</span>
+                    <h4>Elegir formato</h4>
+                  </div>
+                  <div className="formatSelectorGrid">
+                    {TOURNAMENT_FORMATS.map((format) => (
+                      <button
+                        type="button"
+                        key={format.key}
+                        className={`formatOptionCard${tournamentForm.tipo_torneo === format.key ? " isSelected" : ""}`}
+                        onClick={() => selectTournamentFormat(format.key)}
+                      >
+                        <strong>{format.title}</strong>
+                        <span>{format.description}</span>
+                        <em>{format.status}</em>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="creatorStep">
+                  <div className="creatorStepHead">
+                    <span>Paso 3</span>
+                    <h4>Reglas y puntuación</h4>
+                  </div>
+                  <div className="rulesGrid">
+                    {selectedFormatFields.map((field) => (
+                      <label key={field.key} className={`creatorField${field.type === "checkbox" ? " ruleCheckbox" : ""}`}>
+                        {field.type === "checkbox" ? (
+                          <>
+                            <input type="checkbox" checked={Boolean(formatRules[field.key])} onChange={(e) => updateFormatRule(field.key, e.target.checked, field)} />
+                            <span>{field.label}</span>
+                          </>
+                        ) : (
+                          <>
+                            {field.label}
+                            <input type={field.type === "number" ? "number" : "text"} value={formatRules[field.key] ?? ""} onChange={(e) => updateFormatRule(field.key, e.target.value, field)} />
+                          </>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                  <p className="formatAutomationNote">
+                    {tournamentForm.tipo_torneo === "americano"
+                      ? "El americano conserva su gestión actual de participantes, partidos y clasificación en la pestaña Gestión."
+                      : "Formato preparado. La generación automática de partidos se añadirá próximamente."}
+                  </p>
+                </section>
+
+                <section className="creatorStep">
+                  <div className="creatorStepHead">
+                    <span>Paso 4</span>
+                    <h4>Participantes y plazas</h4>
+                  </div>
+                  <div className="creatorGrid">
+                    <label className="creatorField">
+                      Plazas máximas
+                      <input type="number" min="2" value={tournamentForm.plazas_maximas} onChange={(e) => updateTournamentForm("plazas_maximas", e.target.value)} />
+                    </label>
+                    <label className="creatorField">
+                      Pistas necesarias
+                      <input type="number" min="1" value={tournamentForm.pistas_necesarias} onChange={(e) => updateTournamentForm("pistas_necesarias", e.target.value)} placeholder="2" />
+                    </label>
+                    <label className="creatorField">
+                      Estado
+                      <select value={tournamentForm.estado} onChange={(e) => updateTournamentForm("estado", e.target.value)}>
+                        <option value="borrador">Borrador</option>
+                        <option value="publicado">Publicado</option>
+                        <option value="abierto">Abierto</option>
+                        <option value="cerrado">Cerrado</option>
+                        <option value="finalizado">Finalizado</option>
+                      </select>
+                    </label>
+                  </div>
+                </section>
+
+                <section className="creatorStep creatorPublishStep">
+                  <div>
+                    <div className="creatorStepHead">
+                      <span>Paso 5</span>
+                      <h4>Publicar</h4>
+                    </div>
+                    <p>Se guardará como {selectedFormat.title}. Los formatos nuevos quedan listos para gestionar manualmente hasta automatizar partidos.</p>
+                  </div>
+                  <button type="submit" className="adminCreateBtn" disabled={creatingTournament}>
+                    {creatingTournament ? "Guardando..." : "Guardar torneo"}
+                  </button>
+                </section>
+
+                {creatorError && <div className="creatorError" role="alert">{creatorError}</div>}
+                {creatorNotice && <div className="creatorNotice" role="status">{creatorNotice}</div>}
+              </form>
+            )}
+          </section>
+        )}
+
+        {canManageAmericanos && adminTab === "gestion" && (
           <section className="americanoPanel" aria-label="Gestión de Americanos y Judex">
             <div className="americanoPanelHead">
               <div>
@@ -713,6 +1139,9 @@ function Torneos() {
                         <span className={`torneoBadge torneoEstado ${status.className}`}>
                           {status.label}
                         </span>
+                        <span className="torneoBadge torneoFormatBadge">
+                          {getTournamentFormatLabel(torneo)}
+                        </span>
                       </div>
                     </div>
 
@@ -740,8 +1169,8 @@ function Torneos() {
                           <strong>{torneo.nivel || "Todos"}</strong>
                         </div>
                         <div className="metaBlock">
-                          <span className="metaLabel">Modalidad</span>
-                          <strong>{torneo.modalidad || "A definir"}</strong>
+                          <span className="metaLabel">Formato</span>
+                          <strong>{getTournamentFormatLabel(torneo)}</strong>
                         </div>
                       </div>
 
@@ -878,6 +1307,7 @@ function Torneos() {
                   <div><span>Fecha</span><strong>{formatFecha(selectedTorneo.fecha_inicio)}</strong></div>
                   <div><span>Hora</span><strong>{formatHora(selectedTorneo.hora_inicio)}</strong></div>
                   <div><span>Categoría</span><strong>{getCategoryMeta(selectedTorneo.categoria).label}</strong></div>
+                  <div><span>Formato</span><strong>{getTournamentFormatLabel(selectedTorneo)}</strong></div>
                   <div><span>Precio</span><strong>{formatPrecio(selectedTorneo.precio)}</strong></div>
                   <div><span>Nivel</span><strong>{selectedTorneo.nivel || "Todos"}</strong></div>
                   <div><span>Plazas</span><strong>{getCapacityText(selectedTorneo)}</strong></div>

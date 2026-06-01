@@ -34,6 +34,7 @@
 }
 
 .torneosHero,
+.torneosAdminPanel,
 .americanoPanel,
 .torneosControlBar,
 .torneosGallerySection,
@@ -42,6 +43,292 @@
   border-radius: 24px;
   border: 1px solid rgba(15, 23, 42, 0.07);
   box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+}
+
+.torneosAdminPanel {
+  margin-bottom: 1.2rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.torneosAdminHead,
+.creatorPublishStep {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.torneosAdminHead h3,
+.creatorStepHead h4 {
+  margin: 0.12rem 0 0;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+}
+
+.torneosAdminHead h3 {
+  font-size: clamp(1.35rem, 2.3vw, 1.8rem);
+}
+
+.torneosAdminHead p,
+.creatorPublishStep p {
+  margin: 0.22rem 0 0;
+  max-width: 62ch;
+  color: #64748b;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.adminCreateBtn,
+.torneosAdminTabs button {
+  border: 0;
+  border-radius: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.adminCreateBtn {
+  min-height: 42px;
+  padding: 0.68rem 1rem;
+  color: #ffffff;
+  background: linear-gradient(135deg, #166534, #22c55e);
+  box-shadow: 0 12px 24px rgba(21, 128, 61, 0.18);
+}
+
+.adminCreateBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.torneosAdminTabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.85rem;
+  padding: 0.32rem;
+  overflow-x: auto;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.04);
+  scrollbar-width: none;
+}
+
+.torneosAdminTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.torneosAdminTabs button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0.54rem 0.82rem;
+  color: #64748b;
+  background: transparent;
+}
+
+.torneosAdminTabs button.isActive {
+  color: #ffffff;
+  background: #0f172a;
+}
+
+.torneosAdminSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+
+.torneosAdminSummary article,
+.creatorStep {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+}
+
+.torneosAdminSummary article {
+  padding: 0.85rem;
+}
+
+.torneosAdminSummary span,
+.creatorStepHead span {
+  color: #16a34a;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.torneosAdminSummary strong {
+  display: block;
+  margin: 0.16rem 0;
+  color: #0f172a;
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.torneosAdminSummary p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.tournamentCreator {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 0.9rem;
+}
+
+.creatorStep {
+  padding: 0.9rem;
+}
+
+.creatorStepHead {
+  margin-bottom: 0.72rem;
+}
+
+.creatorStepHead h4 {
+  font-size: 1.08rem;
+}
+
+.creatorGrid,
+.rulesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.creatorWide {
+  grid-column: 1 / -1;
+}
+
+.creatorField {
+  display: grid;
+  gap: 0.35rem;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.creatorField input,
+.creatorField textarea,
+.creatorField select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid rgba(15, 23, 42, 0.13);
+  border-radius: 12px;
+  padding: 0.62rem 0.72rem;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 750;
+  letter-spacing: 0;
+  text-transform: none;
+  outline: none;
+}
+
+.creatorField textarea {
+  resize: vertical;
+}
+
+.formatSelectorGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.formatOptionCard {
+  display: grid;
+  gap: 0.38rem;
+  min-height: 126px;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 16px;
+  padding: 0.78rem;
+  text-align: left;
+  background: #f8fafc;
+  color: #0f172a;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.formatOptionCard:hover,
+.formatOptionCard.isSelected {
+  transform: translateY(-2px);
+  border-color: rgba(22, 163, 74, 0.35);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.09);
+}
+
+.formatOptionCard.isSelected {
+  background: linear-gradient(180deg, #f0fdf4, #ffffff);
+}
+
+.formatOptionCard strong {
+  font-size: 0.95rem;
+}
+
+.formatOptionCard span {
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.formatOptionCard em {
+  align-self: end;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.28rem 0.52rem;
+  background: rgba(22, 163, 74, 0.1);
+  color: #166534;
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.ruleCheckbox {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  min-height: 40px;
+  padding: 0.58rem 0.7rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.ruleCheckbox input {
+  width: 18px;
+  min-height: 18px;
+  accent-color: #16a34a;
+}
+
+.ruleCheckbox span {
+  color: #334155;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.formatAutomationNote,
+.creatorNotice,
+.creatorError {
+  margin: 0.75rem 0 0;
+  border-radius: 14px;
+  padding: 0.72rem 0.82rem;
+  font-size: 0.88rem;
+  font-weight: 800;
+  line-height: 1.42;
+}
+
+.formatAutomationNote,
+.creatorNotice {
+  border: 1px solid rgba(22, 163, 74, 0.18);
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.creatorError {
+  border: 1px solid rgba(220, 38, 38, 0.18);
+  background: #fef2f2;
+  color: #991b1b;
 }
 
 .americanoPanel {
@@ -713,6 +1000,13 @@
   flex-wrap: wrap;
 }
 
+.torneoFormatBadge {
+  margin-left: auto;
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+}
+
 .torneoBadge {
   display: inline-flex;
   align-items: center;
@@ -1198,6 +1492,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .formatSelectorGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .americanoWorkspace,
   .americanoDetailGrid,
   .torneoModal {
@@ -1220,6 +1518,7 @@
   }
 
   .torneosHero,
+  .torneosAdminPanel,
   .torneosControlBar,
   .torneosGallerySection {
     padding: 1.05rem;
@@ -1231,12 +1530,29 @@
   }
 
   .torneosMetrics,
+  .torneosAdminSummary,
   .torneosGalleryGrid,
   .torneoMeta,
   .torneoActions,
   .torneoModalMeta,
   .torneosGrid {
     grid-template-columns: 1fr;
+  }
+
+  .torneosAdminHead,
+  .creatorPublishStep {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .creatorGrid,
+  .rulesGrid,
+  .formatSelectorGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .formatOptionCard {
+    min-height: auto;
   }
 
   .torneoModalBackdrop {
@@ -1304,6 +1620,7 @@
   }
 
   .torneosHero,
+  .torneosAdminPanel,
   .americanoPanel,
   .torneosControlBar,
   .torneosGallerySection,
@@ -1326,7 +1643,7 @@
     gap: 0.45rem;
   }
 
-  .torneosMetric {
+  .torneosMetricCard {
     padding: 0.72rem;
   }
 
@@ -1348,6 +1665,9 @@
   .americanoWorkspace,
   .americanoDetailGrid,
   .americanoFormGrid,
+  .creatorGrid,
+  .rulesGrid,
+  .formatSelectorGrid,
   .matchForm,
   .torneoMeta,
   .torneosGrid,
@@ -1397,6 +1717,7 @@
   }
 
   .torneosHero,
+  .torneosAdminPanel,
   .americanoPanel,
   .torneosControlBar,
   .torneosGallerySection {
@@ -1426,9 +1747,23 @@
     gap: 0.45rem;
   }
 
-  .torneosMetric {
+  .torneosMetricCard {
     padding: 0.62rem;
     border-radius: 13px;
+  }
+
+  .torneosAdminHead h3 {
+    font-size: 1.35rem;
+  }
+
+  .torneosAdminTabs button {
+    min-height: 36px;
+    padding: 0.48rem 0.68rem;
+  }
+
+  .creatorStep {
+    padding: 0.72rem;
+    border-radius: 15px;
   }
 
   .torneosFilterBar,

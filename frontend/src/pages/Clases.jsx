@@ -87,7 +87,7 @@ function proximaDia(dia1, dia2) {
 
   if (!next) return null;
   if (next.diff === 0) return "Hoy";
-  if (next.diff === 1) return "Manana";
+  if (next.diff === 1) return "Mañana";
   return DAY_LABELS[next.d] || null;
 }
 
@@ -154,7 +154,7 @@ function GroupCard({ grupo }) {
             <div className="occCount">{a}/{c || "-"} alumnos</div>
           </div>
           <div className="cardBottomRow">
-            {proxima && <div className={`cardProxima${proxima === "Hoy" ? " cardProximaHoy" : ""}`}><IcClock />Proxima: <strong>{proxima}</strong></div>}
+            {proxima && <div className={`cardProxima${proxima === "Hoy" ? " cardProximaHoy" : ""}`}><IcClock />Próxima: <strong>{proxima}</strong></div>}
             <Link to="/panel" className="cardLoginCta">Gestionar <IcArrow /></Link>
           </div>
         </div>
@@ -323,7 +323,7 @@ function PublicClassesLanding({ notice }) {
 
       <section className="publicLoginBox">
         <div>
-          <h2>Ya eres alumno?</h2>
+          <h2>¿Ya eres alumno?</h2>
           <p>Entra a tu zona de clases para consultar tu información.</p>
         </div>
         <Link to="/login" className="heroSecondaryBtn">Entrar a mi zona de clases</Link>
@@ -359,28 +359,63 @@ function StaffClassesSummary({ classData, grupos, loading, err, q, setQ, nivelFi
       <header className="clasesHero staffHero">
         <div className="heroContent">
           <div className="heroText">
-            <h1 className="heroTitle">Resumen de clases</h1>
-            <p className="heroSub">Un vistazo rápido a los grupos, alumnos y tareas pendientes de la escuela.</p>
-            <Link to="/panel" className="heroCtaBtn">Ir al panel <IcArrow /></Link>
+            <h1 className="heroTitle">Clases</h1>
+            <p className="heroSub">Resumen rápido de grupos, clases de hoy y seguimiento de la escuela.</p>
+            <Link to="/panel" className="heroCtaBtn staffPanelCta">Ir al panel <IcArrow /></Link>
           </div>
           <div className="heroStats">
-            <div className="statCard"><strong>{staffSummary?.stats?.clases_hoy || 0}</strong><span>hoy</span></div>
-            <div className="statCard"><strong>{staffSummary?.stats?.grupos || 0}</strong><span>grupos</span></div>
-            <div className="statCard"><strong>{staffSummary?.stats?.alumnos || 0}</strong><span>alumnos</span></div>
+            <div className="statCard"><span>Hoy</span><strong>{staffSummary?.stats?.clases_hoy || 0}</strong></div>
+            <div className="statCard"><span>Grupos</span><strong>{staffSummary?.stats?.grupos || 0}</strong></div>
+            <div className="statCard"><span>Alumnos</span><strong>{staffSummary?.stats?.alumnos || 0}</strong></div>
           </div>
         </div>
       </header>
 
       <section className="staffDashboard">
-        <div className="staffPanel">
-          <h2>Clases de hoy</h2>
-          {hoy.length ? hoy.map((g) => <article className="staffRow" key={g.id}><strong>{g.nombre}</strong><span>{formatHora(g.hora_inicio, g.duracion_min)} - {g.pista_habitual || "Pista pendiente"} - {g.alumnos || 0} alumnos</span></article>) : <p className="softEmpty">No hay clases programadas para hoy.</p>}
+        <div className="staffPanel todayPanel">
+          <div className="staffPanelHead">
+            <div>
+              <span>Agenda</span>
+              <h2>Clases de hoy</h2>
+            </div>
+            <strong>{hoy.length}</strong>
+          </div>
+          {hoy.length ? hoy.map((g) => (
+            <article className="staffClassRow" key={g.id}>
+              <div>
+                <strong>{g.nombre}</strong>
+                <span>{nivelLabel(g.nivel)} · {g.profesor || "Profesor sin asignar"}</span>
+              </div>
+              <div className="staffClassChips">
+                <span><IcClock /> {formatHora(g.hora_inicio, g.duracion_min)}</span>
+                <span><IcCourt /> {g.pista_habitual || "Pista pendiente"}</span>
+                <span><IcUser /> {g.alumnos || 0}</span>
+              </div>
+            </article>
+          )) : <p className="softEmpty">No hay clases programadas para hoy.</p>}
         </div>
-        <div className="staffPanel">
-          <h2>Seguimiento</h2>
-          <div className="miniMetric"><span>Avisos activos</span><strong>{staffSummary?.stats?.avisos || 0}</strong></div>
-          <div className="miniMetric"><span>Recuperaciones pendientes</span><strong>{staffSummary?.stats?.recuperaciones || 0}</strong></div>
-          <p className="panelHint">Para editar grupos, alumnos o avisos, entra en el panel.</p>
+        <div className="staffPanel trackingPanel">
+          <div className="staffPanelHead">
+            <div>
+              <span>Control</span>
+              <h2>Seguimiento</h2>
+            </div>
+          </div>
+          <div className="trackingMiniGrid">
+            <Link to="/avisos" className="miniMetric miniMetricLink">
+              <span>Avisos activos</span>
+              <strong>{staffSummary?.stats?.avisos || 0}</strong>
+            </Link>
+            <Link to="/panel" className="miniMetric miniMetricLink">
+              <span>Recuperaciones pendientes</span>
+              <strong>{staffSummary?.stats?.recuperaciones || 0}</strong>
+            </Link>
+            <Link to="/panel" className="miniMetric miniMetricAction">
+              <span>Gestión</span>
+              <strong>Panel</strong>
+            </Link>
+          </div>
+          <p className="panelHint">Gestiona grupos, alumnos y avisos desde el panel.</p>
         </div>
       </section>
 
@@ -393,7 +428,7 @@ function StaffClassesSummary({ classData, grupos, loading, err, q, setQ, nivelFi
           <div className="searchWrap">
             <span className="searchIcon"><IcSearch /></span>
             <input className="searchInput" type="text" placeholder="Buscar grupo, profe, pista, código..." value={q} onChange={(e) => setQ(e.target.value)} />
-            {q && <button className="searchClear" onClick={() => setQ("")} aria-label="Limpiar busqueda">x</button>}
+            {q && <button className="searchClear" onClick={() => setQ("")} aria-label="Limpiar búsqueda">x</button>}
           </div>
           <select className="select" value={nivelFilt} onChange={(e) => setNivelFilt(e.target.value)}>
             <option value="">Nivel</option>
@@ -454,7 +489,7 @@ function StudentClassesDashboard({ classData, user, loading }) {
 
       <section className="studentNextClassCard">
         <div>
-          <span className="studentSectionEyebrow">Proxima clase</span>
+          <span className="studentSectionEyebrow">Próxima clase</span>
           <h2>{nextGroup?.nombre || "Aún sin clase programada"}</h2>
           <p>
             {nextSession
@@ -507,7 +542,7 @@ function StudentClassesDashboard({ classData, user, loading }) {
 
       <section className="studentPanels">
         <div className="studentPanel">
-          <h2>Proximas clases</h2>
+          <h2>Próximas clases</h2>
           {proximasSesiones.length ? proximasSesiones.map((sesion) => (
             <article className="studentMiniRow" key={sesion.id}>
               <strong>{sesion.fecha || "Fecha pendiente"}</strong>

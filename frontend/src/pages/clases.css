@@ -1946,3 +1946,450 @@
     padding: 0.58rem 0.8rem;
   }
 }
+
+/* Staff dashboard redesign: compact, mobile-first and low-scroll. */
+.clasesStaff {
+  gap: 1rem;
+}
+
+.clasesStaff .staffHero {
+  padding: 0.95rem 1.05rem;
+  border-radius: 18px;
+}
+
+.clasesStaff .heroContent {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.9rem;
+}
+
+.clasesStaff .heroText {
+  gap: 0.35rem;
+}
+
+.clasesStaff .heroTitle {
+  margin-bottom: 0.16rem;
+  font-size: clamp(1.45rem, 2.8vw, 1.9rem);
+}
+
+.clasesStaff .heroSub {
+  max-width: 46ch;
+  margin-bottom: 0.45rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.staffPanelCta {
+  width: fit-content;
+  min-height: 38px;
+  padding: 0.52rem 0.82rem;
+}
+
+.clasesStaff .heroStats {
+  align-items: stretch;
+  gap: 0.45rem;
+}
+
+.clasesStaff .statCard {
+  min-width: 74px;
+  padding: 0.58rem 0.68rem;
+  border-radius: 13px;
+  box-shadow: none;
+}
+
+.clasesStaff .statCard span {
+  order: -1;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.clasesStaff .statCard strong {
+  font-size: 1.22rem;
+}
+
+.clasesStaff .staffDashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(260px, 0.82fr);
+  gap: 0.8rem;
+}
+
+.staffPanel {
+  min-width: 0;
+}
+
+.clasesStaff .staffPanel {
+  display: grid;
+  align-content: start;
+  gap: 0.58rem;
+  padding: 0.88rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.055);
+}
+
+.staffPanelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.staffPanelHead span {
+  color: var(--brand-600);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.staffPanelHead h2 {
+  margin: 0.08rem 0 0;
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.15;
+}
+
+.staffPanelHead > strong {
+  display: inline-flex;
+  min-width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(22, 163, 74, 0.1);
+  color: var(--brand-600);
+  font-weight: 950;
+}
+
+.staffClassRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 0.62rem;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.07);
+}
+
+.staffClassRow strong {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.94rem;
+  line-height: 1.22;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.staffClassRow div > span {
+  display: block;
+  margin-top: 0.12rem;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.staffClassChips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.32rem;
+}
+
+.staffClassChips span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  min-height: 28px;
+  padding: 0.24rem 0.48rem;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  color: #334155;
+  font-size: 0.74rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.trackingMiniGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.miniMetric {
+  border-top: 0;
+}
+
+.trackingMiniGrid .miniMetric {
+  display: grid;
+  gap: 0.18rem;
+  align-content: start;
+  min-height: 76px;
+  padding: 0.62rem;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  text-decoration: none;
+}
+
+.trackingMiniGrid .miniMetric span {
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.trackingMiniGrid .miniMetric strong {
+  color: var(--text);
+  font-size: 1.18rem;
+  line-height: 1;
+}
+
+.trackingMiniGrid .miniMetricAction {
+  background: linear-gradient(135deg, #0f172a, #14532d);
+  border-color: rgba(20, 83, 45, 0.3);
+}
+
+.trackingMiniGrid .miniMetricAction span,
+.trackingMiniGrid .miniMetricAction strong {
+  color: #ffffff;
+}
+
+.clasesStaff .panelHint {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.clasesStaff .todosGruposSection {
+  gap: 0.7rem;
+  margin-top: 0;
+}
+
+.clasesStaff .sectionHeaderRow {
+  justify-content: space-between;
+}
+
+.clasesStaff .sectionTitle {
+  font-size: 1.18rem;
+}
+
+.clasesStaff .filtersBar {
+  gap: 0.45rem;
+  padding: 0.48rem;
+  border-radius: 14px;
+}
+
+.clasesStaff .searchInput,
+.clasesStaff .select,
+.clasesStaff .btnClear {
+  min-height: 38px;
+  font-size: 0.82rem;
+}
+
+.clasesStaff .listaClases {
+  grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+  gap: 0.72rem;
+}
+
+.clasesStaff .claseCard {
+  border-radius: 15px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.055);
+}
+
+.clasesStaff .claseCard:hover {
+  transform: translateY(-2px);
+}
+
+.clasesStaff .cardTop {
+  padding: 0.54rem 0.68rem;
+}
+
+.clasesStaff .cardBody {
+  padding: 0.68rem;
+}
+
+.clasesStaff .cardTitle {
+  margin-bottom: 0.55rem;
+  font-size: 0.98rem;
+}
+
+.clasesStaff .metaGrid {
+  gap: 0.42rem;
+}
+
+.clasesStaff .metaLabel {
+  font-size: 0.68rem;
+}
+
+.clasesStaff .metaValue {
+  font-size: 0.82rem;
+}
+
+.clasesStaff .cardFooter {
+  gap: 0.4rem;
+  padding-top: 0.55rem;
+}
+
+.clasesStaff .occCount,
+.clasesStaff .cardProxima {
+  font-size: 0.75rem;
+}
+
+.clasesStaff .cardLoginCta {
+  min-height: 32px;
+  padding: 0.32rem 0.58rem;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 768px) {
+  .clasesStaff {
+    gap: 0.75rem;
+    padding: 0 0.8rem 1.6rem;
+  }
+
+  .clasesStaff .staffHero {
+    padding: 0.82rem;
+    border-radius: 16px;
+  }
+
+  .clasesStaff .heroContent {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .clasesStaff .heroTitle {
+    font-size: 1.55rem;
+  }
+
+  .clasesStaff .heroSub {
+    margin-bottom: 0.35rem;
+    font-size: 0.84rem;
+  }
+
+  .staffPanelCta {
+    min-height: 36px;
+    padding: 0.48rem 0.72rem;
+  }
+
+  .clasesStaff .heroStats {
+    display: flex;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.12rem;
+    scrollbar-width: none;
+  }
+
+  .clasesStaff .heroStats::-webkit-scrollbar {
+    display: none;
+  }
+
+  .clasesStaff .statCard {
+    flex: 1 0 92px;
+    min-width: 92px;
+    padding: 0.52rem;
+  }
+
+  .clasesStaff .staffDashboard {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .clasesStaff .staffPanel {
+    gap: 0.5rem;
+    padding: 0.72rem;
+    border-radius: 16px;
+  }
+
+  .staffClassRow {
+    grid-template-columns: 1fr;
+    gap: 0.46rem;
+    padding: 0.58rem;
+  }
+
+  .staffClassChips {
+    justify-content: flex-start;
+  }
+
+  .trackingMiniGrid {
+    grid-template-columns: repeat(3, minmax(112px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 0.12rem;
+    scrollbar-width: none;
+  }
+
+  .trackingMiniGrid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .trackingMiniGrid .miniMetric {
+    min-width: 112px;
+    min-height: 68px;
+    padding: 0.56rem;
+  }
+
+  .clasesStaff .sectionHeaderRow {
+    align-items: flex-start;
+  }
+
+  .clasesStaff .filtersBar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .clasesStaff .searchWrap {
+    grid-column: 1 / -1;
+  }
+
+  .clasesStaff .btnClear {
+    grid-column: 1 / -1;
+  }
+
+  .clasesStaff .listaClases {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .clasesStaff .metaGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .clasesStaff {
+    padding: 0 0.55rem 1.45rem;
+  }
+
+  .clasesStaff .staffHero,
+  .clasesStaff .staffPanel,
+  .clasesStaff .claseCard,
+  .clasesStaff .filtersBar {
+    border-radius: 14px;
+  }
+
+  .clasesStaff .filtersBar {
+    grid-template-columns: 1fr;
+  }
+
+  .clasesStaff .select,
+  .clasesStaff .btnClear {
+    min-height: 36px;
+  }
+
+  .clasesStaff .cardBottomRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .clasesStaff .cardLoginCta {
+    justify-content: center;
+  }
+}
