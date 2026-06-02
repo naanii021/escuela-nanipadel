@@ -285,6 +285,96 @@ function firstValue(...values) {
   return values.find((value) => value !== undefined && value !== null && String(value).trim() !== "") || "";
 }
 
+const TEMPLATE_NAMES = {
+  TORNEO_ACTUALIZACION: "torneo_actualizacion",
+  CLASE_REPROGRAMADA: "clase_reprogramada",
+  CLASE_CANCELADA: "clase_cancelada",
+  AVISO_CLUB: "aviso_club",
+  PARTIDA_ABIERTA_ACTUALIZADA: "partida_abierta_actualizada",
+  PARTIDA_ABIERTA_COMPLETA: "partida_abierta_completa",
+};
+
+function pickValue(payload = {}, row = {}, keys = [], fallback = "") {
+  return String(
+    firstValue(
+      ...keys.map((key) => payload[key]),
+      ...keys.map((key) => row[key]),
+      fallback
+    )
+  );
+}
+
+function getNombreUsuario(payload = {}, row = {}) {
+  return pickValue(
+    payload,
+    row,
+    ["usuario_nombre", "nombre", "nombre_cliente", "alumno_nombre", "nombre_usuario"],
+    "jugador"
+  );
+}
+
+function getPista(payload = {}, row = {}) {
+  return pickValue(
+    payload,
+    row,
+    ["pista", "pista_nombre", "court", "nombre_pista", "court_name", "nombrePista"],
+    "la pista"
+  );
+}
+
+function getFecha(payload = {}, row = {}) {
+  return pickValue(
+    payload,
+    row,
+    ["fecha_texto", "fecha_reserva_texto", "fecha", "fecha_reserva", "fecha_clase", "nueva_fecha", "date"],
+    "la fecha indicada"
+  );
+}
+
+function getHora(payload = {}, row = {}) {
+  return pickValue(
+    payload,
+    row,
+    ["hora_texto", "hora_inicio_texto", "hora", "hora_inicio", "nueva_hora", "time"],
+    "la hora indicada"
+  );
+}
+
+function getMotivo(payload = {}, row = {}) {
+  return pickValue(payload, row, ["motivo", "razon", "causa"], "motivos organizativos");
+}
+
+function getTitulo(payload = {}, row = {}) {
+  return pickValue(payload, row, ["titulo", "title", "asunto"], "Aviso del club");
+}
+
+function getMensaje(payload = {}, row = {}) {
+  return pickValue(
+    payload,
+    row,
+    ["mensaje", "descripcion", "detalle", "texto", "message"],
+    "Revisa la aplicación para más información"
+  );
+}
+
+function getTorneo(payload = {}, row = {}) {
+  return pickValue(payload, row, ["torneo", "torneo_nombre", "nombre_torneo"], "el torneo");
+}
+
+function cleanWhatsAppErrorMessage(error) {
+  const message = error?.message || "Error desconocido al enviar WhatsApp";
+  const secrets = [
+    process.env.WHATSAPP_TOKEN,
+    process.env.WHATSAPP_VERIFY_TOKEN,
+    process.env.META_ACCESS_TOKEN,
+  ].filter(Boolean);
+
+  return secrets.reduce(
+    (cleanMessage, secret) => cleanMessage.replaceAll(secret, "[redacted]"),
+    message
+  );
+}
+
 function buildReservationTemplateFields(payload = {}) {
   // Sacamos la pista desde distintos nombres posibles
   const pista = firstValue(
@@ -341,14 +431,7 @@ function buildReservationSummary(payload = {}, row = {}) {
 }
 
 function buildWhatsAppTemplateData(row, payload = {}) {
-  const nombreUsuario = firstValue(
-    payload.usuario_nombre,
-    payload.nombre_usuario,
-    payload.nombre,
-    row.usuario_nombre,
-    "jugador"
-  );
-
+  const nombreUsuario = getNombreUsuario(payload, row);
   const { pista, fecha, hora } = buildReservationTemplateFields(payload);
 
   if (row.tipo === NOTIFICATION_EVENTS.RESERVA_CREADA) {
@@ -379,6 +462,97 @@ function buildWhatsAppTemplateData(row, payload = {}) {
         pista,
         fecha,
         hora,
+      ],
+    };
+  }
+
+  if (row.tipo === NOTIFICATION_EVENTS.TORNEO_EVENTO || row.tipo === "torneo_actualizacion") {
+    return {
+      templateName: TEMPLATE_NAMES.TORNEO_ACTUALIZACION,
+      languageCode: "es",
+      variables: [
+        nombreUsuario,
+        getTorneo(payload, row),
+        getMensaje(payload, row),
+        getFecha(payload, row),
+      ],
+    };
+  }
+
+  if (row.tipo === NOTIFICATION_EVENTS.CLASE_REPROGRAMADA) {
+    return {
+      templateName: TEMPLATE_NAMES.CLASE_REPROGRAMADA,
+      languageCode: "es",
+      variables: [
+        nombreUsuario,
+        pickValue(
+          payload,
+          row,
+          ["nueva_fecha", "fecha_texto", "fecha", "fecha_clase", "fecha_reserva", "date"],
+          "la fecha indicada"
+        ),
+        pickValue(
+          payload,
+          row,
+          ["nueva_hora", "hora_texto", "hora", "hora_inicio", "time"],
+          "la hora indicada"
+        ),
+      ],
+    };
+  }
+
+  if (row.tipo === NOTIFICATION_EVENTS.CLASE_CANCELADA) {
+    return {
+      templateName: TEMPLATE_NAMES.CLASE_CANCELADA,
+      languageCode: "es",
+      variables: [
+        nombreUsuario,
+        getFecha(payload, row),
+        getHora(payload, row),
+        getMotivo(payload, row),
+      ],
+    };
+  }
+
+  if (row.tipo === NOTIFICATION_EVENTS.AVISO_CLUB) {
+    return {
+      templateName: TEMPLATE_NAMES.AVISO_CLUB,
+      languageCode: "es",
+      variables: [
+        nombreUsuario,
+        getTitulo(payload, row),
+        getMensaje(payload, row),
+      ],
+    };
+  }
+
+  if (
+    row.tipo === NOTIFICATION_EVENTS.PARTIDA_ABIERTA_UNIDO ||
+    row.tipo === NOTIFICATION_EVENTS.PARTIDA_ABIERTA_SALIDA ||
+    row.tipo === "partida_abierta_actualizada"
+  ) {
+    return {
+      templateName: TEMPLATE_NAMES.PARTIDA_ABIERTA_ACTUALIZADA,
+      languageCode: "es",
+      variables: [
+        nombreUsuario,
+        getPista(payload, row),
+        getFecha(payload, row),
+        getHora(payload, row),
+        getMensaje(payload, row),
+      ],
+    };
+  }
+
+  if (row.tipo === NOTIFICATION_EVENTS.PARTIDA_ABIERTA_COMPLETA) {
+    return {
+      templateName: TEMPLATE_NAMES.PARTIDA_ABIERTA_COMPLETA,
+      languageCode: "es",
+      variables: [
+        nombreUsuario,
+        getPista(payload, row),
+        getFecha(payload, row),
+        getHora(payload, row),
       ],
     };
   }
@@ -463,17 +637,19 @@ export async function notifyEvent(event) {
             estado: "sent",
           });
         } catch (error) {
+          const cleanErrorMessage = cleanWhatsAppErrorMessage(error);
+
           console.error("Error enviando WhatsApp desde notificationService:", {
             notificationId: result.insertId,
             tipo: row.tipo,
-            message: error.message,
+            message: cleanErrorMessage,
           });
 
           await query(
             `UPDATE notifications
              SET estado = 'failed', error_message = ?
              WHERE id = ?`,
-            [error.message, result.insertId]
+            [cleanErrorMessage, result.insertId]
           );
 
           created.push({
