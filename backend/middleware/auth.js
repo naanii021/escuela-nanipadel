@@ -1,6 +1,5 @@
 import jwt from "jsonwebtoken";
-
-const JWT_SECRET = process.env.JWT_SECRET || "nanipadel_secret_2026";
+import { JWT_SECRET } from "../config/security.js";
 
 export function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;

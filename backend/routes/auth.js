@@ -1,12 +1,11 @@
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config/security.js";
 import { db } from "../db/connection.js";
 
 const router = express.Router();
 const query = (sql, params) => db.promise().query(sql, params);
-
-const JWT_SECRET = process.env.JWT_SECRET || "nanipadel_secret_2026";
 
 async function getTableColumns(tableName) {
   const [rows] = await query(`SHOW COLUMNS FROM ${tableName}`);
@@ -60,7 +59,7 @@ router.post("/registro", async (req, res) => {
     });
   } catch (e) {
     console.error("Error POST /api/auth/registro:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -101,7 +100,7 @@ router.post("/login", async (req, res) => {
     });
   } catch (e) {
     console.error("Error POST /api/auth/login:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 

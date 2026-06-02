@@ -1,12 +1,12 @@
 import express from "express";
 import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config/security.js";
 import { db } from "../db/connection.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
 
 const router = express.Router();
 const query = (sql, params = []) => db.promise().query(sql, params);
 
-const JWT_SECRET = process.env.JWT_SECRET || "nanipadel_secret_2026";
 const STAFF_ROLES = ["admin", "profesor", "profe"];
 const PUBLIC_LEVELS = [
   { title: "Niños", text: "Aprendizaje seguro y divertido.", price: "Consultar" },
@@ -311,7 +311,7 @@ router.get("/schema-status", requireAuth, requireRoles(["admin"]), async (_req, 
   try {
     res.json({ ok: true, schema: await getSchoolSchemaStatus() });
   } catch (e) {
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -404,7 +404,7 @@ router.get("/mis-clases", optionalAuth, async (req, res) => {
     });
   } catch (e) {
     console.error("Error GET /api/clases/mis-clases:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -415,7 +415,7 @@ router.get("/avisos", requireAuth, requireRoles(STAFF_ROLES), async (req, res) =
     const avisos = await getAvisosForGroups(grupos.map((grupo) => grupo.id), false);
     res.json({ ok: true, avisos });
   } catch (e) {
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -458,7 +458,7 @@ router.post("/avisos", requireAuth, requireRoles(STAFF_ROLES), async (req, res) 
     );
     res.status(201).json({ ok: true, id: result.insertId, message: "Aviso creado" });
   } catch (e) {
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -485,7 +485,7 @@ router.patch("/avisos/:id", requireAuth, requireRoles(STAFF_ROLES), async (req, 
     );
     res.json({ ok: true, message: "Aviso actualizado" });
   } catch (e) {
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -504,7 +504,7 @@ router.get("/recuperaciones", requireAuth, async (req, res) => {
     const recuperaciones = await getRecuperaciones({ alumnoId: alumno.id, groupIds: grupos.map((grupo) => grupo.id) });
     res.json({ ok: true, recuperaciones });
   } catch (e) {
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -536,7 +536,7 @@ router.patch("/recuperaciones/:id", requireAuth, requireRoles(STAFF_ROLES), asyn
     );
     res.json({ ok: true, message: "Recuperacion actualizada" });
   } catch (e) {
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 

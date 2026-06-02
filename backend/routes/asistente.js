@@ -1,11 +1,10 @@
 import express from "express";
 import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config/security.js";
 import { db } from "../db/connection.js";
 
 const router = express.Router();
 const query = (sql, params) => db.promise().query(sql, params);
-const JWT_SECRET = process.env.JWT_SECRET || "nanipadel_secret_2026";
-
 function optionalAuth(req, _res, next) {
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith("Bearer ")) {
@@ -64,25 +63,45 @@ function getNextClassOccurrence(clase) {
   return best;
 }
 
-router.get("/summary", optionalAuth, async (req, res) => {
+async function safeQuery(label, sql, params, warnings) {
   try {
-    const [torneosRows] = await query(
+    const [rows] = await query(sql, params);
+    return rows;
+  } catch (e) {
+    console.error(`Error asistente ${label}:`, e);
+    warnings.push(`No se ha podido cargar ${label}.`);
+    return [];
+  }
+}
+
+router.get("/summary", optionalAuth, async (req, res) => {
+  const warnings = [];
+
+  try {
+    const torneosRows = await safeQuery(
+      "torneos",
       `SELECT id, nombre, categoria, fecha_inicio, hora_inicio, estado
        FROM torneos
        WHERE estado IN ('abierto', 'proximo')
        ORDER BY fecha_inicio ASC, hora_inicio ASC
-       LIMIT 3`
+       LIMIT 3`,
+      [],
+      warnings
     );
 
-    const [meteoRows] = await query(
+    const meteoRows = await safeQuery(
+      "estado de pista",
       `SELECT temperatura, humedad, presion, estado, creado_en
        FROM meteo_xiao
        ORDER BY creado_en DESC
-       LIMIT 1`
+       LIMIT 1`,
+      [],
+      warnings
     );
 
     const summary = {
       ok: true,
+      warnings,
       logged: Boolean(req.user),
       user: req.user
         ? { id: req.user.id, nombre: req.user.nombre, rol: req.user.rol }
@@ -99,32 +118,48 @@ router.get("/summary", optionalAuth, async (req, res) => {
         proximaClase: null,
         proximasReservas: [],
       },
+      data: {
+        user: req.user ? { id: req.user.id, nombre: req.user.nombre, rol: req.user.rol } : null,
+        torneos: {
+          proximos: torneosRows,
+          abiertos: torneosRows.filter((torneo) => torneo.estado === "abierto"),
+        },
+        estadoPista: meteoRows[0] || null,
+        reservas: [],
+        claseProxima: null,
+        notificaciones: { unread: 0, items: [], available: false },
+      },
     };
 
     if (!req.user) {
       return res.json(summary);
     }
 
-    const [reservasRows] = await query(
+    const reservasRows = await safeQuery(
+      "reservas próximas",
       `SELECT r.id, r.fecha, r.hora_inicio, p.nombre AS pista_nombre
        FROM reservas_pista r
        JOIN pistas p ON p.id = r.pista_id
        WHERE r.usuario_id = ? AND r.estado != 'cancelada' AND r.fecha >= CURDATE()
        ORDER BY r.fecha ASC, r.hora_inicio ASC
        LIMIT 3`,
-      [req.user.id]
+      [req.user.id],
+      warnings
     );
 
-    const [alumnos] = await query(
+    const alumnos = await safeQuery(
+      "alumno vinculado",
       "SELECT id FROM alumnos WHERE usuario_id = ? AND activo = 1 LIMIT 1",
-      [req.user.id]
+      [req.user.id],
+      warnings
     );
 
     let nextClass = null;
 
     if (alumnos.length > 0) {
       const alumnoId = alumnos[0].id;
-      const [clasesRows] = await query(
+      const clasesRows = await safeQuery(
+        "clases próximas",
         `SELECT
           g.id,
           g.nombre,
@@ -138,7 +173,8 @@ router.get("/summary", optionalAuth, async (req, res) => {
         JOIN grupos g ON g.id = ga.grupo_id AND g.activo = 1
         JOIN profesores p ON p.id = g.profesor_id
         WHERE ga.alumno_id = ? AND ga.activo = 1`,
-        [alumnoId]
+        [alumnoId],
+        warnings
       );
 
       nextClass = clasesRows
@@ -149,11 +185,13 @@ router.get("/summary", optionalAuth, async (req, res) => {
 
     summary.personal.proximaClase = nextClass;
     summary.personal.proximasReservas = reservasRows;
+    summary.data.reservas = reservasRows;
+    summary.data.claseProxima = nextClass;
 
     res.json(summary);
   } catch (e) {
     console.error("Error GET /api/asistente/summary:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido cargar el resumen del asistente." });
   }
 });
 

@@ -1,5 +1,6 @@
 import express from "express";
 import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config/security.js";
 import { db } from "../db/connection.js";
 import { requireAuth } from "../middleware/auth.js";
 import {
@@ -10,8 +11,8 @@ import {
 const router = express.Router();
 const query = (sql, params = []) => db.promise().query(sql, params);
 
-const JWT_SECRET = process.env.JWT_SECRET || "nanipadel_secret_2026";
 const OPEN_MATCH_MAX_PLAYERS = 4;
+const STAFF_ROLES = ["admin", "profesor", "profe"];
 
 // Middleware opcional: permite enriquecer la respuesta si el usuario está logueado
 function optionalAuth(req, _res, next) {
@@ -47,6 +48,10 @@ function normalizeLevel(value) {
 
   const level = Number(value);
   return Number.isInteger(level) && level >= 0 && level <= 6 ? level : null;
+}
+
+function isStaffUser(user) {
+  return STAFF_ROLES.includes(String(user?.rol || "").toLowerCase());
 }
 
 // ==============================
@@ -251,6 +256,44 @@ function canJoinReservation(reserva, user, userLevel, userParticipant) {
   }
 
   return { puede_unirse: true, motivo_no_unirse: null };
+}
+
+function publicReservationPayload(row, plazasOcupadas, joinState) {
+  return {
+    id: row.id,
+    pista_id: row.pista_id,
+    pista_nombre: row.pista_nombre,
+    fecha: row.fecha,
+    hora_inicio: row.hora_inicio,
+    duracion_min: row.duracion_min,
+    estado: row.estado,
+    tipo_reserva: row.tipo_reserva,
+    max_jugadores: Number(row.max_jugadores || OPEN_MATCH_MAX_PLAYERS),
+    plazas_ocupadas: plazasOcupadas,
+    nivel_min: row.nivel_min === null ? null : Number(row.nivel_min),
+    nivel_max: row.nivel_max === null ? null : Number(row.nivel_max),
+    puede_unirse: Boolean(joinState.puede_unirse),
+    motivo_no_unirse: joinState.motivo_no_unirse,
+  };
+}
+
+function authenticatedReservationPayload(row, participantes, plazasOcupadas, joinState, user) {
+  const canSeePrivateDetails = isStaffUser(user) || String(row.usuario_id || "") === String(user?.id || "");
+
+  return {
+    ...row,
+    alumno_id: canSeePrivateDetails ? row.alumno_id : null,
+    usuario_id: canSeePrivateDetails ? row.usuario_id : null,
+    nombre_cliente: canSeePrivateDetails ? row.nombre_cliente : null,
+    telefono_cliente: canSeePrivateDetails ? row.telefono_cliente : null,
+    notas: canSeePrivateDetails ? row.notas : null,
+    max_jugadores: Number(row.max_jugadores || OPEN_MATCH_MAX_PLAYERS),
+    nivel_min: row.nivel_min === null ? null : Number(row.nivel_min),
+    nivel_max: row.nivel_max === null ? null : Number(row.nivel_max),
+    plazas_ocupadas: plazasOcupadas,
+    participantes,
+    ...joinState,
+  };
 }
 
 async function getParticipantsByReservation(reservaIds) {
@@ -784,21 +827,17 @@ router.get("/", optionalAuth, async (req, res) => {
         userParticipant,
       );
 
-      return {
-        ...row,
-        max_jugadores: Number(row.max_jugadores || OPEN_MATCH_MAX_PLAYERS),
-        nivel_min: row.nivel_min === null ? null : Number(row.nivel_min),
-        nivel_max: row.nivel_max === null ? null : Number(row.nivel_max),
-        plazas_ocupadas: plazasOcupadas,
-        participantes,
-        ...joinState,
-      };
+      if (!req.user) {
+        return publicReservationPayload(row, plazasOcupadas, joinState);
+      }
+
+      return authenticatedReservationPayload(row, participantes, plazasOcupadas, joinState, req.user);
     });
 
     res.json({ ok: true, reservas });
   } catch (e) {
     console.error("Error GET /api/reservas:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -810,7 +849,8 @@ router.get("/pistas", async (_req, res) => {
     );
     res.json({ ok: true, pistas: rows });
   } catch (e) {
-    res.status(500).json({ ok: false, message: e.message });
+    console.error("Error GET /api/reservas/pistas:", e);
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -1011,7 +1051,7 @@ router.post("/", requireAuth, async (req, res) => {
   } catch (e) {
     await connection.rollback();
     console.error("Error POST /api/reservas:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   } finally {
     connection.release();
   }
@@ -1162,7 +1202,7 @@ router.post("/:id/unirse", requireAuth, async (req, res) => {
   } catch (e) {
     await connection.rollback();
     console.error("Error POST /api/reservas/:id/unirse:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   } finally {
     connection.release();
   }
@@ -1259,7 +1299,7 @@ res.json({
   } catch (e) {
     await connection.rollback();
     console.error("Error DELETE /api/reservas/:id/participantes/me:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   } finally {
     connection.release();
   }
@@ -1298,7 +1338,7 @@ router.patch("/:id/cancelar", requireAuth, async (req, res) => {
     res.json({ ok: true, message: "Reserva cancelada" });
   } catch (e) {
     console.error("Error PATCH /api/reservas/:id/cancelar:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 

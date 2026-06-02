@@ -1,11 +1,11 @@
 import express from "express";
 import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config/security.js";
 import { db } from "../db/connection.js";
 
 const router = express.Router();
 const query = (sql, params) => db.promise().query(sql, params);
 
-const JWT_SECRET = process.env.JWT_SECRET || "nanipadel_secret_2026";
 const STAFF_ROLES = ["admin", "profesor", "profe"];
 
 function optionalAuth(req, _res, next) {
@@ -159,7 +159,7 @@ router.get("/americanos/catalogo/alumnos", requireAuth, requireAdmin, async (_re
     res.json({ ok: true, alumnos: rows });
   } catch (e) {
     console.error("Error GET /api/torneos/americanos/catalogo/alumnos:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -176,7 +176,7 @@ router.get("/americanos", requireAuth, requireAdmin, async (_req, res) => {
     res.json({ ok: true, americanos: rows });
   } catch (e) {
     console.error("Error GET /api/torneos/americanos:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -209,7 +209,7 @@ router.post("/americanos", requireAuth, requireAdmin, async (req, res) => {
     res.status(201).json({ ok: true, id: result.insertId, message: "Americano creado" });
   } catch (e) {
     console.error("Error POST /api/torneos/americanos:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -220,7 +220,7 @@ router.get("/americanos/:id", requireAuth, requireAdmin, async (req, res) => {
     res.json({ ok: true, ...detail });
   } catch (e) {
     console.error("Error GET /api/torneos/americanos/:id:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -239,7 +239,7 @@ router.post("/americanos/:id/participantes", requireAuth, requireAdmin, async (r
     res.status(201).json({ ok: true, message: "Participantes actualizados", ...detail });
   } catch (e) {
     console.error("Error POST /api/torneos/americanos/:id/participantes:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -253,7 +253,7 @@ router.delete("/americanos/:id/participantes/:alumnoId", requireAuth, requireAdm
     res.json({ ok: true, message: "Participante eliminado", ...detail });
   } catch (e) {
     console.error("Error DELETE /api/torneos/americanos/:id/participantes/:alumnoId:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -310,7 +310,7 @@ router.post("/americanos/:id/partidos", requireAuth, requireAdmin, async (req, r
     res.status(201).json({ ok: true, message: "Partido creado", ...detail });
   } catch (e) {
     console.error("Error POST /api/torneos/americanos/:id/partidos:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -348,7 +348,7 @@ router.patch("/americanos/:id/partidos/:partidoId", requireAuth, requireAdmin, a
     res.json({ ok: true, message: "Partido actualizado", ...detail });
   } catch (e) {
     console.error("Error PATCH /api/torneos/americanos/:id/partidos/:partidoId:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -359,7 +359,7 @@ router.delete("/americanos/:id/partidos/:partidoId", requireAuth, requireAdmin, 
     res.json({ ok: true, message: "Partido eliminado", ...detail });
   } catch (e) {
     console.error("Error DELETE /api/torneos/americanos/:id/partidos/:partidoId:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -410,7 +410,7 @@ router.get("/", optionalAuth, async (req, res) => {
     res.json({ ok: true, torneos: rows });
   } catch (e) {
     console.error("Error GET /api/torneos:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -465,7 +465,7 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
     res.status(201).json({ ok: true, id: result.insertId, message: "Torneo creado" });
   } catch (e) {
     console.error("Error POST /api/torneos:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -515,7 +515,7 @@ router.post("/:id/inscribirse", requireAuth, async (req, res) => {
     res.status(201).json({ ok: true, message: "Inscripción realizada" });
   } catch (e) {
     console.error("Error POST /api/torneos/:id/inscribirse:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 
@@ -533,7 +533,7 @@ router.patch("/:id/cancelar-inscripcion", requireAuth, async (req, res) => {
 
     res.json({ ok: true, message: "Inscripción cancelada" });
   } catch (e) {
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
 

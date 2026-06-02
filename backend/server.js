@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
+import "./config/env.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -17,9 +17,6 @@ import notificacionesRouter from "./routes/notificaciones.js";
 import { requireAuth, requireRoles } from "./middleware/auth.js";
 import { sendWhatsAppMessage } from "./services/whatsappService.js";
 
-// Cargamos variables de entorno desde .env
-dotenv.config();
-
 // Creamos la app de Express
 const app = express();
 
@@ -34,8 +31,34 @@ const __dirname = path.dirname(__filename);
 // MIDDLEWARES
 // ======================================================
 
-// Permitimos peticiones desde otros orígenes
-app.use(cors());
+const DEFAULT_ALLOWED_ORIGINS = [
+  "http://localhost:3000",
+  "http://localhost:4000",
+  "https://escuela-nanipadel.vercel.app",
+];
+
+const configuredOrigins = [
+  ...DEFAULT_ALLOWED_ORIGINS,
+  process.env.FRONTEND_URL,
+]
+  .filter(Boolean)
+  .map((origin) => origin.replace(/\/$/, ""));
+
+const allowedOrigins = new Set(configuredOrigins);
+
+// Permitimos la web real, localhost y peticiones sin origin para pruebas locales.
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+
+    const normalizedOrigin = origin.replace(/\/$/, "");
+    const isLocalhost = /^http:\/\/localhost:\d+$/.test(normalizedOrigin);
+    const isAllowed = allowedOrigins.has(normalizedOrigin) || (process.env.NODE_ENV !== "production" && isLocalhost);
+
+    if (isAllowed) return callback(null, true);
+    return callback(new Error("Origen no permitido por CORS"));
+  },
+}));
 
 // Permite leer JSON que llegue en el body de las peticiones
 app.use(express.json());
@@ -102,7 +125,7 @@ app.get("/api/db-test", async (_req, res) => {
 
     res.status(500).json({
       ok: false,
-      message: e.message,
+      message: "No se ha podido completar la operación.",
     });
   }
 });
@@ -131,7 +154,7 @@ app.get(
 
       res.status(500).json({
         ok: false,
-        message: e.message,
+        message: "No se ha podido completar la operación.",
       });
     }
   }
@@ -216,7 +239,7 @@ app.get(
 
       res.status(500).json({
         ok: false,
-        message: e.message,
+        message: "No se ha podido completar la operación.",
       });
     }
   }
@@ -226,8 +249,19 @@ app.get(
 // METEO XIAO
 // ======================================================
 
+function requireXiaoApiKey(req, res, next) {
+  const expectedKey = process.env.XIAO_API_KEY;
+
+  if (!expectedKey || req.get("x-xiao-api-key") !== expectedKey) {
+    return res.status(401).json({ ok: false, message: "Sensor no autorizado" });
+  }
+
+  next();
+}
+
 // Esta ruta recibe datos desde la XIAO
-app.post("/api/meteo-xiao", async (req, res) => {
+// En Arduino, enviar: http.addHeader("x-xiao-api-key", "valor_de_XIAO_API_KEY");
+app.post("/api/meteo-xiao", requireXiaoApiKey, async (req, res) => {
   try {
     const {
       temperatura,
@@ -281,7 +315,7 @@ app.post("/api/meteo-xiao", async (req, res) => {
 
     res.status(500).json({
       ok: false,
-      message: e.message,
+      message: "No se ha podido completar la operación.",
     });
   }
 });
@@ -305,7 +339,7 @@ app.get("/api/meteo-xiao", async (_req, res) => {
 
     res.status(500).json({
       ok: false,
-      message: e.message,
+      message: "No se ha podido completar la operación.",
     });
   }
 });
@@ -329,7 +363,7 @@ app.get("/api/meteo-xiao/latest", async (_req, res) => {
 
     res.status(500).json({
       ok: false,
-      message: e.message,
+      message: "No se ha podido completar la operación.",
     });
   }
 });
@@ -395,7 +429,7 @@ app.post("/api/whatsapp/test", async (req, res) => {
     // Respondemos al cliente con el mensaje del error.
     res.status(500).json({
       ok: false,
-      message: e.message,
+      message: "No se ha podido completar la operación.",
     });
   }
 });
@@ -452,7 +486,7 @@ app.get("/api/whatsapp/test", async (req, res) => {
     // Respondemos al cliente con el mensaje del error.
     res.status(500).json({
       ok: false,
-      message: e.message,
+      message: "No se ha podido completar la operación.",
     });
   }
 });
