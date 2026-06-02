@@ -28,10 +28,10 @@ function formatSensorValue(value, suffix = "") {
 }
 
 function getSensorRecommendation(sensor) {
-  if (!sensor) return "Esperando la ultima lectura del sensor.";
+  if (!sensor) return "Esperando la última lectura del sensor.";
   if (Number(sensor.humedad) > 80) return "Pista húmeda, revisar antes de jugar.";
-  if (Number(sensor.temperatura) > 35) return "Mucho calor, hidratate.";
-  if (Number(sensor.bateria_porcentaje) < 20) return "Bateria baja del sensor.";
+  if (Number(sensor.temperatura) > 35) return "Mucho calor, hidrátate.";
+  if (Number(sensor.bateria_porcentaje) < 20) return "Batería baja del sensor.";
   return "Condiciones buenas para jugar.";
 }
 
@@ -100,7 +100,7 @@ function EstadoPista() {
   const overviewItems = [
     { label: "Temperatura", value: weather ? `${Math.round(weather.temperature)}°C` : "-" },
     { label: "Humedad", value: weather ? `${weather.humidity}%` : "-" },
-    { label: "Presion", value: weather?.pressure ? `${Math.round(weather.pressure)} hPa` : "-" },
+    { label: "Presión", value: weather?.pressure ? `${Math.round(weather.pressure)} hPa` : "-" },
     { label: "Viento", value: weather?.windSpeed != null ? `${weather.windSpeed} km/h` : "-" },
     {
       label: "Lluvia",
@@ -116,8 +116,8 @@ function EstadoPista() {
   const sensorMetrics = [
     { label: "Temperatura", value: formatSensorValue(sensor?.temperatura, "°C") },
     { label: "Humedad", value: formatSensorValue(sensor?.humedad, "%") },
-    { label: "Presion", value: formatSensorValue(sensor?.presion, " hPa") },
-    { label: "Bateria", value: formatSensorValue(sensor?.bateria_porcentaje, "%") },
+    { label: "Presión", value: formatSensorValue(sensor?.presion, " hPa") },
+    { label: "Batería", value: formatSensorValue(sensor?.bateria_porcentaje, "%") },
   ];
 
   return (
@@ -127,7 +127,7 @@ function EstadoPista() {
           <span className="estadoEyebrow">Tiempo y pista</span>
           <h1>Consulta si es buen momento para jugar</h1>
           <p>
-            Revisa temperatura, viento, lluvia y recomendacion antes de reservar o salir hacia el club.
+            Revisa temperatura, viento, lluvia y recomendación antes de reservar o salir hacia el club.
           </p>
           <div className="estadoHeroActions">
             <Link className="btn btn-primary" to="/reservas">
@@ -163,7 +163,7 @@ function EstadoPista() {
                   <p className="estadoNowTemp">{Math.round(weather.temperature)}°C</p>
                   <p className="estadoNowDesc">{weather.description}</p>
                   <p className="estadoNowFeel">
-                    Sensacion termica: {Math.round(weather.apparentTemperature)}°C
+                    Sensación térmica: {Math.round(weather.apparentTemperature)}°C
                   </p>
                 </div>
               </div>
@@ -183,7 +183,7 @@ function EstadoPista() {
                 </div>
               )}
 
-              <p className="estadoUpdated">Ultima actualizacion: {formatUpdatedAt(weather.updatedAt)}</p>
+              <p className="estadoUpdated">Última actualización: {formatUpdatedAt(weather.updatedAt)}</p>
             </>
           )}
         </div>
@@ -193,7 +193,7 @@ function EstadoPista() {
         <div className="estadoSensorHead">
           <div>
             <span className="estadoSectionEyebrow">Sensor del club</span>
-            <h2>Ultima lectura del XIAO</h2>
+            <h2>Última lectura del XIAO</h2>
           </div>
           <span className={`estadoSensorBadge ${sensorConnected ? "isConnected" : "isOffline"}`}>
             {sensorConnected ? "Sensor conectado" : "Sensor sin conexión"}
@@ -221,7 +221,7 @@ function EstadoPista() {
                 <strong>{sensor.estado || "Lectura recibida"}</strong>
               </div>
               <div>
-                <span>Ultima actualizacion</span>
+                <span>Última actualización</span>
                 <strong>{formatUpdatedAt(sensor.creado_en)}</strong>
               </div>
             </div>
@@ -240,7 +240,7 @@ function EstadoPista() {
         <div className="estadoPanelHead">
           <div>
               <span className="estadoSectionEyebrow">Resumen</span>
-            <h3>Datos utiles para decidir si jugar</h3>
+            <h3>Datos útiles para decidir si jugar</h3>
           </div>
           <p>
             Una lectura rápida de las condiciones que más influyen en pista.

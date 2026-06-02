@@ -17,13 +17,13 @@ const GAME_LEVELS = [
 
 const SPECIALTIES = [
   "Niños",
-  "Adultos iniciacion",
+  "Adultos iniciación",
   "Adultos avanzado",
   "Competición",
   "Clases particulares",
   "Tecnificación",
   "Torneos",
-  "Preparacion fisica",
+  "Preparación física",
 ];
 
 const emptyProfile = {
@@ -396,7 +396,7 @@ export default function Perfil() {
         <form className="profileProfessional" onSubmit={saveProfessional}>
           <div className="profileCardHeader">
             <span>PRO</span>
-            <div><h2>Perfil profesional</h2><p>Datos utiles para profesores y administracion del club.</p></div>
+            <div><h2>Perfil profesional</h2><p>Datos útiles para profesores y administración del club.</p></div>
           </div>
 
           <div className="profileFormGrid">

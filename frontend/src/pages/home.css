@@ -154,6 +154,11 @@
   color: var(--brand-400);
 }
 
+.homeMobileTitle,
+.homeMobileSubtitle {
+  display: none;
+}
+
 .heroProof {
   display: flex;
   flex-wrap: wrap;
@@ -1499,5 +1504,278 @@
     flex: 1 1 145px;
     min-height: 42px;
     padding: 0.68rem 0.85rem;
+  }
+}
+
+/* Final mobile polish for the most common home actions. */
+@media (max-width: 768px) {
+  .heroCard {
+    min-height: auto;
+  }
+
+  .heroLeft h1 {
+    max-width: 16ch;
+  }
+
+  .heroLeft p {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+  }
+
+  .quickCard {
+    min-height: auto;
+  }
+
+  .quickCard h3,
+  .platformItem h3 {
+    font-size: 0.98rem;
+    line-height: 1.2;
+  }
+
+  .quickCard p,
+  .platformItem p {
+    font-size: 0.82rem;
+    line-height: 1.38;
+  }
+
+  .weatherHint {
+    margin-top: 0.6rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroLeft p {
+    -webkit-line-clamp: 3;
+  }
+
+  .heroProof {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .heroProof span {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .quickGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Mobile-only home refinement: faster first screen, actions first. */
+@media (max-width: 768px) {
+  .home {
+    gap: 0.75rem;
+    padding-top: 0.45rem;
+  }
+
+  .heroCard {
+    padding: 0.78rem;
+    border-radius: 18px;
+  }
+
+  .heroGrid {
+    gap: 0.62rem;
+  }
+
+  .heroLeft,
+  .heroRight {
+    gap: 0.52rem;
+  }
+
+  .pill {
+    padding: 0.28rem 0.68rem;
+    font-size: 0.64rem;
+  }
+
+  .homeDesktopTitle,
+  .homeDesktopSubtitle {
+    display: none;
+  }
+
+  .homeMobileTitle,
+  .homeMobileSubtitle {
+    display: inline;
+  }
+
+  .heroLeft h1 {
+    max-width: 17ch;
+    font-size: clamp(1.48rem, 7.8vw, 2rem);
+    line-height: 1.03;
+  }
+
+  .heroLeft p {
+    display: block;
+    max-width: 24rem;
+    color: rgba(255, 255, 255, 0.76);
+    font-size: 0.86rem;
+    line-height: 1.38;
+  }
+
+  .ctaRow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.42rem;
+    width: 100%;
+  }
+
+  .heroLeft .btn,
+  .ctaRow .btn {
+    justify-content: center;
+    width: 100%;
+    min-height: 40px;
+    padding: 0.58rem 0.62rem;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    line-height: 1.12;
+  }
+
+  .heroProof {
+    gap: 0.28rem;
+  }
+
+  .heroProof span {
+    min-height: 26px;
+    padding: 0.22rem 0.46rem;
+    font-size: 0.66rem;
+  }
+
+  .heroStatusStrip {
+    gap: 0.32rem;
+  }
+
+  .heroStatusItem {
+    padding: 0.5rem 0.42rem;
+    border-radius: 12px;
+  }
+
+  .heroStatusItem span {
+    margin-bottom: 0.14rem;
+    font-size: 0.56rem;
+  }
+
+  .heroStatusItem strong {
+    font-size: 0.74rem;
+  }
+
+  .weatherBox {
+    padding: 0.68rem;
+    border-radius: 14px;
+  }
+
+  .weatherTop {
+    margin-bottom: 0.48rem;
+  }
+
+  .weatherEyebrow {
+    margin-bottom: 0.12rem;
+    font-size: 0.64rem;
+  }
+
+  .weatherTop h2 {
+    font-size: 0.86rem;
+  }
+
+  .weatherBadge {
+    padding: 0.24rem 0.5rem;
+    font-size: 0.66rem;
+  }
+
+  .weatherMain {
+    gap: 0.58rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .weatherIcon {
+    font-size: 1.86rem;
+  }
+
+  .weatherTemp {
+    font-size: 1.42rem;
+  }
+
+  .weatherDesc {
+    margin-top: 0.12rem;
+    font-size: 0.74rem;
+  }
+
+  .weatherStatusRow {
+    gap: 0.38rem;
+    margin-bottom: 0.48rem;
+  }
+
+  .weatherStatusCard {
+    padding: 0.52rem;
+    border-radius: 12px;
+  }
+
+  .weatherChips {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.32rem;
+    margin-bottom: 0.48rem;
+  }
+
+  .weatherChips .chip:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .chip {
+    justify-content: center;
+    overflow: hidden;
+    padding: 0.28rem 0.42rem;
+    font-size: 0.68rem;
+    text-overflow: ellipsis;
+  }
+
+  .weatherHint {
+    display: none;
+  }
+
+  .weatherPageLink {
+    margin-top: 0.24rem;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .home {
+    padding-inline: 0;
+  }
+
+  .heroCard {
+    padding: 0.72rem;
+    border-radius: 16px;
+  }
+
+  .heroLeft h1 {
+    font-size: clamp(1.42rem, 8.5vw, 1.76rem);
+  }
+
+  .heroProof {
+    display: none;
+  }
+
+  .heroStatusStrip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .weatherTop h2 {
+    display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .ctaRow,
+  .weatherStatusRow,
+  .weatherChips {
+    grid-template-columns: 1fr;
+  }
+
+  .weatherChips .chip:last-child {
+    grid-column: auto;
   }
 }

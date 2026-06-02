@@ -1,4 +1,4 @@
-/* Asistente del club: panel guiado, compacto y separado de la logica de rutas. */
+/* Asistente del club: centro rápido por reglas, sin IA ni llamadas externas. */
 .clubAssistant {
   position: fixed;
   right: clamp(0.75rem, 2vw, 1.2rem);
@@ -9,8 +9,8 @@
 
 .assistantFab {
   position: relative;
-  width: 56px;
-  height: 56px;
+  width: 54px;
+  height: 54px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 999px;
   cursor: pointer;
@@ -62,12 +62,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  font-size: 0.66rem;
+  font-size: 0.64rem;
   font-weight: 950;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -76,19 +76,18 @@
 .assistantPanel {
   position: absolute;
   right: 0;
-  bottom: 72px;
+  bottom: 68px;
   width: min(560px, calc(100vw - 32px));
   max-width: 560px;
   max-height: 78vh;
   display: grid;
-  gap: 0.62rem;
-  overflow-y: auto;
-  padding: 0.68rem;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
   border-radius: 20px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.99));
   border: 1px solid rgba(15, 23, 42, 0.08);
   box-shadow: 0 28px 70px rgba(15, 23, 42, 0.23), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  animation: assistantPanelIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: assistantPanelIn 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes assistantPanelIn {
@@ -96,16 +95,13 @@
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Cabecera compacta para que el asistente no parezca un modal gigante. */
 .assistantPanelHead {
   display: flex;
   justify-content: space-between;
   gap: 0.75rem;
   align-items: center;
-  min-height: 74px;
-  max-height: 110px;
-  padding: 0.68rem 0.72rem;
-  border-radius: 16px;
+  min-height: 72px;
+  padding: 0.72rem;
   background:
     radial-gradient(circle at 90% 0%, hsl(145 35% 48% / 0.25), transparent 34%),
     linear-gradient(135deg, var(--color-primary), var(--color-primary-soft));
@@ -114,7 +110,7 @@
 
 .assistantBrand {
   display: flex;
-  gap: 0.58rem;
+  gap: 0.62rem;
   align-items: center;
   min-width: 0;
 }
@@ -139,50 +135,31 @@
   box-shadow: 0 10px 20px hsl(145 35% 48% / 0.22);
 }
 
-.assistantEyebrow,
-.assistantReplyTag {
-  display: inline-flex;
-  font-size: 0.68rem;
-  font-weight: 950;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.assistantEyebrow {
-  margin-top: 0.14rem;
-  color: hsl(145 30% 84%);
-}
-
 .assistantPanelHead h3 {
   margin: 0;
   color: #ffffff;
   font-family: var(--font-display);
   font-size: 1rem;
-  line-height: 1;
+  line-height: 1.05;
   letter-spacing: 0;
 }
 
-.assistantOnline {
+.assistantEyebrow,
+.assistantReplyTag {
   display: inline-flex;
-  align-items: center;
-  gap: 0.34rem;
-  margin-top: 0.18rem;
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 0.76rem;
-  font-weight: 850;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
 }
 
-.assistantOnline span {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--color-secondary);
-  box-shadow: 0 0 0 4px hsl(145 35% 48% / 0.16);
+.assistantEyebrow {
+  margin-top: 0.16rem;
+  color: hsl(145 30% 84%);
 }
 
 .assistantCloseBtn {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
@@ -197,6 +174,13 @@
   transform: translateY(-1px);
   background: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 255, 255, 0.26);
+}
+
+.assistantPanelScroll {
+  display: grid;
+  gap: 0.62rem;
+  overflow-y: auto;
+  padding: 0.68rem;
 }
 
 .assistantWelcome {
@@ -217,28 +201,72 @@
   border: 1px solid hsl(145 35% 48% / 0.18);
 }
 
+.assistantBubble,
+.assistantReplyCard,
+.assistantState,
+.assistantSummaryGrid button {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.055);
+}
+
 .assistantBubble {
   padding: 0.62rem 0.72rem;
   border-radius: 15px 15px 15px 7px;
-  background: #ffffff;
   color: var(--color-primary);
-  border: 1px solid var(--color-border);
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
 }
 
 .assistantBubble p,
 .assistantReplyCard p,
 .assistantState p {
   margin: 0;
-  line-height: 1.5;
-  font-size: 0.82rem;
-}
-
-.assistantBubble p {
   color: var(--color-muted);
+  line-height: 1.45;
+  font-size: 0.83rem;
 }
 
-/* Accesos compactos por rol: visitante, alumno o staff. */
+.assistantSkeleton {
+  display: grid;
+  gap: 0.52rem;
+  padding: 0.75rem;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+}
+
+.assistantSkeleton span {
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, hsl(220 20% 94%), hsl(145 28% 92%), hsl(220 20% 94%));
+  background-size: 200% 100%;
+  animation: assistantSkeleton 1.1s ease-in-out infinite;
+}
+
+.assistantSkeleton span:nth-child(1) { width: 66%; }
+.assistantSkeleton span:nth-child(2) { width: 92%; }
+
+@keyframes assistantSkeleton {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.assistantState {
+  border-radius: 15px;
+  padding: 0.72rem;
+}
+
+.assistantState strong {
+  display: block;
+  margin-bottom: 0.22rem;
+  color: var(--color-primary);
+  font-size: 0.86rem;
+}
+
+.assistantWarning {
+  background: hsl(145 35% 48% / 0.08);
+  border-color: hsl(145 35% 48% / 0.2);
+}
+
 .assistantActions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -289,14 +317,14 @@
 
 .assistantActionChip strong {
   margin-bottom: 0.08rem;
-  font-size: 0.76rem;
+  font-size: 0.77rem;
   font-weight: 950;
 }
 
 .assistantActionChip small {
-  color: var(--color-muted);
   max-width: 100%;
   overflow: hidden;
+  color: var(--color-muted);
   font-size: 0.68rem;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -321,23 +349,9 @@
   font-weight: 950;
 }
 
-.assistantBody {
-  min-height: 112px;
-}
-
-.assistantReplyCard,
-.assistantState {
+.assistantReplyCard {
   border-radius: 16px;
   padding: 0.78rem;
-  background: #ffffff;
-  border: 1px solid var(--color-border);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.065);
-  animation: assistantContentIn 0.18s ease both;
-}
-
-@keyframes assistantContentIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 .assistantReplyTop {
@@ -364,171 +378,100 @@
 .assistantReplyCard h4 {
   margin: 0;
   color: var(--color-primary);
-  font-size: 0.94rem;
-  line-height: 1.25;
-}
-
-.assistantStatusBadge {
-  display: inline-flex;
-  width: fit-content;
-  margin-bottom: 0.52rem;
-  padding: 0.24rem 0.56rem;
-  border-radius: 999px;
-  background: hsl(145 35% 48% / 0.1);
-  border: 1px solid hsl(145 35% 48% / 0.18);
-  color: var(--color-secondary-dark);
-  font-size: 0.72rem;
-  font-weight: 950;
-}
-
-.assistantReplyDetail {
-  display: block;
-  margin-top: 0.5rem;
-  color: var(--color-muted);
-  font-size: 0.78rem;
-  line-height: 1.45;
-}
-
-.assistantFactGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-}
-
-.assistantFactGrid div {
-  border-radius: 14px;
-  padding: 0.62rem;
-  background: hsl(220 20% 97%);
-  border: 1px solid rgba(15, 23, 42, 0.06);
-}
-
-.assistantFactGrid span {
-  display: block;
-  margin-bottom: 0.18rem;
-  color: var(--color-muted);
-  font-size: 0.68rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.assistantFactGrid strong {
-  color: var(--color-primary);
-  font-size: 0.82rem;
-  line-height: 1.25;
-}
-
-.assistantMiniList {
-  display: grid;
-  gap: 0.4rem;
-  margin: 0.72rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.assistantMiniList li {
-  border-radius: 12px;
-  padding: 0.55rem 0.62rem;
-  background: hsl(220 20% 97%);
-  color: var(--color-primary);
-  font-size: 0.8rem;
-  font-weight: 800;
+  font-size: 0.95rem;
+  line-height: 1.2;
 }
 
 .assistantReplyLink {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-top: 0.68rem;
-  padding: 0.58rem 0.86rem;
+  margin-top: 0.66rem;
+  min-height: 38px;
+  border: 0;
   border-radius: 999px;
+  padding: 0.55rem 0.84rem;
   background: linear-gradient(135deg, var(--color-secondary), var(--color-secondary-dark));
   color: #ffffff;
-  font-size: 0.78rem;
-  font-weight: 950;
-  text-decoration: none;
-  box-shadow: 0 10px 22px hsl(145 35% 48% / 0.2);
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
-}
-
-.assistantReplyLink:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 28px hsl(145 35% 48% / 0.26);
-}
-
-.assistantHelpList {
-  display: grid;
-  gap: 0.36rem;
-  margin-top: 0.68rem;
-}
-
-.assistantHelpList button,
-.assistantHelpList a {
-  width: 100%;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 0.5rem 0.62rem;
-  background: hsl(220 20% 97%);
-  color: var(--color-primary);
-  text-align: left;
-  text-decoration: none;
   font: inherit;
   font-size: 0.78rem;
-  font-weight: 850;
+  font-weight: 950;
   cursor: pointer;
-  transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+  box-shadow: 0 10px 22px hsl(145 35% 48% / 0.2);
 }
 
-.assistantHelpList button:hover,
-.assistantHelpList a:hover {
-  transform: translateX(2px);
-  background: var(--color-secondary-light);
-  border-color: hsl(145 35% 48% / 0.28);
-}
-
-.assistantError {
-  background: hsl(0 65% 55% / 0.08);
-  border-color: hsl(0 65% 55% / 0.2);
-  color: hsl(0 65% 34%);
-}
-
-.assistantError strong,
-.assistantEmpty strong {
-  display: block;
-  margin-bottom: 0.28rem;
-}
-
-.assistantEmpty {
-  background: hsl(220 20% 97%);
-  color: var(--color-muted);
-}
-
-/* Skeleton puntual: solo se muestra mientras se carga el resumen real del asistente. */
-.assistantSkeleton {
+.assistantSummaryGrid {
   display: grid;
-  gap: 0.58rem;
-  padding: 0.9rem;
-  border-radius: 18px;
-  background: #ffffff;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.assistantSummaryGrid button {
+  min-height: 58px;
+  border-radius: 13px;
+  padding: 0.58rem;
+  color: var(--color-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.assistantSummaryGrid span {
+  display: block;
+  margin-bottom: 0.18rem;
+  color: var(--color-secondary-dark);
+  font-size: 0.68rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.assistantSummaryGrid strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  line-height: 1.28;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.assistantCommandBar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.48rem;
+  padding: 0.62rem;
+  border-top: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.assistantCommandBar input {
+  min-height: 42px;
   border: 1px solid var(--color-border);
-}
-
-.assistantSkeleton span {
-  height: 14px;
   border-radius: 999px;
-  background: linear-gradient(90deg, hsl(220 20% 94%), hsl(145 28% 92%), hsl(220 20% 94%));
-  background-size: 200% 100%;
-  animation: assistantSkeleton 1.2s ease-in-out infinite;
+  padding: 0.62rem 0.86rem;
+  background: #ffffff;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: 0.88rem;
+  outline: none;
 }
 
-.assistantSkeleton span:nth-child(1) { width: 62%; }
-.assistantSkeleton span:nth-child(2) { width: 92%; }
-.assistantSkeleton span:nth-child(3) { width: 72%; }
+.assistantCommandBar input:focus {
+  border-color: hsl(145 35% 48% / 0.45);
+  box-shadow: 0 0 0 3px hsl(145 35% 48% / 0.12);
+}
 
-@keyframes assistantSkeleton {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+.assistantCommandBar button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 0.9rem;
+  background: var(--color-primary);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 950;
+  cursor: pointer;
 }
 
 @media (max-width: 720px) {
@@ -537,34 +480,16 @@
     bottom: 10px;
   }
 
-  .assistantFab {
-    width: 54px;
-    height: 54px;
-  }
-
-  .assistantFabInner {
-    width: 38px;
-    height: 38px;
-    font-size: 0.64rem;
-  }
-
   .assistantPanel {
     position: fixed;
-    left: auto;
     right: 10px;
     bottom: 90px;
     width: calc(100vw - 20px);
-    max-height: 82vh;
-    padding: 0.62rem;
-    border-radius: 20px;
-  }
-
-  .assistantActions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: 85vh;
   }
 }
 
-@media (max-width: 430px) {
+@media (max-width: 480px) {
   .clubAssistant {
     right: 10px;
     bottom: calc(10px + env(safe-area-inset-bottom));
@@ -572,17 +497,19 @@
 
   .assistantPanel {
     right: 10px;
-    bottom: calc(90px + env(safe-area-inset-bottom));
+    bottom: calc(86px + env(safe-area-inset-bottom));
     width: calc(100vw - 20px);
-    max-height: 82vh;
+    max-height: 85vh;
+    border-radius: 18px;
   }
 
   .assistantPanelHead {
+    min-height: 66px;
     padding: 0.68rem;
   }
 
-  .assistantPanelHead h3 {
-    font-size: 1.05rem;
+  .assistantPanelScroll {
+    padding: 0.58rem;
   }
 
   .assistantWelcome {
@@ -593,28 +520,100 @@
     display: none;
   }
 
-  .assistantFactGrid {
+  .assistantActions,
+  .assistantSummaryGrid {
     grid-template-columns: 1fr;
   }
 
   .assistantActionChip {
-    min-height: auto;
+    min-height: 50px;
+  }
+
+  .assistantCommandBar {
+    grid-template-columns: 1fr;
+  }
+
+  .assistantCommandBar button {
+    width: 100%;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .assistantPanel,
-  .assistantReplyCard,
-  .assistantState,
-  .assistantSkeleton span {
+  .assistantSkeleton span,
+  .assistantFab,
+  .assistantActionChip {
     animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Final mobile polish: the assistant should feel like a quick tool, not a full page. */
+@media (max-width: 768px) {
+  .assistantFab {
+    width: 50px;
+    height: 50px;
   }
 
-  .assistantFab,
-  .assistantActionChip,
-  .assistantReplyLink,
-  .assistantHelpList button,
-  .assistantHelpList a {
-    transition: none !important;
+  .assistantFabInner {
+    width: 35px;
+    height: 35px;
+    font-size: 0.58rem;
+  }
+
+  .assistantPanel {
+    max-height: 82vh;
+  }
+
+  .assistantPanelHead {
+    min-height: 62px;
+  }
+
+  .assistantPanelScroll {
+    gap: 0.5rem;
+  }
+
+  .assistantBubble {
+    padding: 0.56rem 0.64rem;
+  }
+
+  .assistantSkeleton {
+    padding: 0.58rem;
+  }
+
+  .assistantActions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .assistantActionChip {
+    min-height: 48px;
+    padding: 0.42rem;
+  }
+
+  .assistantSummaryGrid button {
+    min-height: 52px;
+    padding: 0.5rem;
+  }
+
+  .assistantReplyCard {
+    padding: 0.66rem;
+  }
+
+  .assistantCommandBar {
+    padding: 0.54rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .assistantActions,
+  .assistantSummaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .assistantActionChip small {
+    white-space: normal;
+    -webkit-line-clamp: 1;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
   }
 }

@@ -32,7 +32,7 @@ const PLATFORM_ITEMS = [
     icon: "Avisos",
     title: "Avisos del club",
     description:
-      "Recibe comunicaciones importantes sobre reservas, clases, torneos y cambios de ultima hora.",
+      "Recibe comunicaciones importantes sobre reservas, clases, torneos y cambios de última hora.",
   },
   {
     icon: "Torneos",
@@ -44,7 +44,7 @@ const PLATFORM_ITEMS = [
     icon: "Tienda",
     title: "Tienda del club",
     description:
-      "Encuentra material, servicios y productos utiles para entrenar y jugar mejor.",
+      "Encuentra material, servicios y productos útiles para entrenar y jugar mejor.",
   },
 ];
 
@@ -89,7 +89,7 @@ const PROJECT_POINTS = [
     label: "Reservas, partidos y avisos sin depender de mensajes sueltos.",
   },
   {
-    value: "Para el dia a dia",
+    value: "Para el día a día",
     label: "Pensado para alumnos, familias, profesores y equipo del club.",
   },
 ];
@@ -100,7 +100,7 @@ const NEWS_ITEMS = [
     date: "26 abr 2026",
     title: "La liga femenina suma otra buena jornada en casa",
     summary:
-      "El equipo compitio con buen ritmo y el ambiente del club se noto desde el primer partido.",
+      "El equipo compitió con buen ritmo y el ambiente del club se notó desde el primer partido.",
     image: `${process.env.PUBLIC_URL}/fotosLiga/ligafem.jpeg`,
     featured: true,
   },
@@ -126,7 +126,7 @@ const NEWS_ITEMS = [
     id: 4,
     category: "Alumnos",
     date: "19 abr 2026",
-    title: "Mas partidos entre alumnos durante la semana",
+    title: "Más partidos entre alumnos durante la semana",
     summary:
       "La escuela sigue creciendo con reservas, clases y partidos organizados entre alumnos.",
     image: `${process.env.PUBLIC_URL}/fotosAlumnos/nani.jpeg`,
@@ -141,7 +141,7 @@ function formatDay(dateStr) {
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   if (date.toDateString() === today.toDateString()) return "Hoy";
-  if (date.toDateString() === tomorrow.toDateString()) return "Manana";
+  if (date.toDateString() === tomorrow.toDateString()) return "Mañana";
 
   return date.toLocaleDateString("es-ES", { weekday: "short", day: "2-digit" });
 }
@@ -199,11 +199,17 @@ function Home() {
               Escuela NaniPadel
             </div>
 
-            <h1 id="home-title">Tu escuela de pádel, organizada en una sola app.</h1>
+            <h1 id="home-title">
+              <span className="homeDesktopTitle">Tu escuela de pádel, organizada en una sola app.</span>
+              <span className="homeMobileTitle">Tu escuela de pádel en una sola app</span>
+            </h1>
 
             <p>
-              NaniPadel centraliza reservas, partidas abiertas, clases, torneos y avisos del club
-              para que alumnos, familias y profesores tengan toda la información siempre a mano.
+              <span className="homeDesktopSubtitle">
+                NaniPadel centraliza reservas, partidas abiertas, clases, torneos y avisos del club
+                para que alumnos, familias y profesores tengan toda la información siempre a mano.
+              </span>
+              <span className="homeMobileSubtitle">Reserva, consulta clases y recibe avisos al momento.</span>
             </p>
 
             <div className="ctaRow">
@@ -289,7 +295,7 @@ function Home() {
                       <strong>{weather.pista}</strong>
                     </div>
                     <div className="weatherStatusCard">
-                      <span>Sensacion</span>
+                      <span>Sensación</span>
                       <strong>{Math.round(weather.apparentTemperature)}ºC</strong>
                     </div>
                   </div>
@@ -339,7 +345,7 @@ function Home() {
                 <p className="weatherCurrentTemp">{Math.round(weather.temperature)}°C</p>
                 <p className="weatherCurrentDesc">{weather.description}</p>
                 <p className="weatherCurrentFeel">
-                  Sensacion termica: {Math.round(weather.apparentTemperature)}°C
+                  Sensación térmica: {Math.round(weather.apparentTemperature)}°C
                 </p>
               </div>
             </div>
@@ -438,7 +444,7 @@ function Home() {
           <span className="sectionEyebrow">Club organizado</span>
           <h2 id="project-story-title">Todo el club mejor organizado.</h2>
           <p>
-            Evita mensajes perdidos, horarios duplicados y dudas de ultima hora. Cada jugador puede
+            Evita mensajes perdidos, horarios duplicados y dudas de última hora. Cada jugador puede
             consultar sus reservas, clases, avisos y torneos desde el mismo sitio.
           </p>
         </div>

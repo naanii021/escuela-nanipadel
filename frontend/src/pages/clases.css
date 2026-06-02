@@ -2393,3 +2393,122 @@
     justify-content: center;
   }
 }
+
+/* Final mobile polish: keep staff classes visible above the fold. */
+@media (max-width: 768px) {
+  .clasesStaff .staffHero {
+    position: relative;
+    overflow: hidden;
+    padding: 0.72rem;
+  }
+
+  .clasesStaff .heroTitle {
+    font-size: clamp(1.35rem, 7vw, 1.65rem);
+  }
+
+  .clasesStaff .heroSub {
+    max-width: 34rem;
+  }
+
+  .clasesStaff .heroStats {
+    gap: 0.35rem;
+  }
+
+  .clasesStaff .statCard {
+    min-width: 84px;
+    padding: 0.48rem 0.44rem;
+  }
+
+  .clasesStaff .statCard strong {
+    font-size: 1.08rem;
+  }
+
+  .clasesStaff .staffDashboard {
+    margin-top: -0.15rem;
+  }
+
+  .staffClassRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .staffClassChips {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .staffClassChips span {
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .trackingMiniGrid {
+    grid-template-columns: repeat(3, minmax(104px, 1fr));
+  }
+
+  .trackingMiniGrid .miniMetric {
+    min-height: 62px;
+  }
+
+  .clasesStaff .todosGruposSection {
+    margin-top: -0.05rem;
+  }
+
+  .clasesStaff .sectionTitle {
+    font-size: 1.06rem;
+  }
+
+  .clasesStaff .filtersBar {
+    position: sticky;
+    top: 0.45rem;
+    z-index: 2;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(10px);
+  }
+
+  .clasesStaff .claseCard {
+    display: grid;
+  }
+
+  .clasesStaff .metaGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .clasesStaff .heroContent {
+    gap: 0.5rem;
+  }
+
+  .clasesStaff .heroSub {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .staffPanelHead h2 {
+    font-size: 0.95rem;
+  }
+
+  .staffClassChips {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .staffClassChips span:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .trackingMiniGrid {
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .trackingMiniGrid .miniMetric {
+    min-width: 0;
+    min-height: auto;
+  }
+
+  .clasesStaff .metaGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

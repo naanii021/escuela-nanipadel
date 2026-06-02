@@ -478,7 +478,7 @@ function StudentClassesDashboard({ classData, user, loading }) {
         <div className="heroContent">
           <div className="heroText">
             <h1 className="heroTitle">Mis clases</h1>
-            <p className="heroSub">Tus grupos, proximas clases y avisos de la escuela en un solo lugar.</p>
+            <p className="heroSub">Tus grupos, próximas clases y avisos de la escuela en un solo lugar.</p>
           </div>
           <div className="heroStats">
             <div className="statCard"><strong>{loading ? "-" : misClases.length}</strong><span>grupos</span></div>
@@ -581,7 +581,7 @@ function StudentClassesDashboard({ classData, user, loading }) {
 
       <section className="studentHelpPanel">
         <div>
-          <h2>Necesitas ayuda con tus clases?</h2>
+          <h2>¿Necesitas ayuda con tus clases?</h2>
           <p>Contacta con el club o consulta con tu profesor para cambios de grupo, recuperaciones o dudas de horario.</p>
         </div>
         <div className="heroActions">

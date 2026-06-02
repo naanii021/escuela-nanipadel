@@ -103,6 +103,8 @@ const IcSearch = () => (
   </svg>
 );
 
+const todayCode = () => ["D", "L", "M", "X", "J", "V", "S"][new Date().getDay()];
+
 function canAccess(user) {
   return STAFF_ROLES.includes(String(user?.rol || "").toLowerCase());
 }
@@ -349,6 +351,74 @@ export default function PanelProfesor() {
     };
   }, [alumnos, grupos, stats.totalAlumnos, stats.totalGrupos]);
 
+  const todayClasses = useMemo(() => {
+    const code = todayCode();
+    return grupos.filter((item) => Number(item.activo ?? 1) === 1 && getGroupDays(item).includes(code));
+  }, [grupos]);
+
+  const pendingItems = useMemo(() => {
+    const items = [];
+    if (panelMetrics.alumnosSinAcceso > 0) {
+      items.push({
+        key: "access",
+        title: "Alumnos sin acceso",
+        text: `${panelMetrics.alumnosSinAcceso} alumno${panelMetrics.alumnosSinAcceso === 1 ? "" : "s"} pendiente${panelMetrics.alumnosSinAcceso === 1 ? "" : "s"} de acceso.`,
+        action: () => {
+          setActiveSection("gestion");
+          setActiveView("alumnos");
+          setStudentQuickFilter("sin-acceso");
+        },
+      });
+    }
+
+    if (panelMetrics.gruposConHuecos > 0) {
+      items.push({
+        key: "slots",
+        title: "Grupos con huecos",
+        text: `${panelMetrics.gruposConHuecos} grupo${panelMetrics.gruposConHuecos === 1 ? "" : "s"} con plazas para revisar.`,
+        action: () => {
+          setActiveSection("gestion");
+          setActiveView("grupos");
+          setGroupQuickFilter("con-huecos");
+        },
+      });
+    }
+
+    return items;
+  }, [panelMetrics.alumnosSinAcceso, panelMetrics.gruposConHuecos]);
+
+  const adminQuickActions = useMemo(() => {
+    const sharedActions = [
+      { key: "groups", label: isAdmin ? "Gestionar grupos" : "Mis grupos", text: "Horarios, cupos y niveles", onClick: () => { setActiveSection("gestion"); setActiveView("grupos"); } },
+      { key: "students", label: isAdmin ? "Gestionar alumnos" : "Ver alumnos", text: "Fichas y grupos asignados", onClick: () => { setActiveSection("gestion"); setActiveView("alumnos"); } },
+      { key: "reservas", label: "Ver reservas", text: "Agenda de pistas", to: "/reservas" },
+      { key: "weather", label: "Ver estado pista", text: "Sensor y tiempo", to: "/estado-pista" },
+    ];
+
+    if (!isAdmin) {
+      return [
+        ...sharedActions,
+        { key: "control", label: "Control de clases", text: "Pasar lista y revisar sesión", onClick: () => setActiveSection("control") },
+        { key: "schedule", label: "Horario semanal", text: "Agenda de grupos", onClick: () => setActiveSection("horario") },
+      ];
+    }
+
+    return [
+      ...sharedActions,
+      { key: "notice", label: "Crear aviso", text: "Comunicación del club", to: "/avisos" },
+      { key: "tournament", label: "Crear torneo", text: "Formatos y jornadas", to: "/torneos" },
+    ];
+  }, [isAdmin]);
+
+  const adminModules = useMemo(() => [
+    { key: "alumnos", title: "Alumnos", text: "Consulta y organiza los alumnos de la escuela.", value: panelMetrics.totalAlumnos, label: "alumnos", onClick: () => { setActiveSection("gestion"); setActiveView("alumnos"); } },
+    { key: "grupos", title: "Grupos", text: "Revisa niveles, horarios, profesores y ocupación.", value: panelMetrics.totalGrupos, label: "grupos", onClick: () => { setActiveSection("gestion"); setActiveView("grupos"); } },
+    { key: "reservas", title: "Reservas", text: "Abre la agenda de pistas y partidas del club.", value: "Ver", label: "agenda", to: "/reservas" },
+    { key: "torneos", title: "Torneos", text: "Gestiona torneos, americanos y nuevos formatos.", value: "Ver", label: "torneos", to: "/torneos" },
+    { key: "avisos", title: "Avisos", text: "Crea comunicaciones para alumnos o profesores.", value: "Crear", label: "aviso", to: "/avisos" },
+    { key: "tienda", title: "Tienda", text: "Consulta productos y servicios publicados.", value: "Ver", label: "tienda", to: "/tienda" },
+  ], [panelMetrics.totalAlumnos, panelMetrics.totalGrupos]);
+
   const weeklySchedule = useMemo(() => {
     const base = Object.fromEntries(WEEK_DAYS.map((day) => [day.key, []]));
 
@@ -472,7 +542,7 @@ export default function PanelProfesor() {
       setSaving(true);
       await apiPost(`/api/gestion/grupos/${selectedGroup.id}/alumnos`, { alumno_id: studentToAdd });
       setStudentToAdd("");
-      showNotice("Alumno anadido al grupo.");
+      showNotice("Alumno añadido al grupo.");
       await loadPanel();
     } catch (e) {
       setError(e.message || "No hemos podido añadir el alumno al grupo.");
@@ -586,10 +656,10 @@ export default function PanelProfesor() {
       <header className="staffHero">
         <div className="staffHeroText">
           <span className="staffEyebrow">Panel de escuela</span>
-          <h1>Gestión de la escuela</h1>
+          <h1>{isAdmin ? "Panel de administración" : "Panel de profesor"}</h1>
           <p>
             {scope === "admin"
-              ? "Organiza grupos, alumnos, horarios y accesos desde un mismo sitio."
+              ? "Gestiona clases, alumnos, reservas y avisos del club."
               : "Consulta tus grupos, alumnos y tareas de clase."}
           </p>
         </div>
@@ -603,6 +673,98 @@ export default function PanelProfesor() {
       </header>
 
       {notice && <div className="staffNotice">{notice}</div>}
+
+      <section className="adminOverview" aria-label="Resumen de hoy">
+        <div className="adminOverviewHead">
+          <div>
+            <span className="staffEyebrow">Resumen de hoy</span>
+            <h2>Vista rápida del club</h2>
+          </div>
+          <span className="adminTodayBadge">{todayClasses.length ? `${todayClasses.length} clase${todayClasses.length === 1 ? "" : "s"} hoy` : "Todo al día"}</span>
+        </div>
+
+        <div className="adminTodayGrid">
+          <article><span>Clases de hoy</span><strong>{loading ? "-" : todayClasses.length}</strong></article>
+          <article><span>Reservas de hoy</span><strong>Ver</strong></article>
+          <article><span>Avisos activos</span><strong>Crear</strong></article>
+          <article><span>Partidas abiertas</span><strong>Ver</strong></article>
+          <article><span>Torneos próximos</span><strong>Ver</strong></article>
+        </div>
+      </section>
+
+      <section className="adminQuickPanel" aria-label="Acciones rápidas">
+        <div className="adminSectionHead">
+          <h2>Acciones rápidas</h2>
+          <p>Las tareas más habituales, siempre a mano.</p>
+        </div>
+        <div className="adminQuickGrid">
+          {adminQuickActions.map((action) => (
+            action.to ? (
+              <Link className="adminQuickCard" key={action.key} to={action.to}>
+                <strong>{action.label}</strong>
+                <span>{action.text}</span>
+              </Link>
+            ) : (
+              <button className="adminQuickCard" key={action.key} type="button" onClick={action.onClick}>
+                <strong>{action.label}</strong>
+                <span>{action.text}</span>
+              </button>
+            )
+          ))}
+        </div>
+      </section>
+
+      <section className="adminPendingPanel" aria-label="Pendiente de revisar">
+        <div className="adminSectionHead">
+          <h2>Pendiente de revisar</h2>
+          <p>Pequeñas señales para saber por dónde empezar.</p>
+        </div>
+        {pendingItems.length ? (
+          <div className="adminPendingGrid">
+            {pendingItems.map((item) => (
+              <button className="adminPendingCard" key={item.key} type="button" onClick={item.action}>
+                <strong>{item.title}</strong>
+                <span>{item.text}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="adminEmptyState">
+            <strong>Todo al día.</strong>
+            <span>No hay tareas pendientes.</span>
+          </div>
+        )}
+      </section>
+
+      <section className="adminModulesPanel" aria-label="Gestión por módulos">
+        <div className="adminSectionHead">
+          <h2>Gestión por módulos</h2>
+          <p>Accede a cada área sin tener que revisar todo el panel de golpe.</p>
+        </div>
+        <div className="adminModulesGrid">
+          {adminModules.map((module) => (
+            module.to ? (
+              <Link className="adminModuleCard" key={module.key} to={module.to}>
+                <div>
+                  <h3>{module.title}</h3>
+                  <p>{module.text}</p>
+                </div>
+                <strong>{module.value}</strong>
+                <span>{module.label}</span>
+              </Link>
+            ) : (
+              <button className="adminModuleCard" key={module.key} type="button" onClick={module.onClick}>
+                <div>
+                  <h3>{module.title}</h3>
+                  <p>{module.text}</p>
+                </div>
+                <strong>{module.value}</strong>
+                <span>{module.label}</span>
+              </button>
+            )
+          ))}
+        </div>
+      </section>
 
       <nav className="staffSectionNav" aria-label="Secciones de gestión">
         {PANEL_SECTIONS.map((section) => (
@@ -1003,7 +1165,7 @@ export default function PanelProfesor() {
             <div>
               <span className="staffEyebrow">Notas internas</span>
               <h2>Seguimiento</h2>
-              <p>Anota objetivos, observaciones y evolucion por grupo.</p>
+              <p>Anota objetivos, observaciones y evolución por grupo.</p>
             </div>
             <select className="opsSelect" value={trackingGroup?.id || ""} onChange={(e) => setTrackingGroupId(e.target.value)}>
               {gruposOptions.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
@@ -1018,12 +1180,12 @@ export default function PanelProfesor() {
             </article>
             <article className="trackingCard">
               <h3>Observaciones del grupo</h3>
-              <p>Espacio para notas internas del profesor o la administracion.</p>
+              <p>Espacio para notas internas del profesor o la administración.</p>
             </article>
             <article className="trackingCard">
               <h3>Objetivos trabajados</h3>
               <div className="trackingTags">
-                <span>Tecnica</span>
+                <span>Técnica</span>
                 <span>Posicionamiento</span>
                 <span>Partido</span>
               </div>

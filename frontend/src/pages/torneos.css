@@ -1850,3 +1850,121 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Final mobile polish for tournament creation and cards. */
+@media (max-width: 768px) {
+  .torneosAdminPanel {
+    margin-bottom: 0.85rem;
+  }
+
+  .torneosAdminHead {
+    gap: 0.65rem;
+  }
+
+  .torneosAdminHead h3,
+  .torneosControlHead h3,
+  .torneosGalleryHead h3 {
+    font-size: clamp(1.2rem, 6vw, 1.45rem);
+  }
+
+  .torneosAdminSummary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  .torneosAdminSummary article {
+    padding: 0.58rem;
+    border-radius: 13px;
+  }
+
+  .torneosAdminSummary strong {
+    font-size: 1.08rem;
+  }
+
+  .tournamentCreator {
+    gap: 0.62rem;
+    margin-top: 0.65rem;
+  }
+
+  .creatorStepHead {
+    margin-bottom: 0.52rem;
+  }
+
+  .creatorStepHead h4 {
+    font-size: 0.98rem;
+  }
+
+  .creatorGrid,
+  .rulesGrid {
+    gap: 0.5rem;
+  }
+
+  .creatorField input,
+  .creatorField textarea,
+  .creatorField select {
+    min-height: 38px;
+    padding: 0.52rem 0.62rem;
+    border-radius: 10px;
+    font-size: 0.84rem;
+  }
+
+  .formatSelectorGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .formatOptionCard {
+    min-height: 0;
+    gap: 0.28rem;
+    padding: 0.62rem;
+    border-radius: 13px;
+  }
+
+  .formatOptionCard h5 {
+    font-size: 0.88rem;
+    line-height: 1.2;
+  }
+
+  .formatOptionCard p {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 0.76rem;
+    line-height: 1.32;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .formatOptionCard span {
+    font-size: 0.68rem;
+  }
+
+  .torneoSkeleton {
+    height: 250px;
+    border-radius: 17px;
+  }
+
+  .torneoMedia {
+    height: auto;
+    max-height: 180px;
+  }
+}
+
+@media (max-width: 480px) {
+  .torneosAdminSummary {
+    grid-template-columns: repeat(3, minmax(82px, 1fr));
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .torneosAdminSummary::-webkit-scrollbar {
+    display: none;
+  }
+
+  .formatSelectorGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .formatOptionCard p {
+    -webkit-line-clamp: 1;
+  }
+}

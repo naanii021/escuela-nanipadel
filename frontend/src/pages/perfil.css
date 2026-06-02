@@ -597,3 +597,70 @@
     height: 52px;
   }
 }
+
+/* Final mobile polish for profile forms and WhatsApp preferences. */
+@media (max-width: 768px) {
+  .profileNotice,
+  .profileError {
+    margin-top: 0.65rem;
+    padding: 0.68rem 0.78rem;
+    border-radius: 14px;
+    font-size: 0.88rem;
+  }
+
+  .profileCardHeader h2 {
+    font-size: 1.05rem;
+  }
+
+  .profilePreferenceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .profileWhatsappToggle {
+    min-height: auto;
+  }
+
+  .profileWhatsappBox {
+    margin-top: 0.65rem;
+  }
+
+  .profilePreferenceTypes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profilePreferenceTypes label {
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .profileSkeleton {
+    height: 116px;
+    border-radius: 18px;
+  }
+
+  .profileSkeletonGrid {
+    gap: 0.65rem;
+  }
+
+  .profileSkeletonGrid span {
+    height: 132px;
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .profilePreferenceTypes {
+    grid-template-columns: 1fr;
+  }
+
+  .profileActionsBar {
+    position: sticky;
+    bottom: 0.55rem;
+    z-index: 3;
+    padding: 0.45rem;
+    border-radius: 16px;
+    background: rgba(248, 250, 252, 0.92);
+    backdrop-filter: blur(10px);
+  }
+}
