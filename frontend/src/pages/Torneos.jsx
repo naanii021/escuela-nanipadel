@@ -1,7 +1,7 @@
 import "./torneos.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiDelete, apiGet, apiPatch, apiPost } from "../services/api";
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "../services/api";
 import { getUser, isLogged } from "../services/auth";
 import { requestNotificationsRefresh } from "../services/notificationEvents";
 
@@ -55,58 +55,68 @@ const TOURNAMENT_FORMATS = [
   {
     key: "americano",
     title: "Americano",
-    description: "Formato social con rotación de parejas y puntuación individual.",
-    status: "Automatización actual disponible en Gestión",
+    description: "Formato social con rotación y gestión de participantes. Ideal para torneos rápidos del club.",
+    status: "Funcional",
+  },
+  {
+    key: "simple",
+    title: "Torneo simple",
+    description: "Publica un torneo con cartel, fecha, plazas, precio e inscripción manual.",
+    status: "Inscripción manual",
   },
   {
     key: "mexicano",
     title: "Mexicano",
     description: "Formato dinámico que empareja jugadores según clasificación para crear partidos igualados.",
-    status: "Preparado",
+    status: "Próximamente",
   },
   {
     key: "round_robin",
     title: "Liga / Round Robin",
     description: "Todos contra todos. Ideal para torneos de varias jornadas o grupos reducidos.",
-    status: "Preparado",
+    status: "Próximamente",
   },
   {
     key: "eliminatoria",
     title: "Eliminatoria",
     description: "Cuadro directo por rondas hasta semifinal y final.",
-    status: "Preparado",
+    status: "Próximamente",
   },
   {
     key: "grupos_playoff",
     title: "Grupos + Playoff",
     description: "Primero fase de grupos y después cuadro final con los mejores clasificados.",
-    status: "Preparado",
+    status: "Próximamente",
   },
   {
     key: "rey_pista",
     title: "Rey de pista / Pozo",
     description: "Las parejas suben o bajan de pista según el resultado de cada ronda.",
-    status: "Preparado",
+    status: "Próximamente",
   },
   {
     key: "beat_the_box",
     title: "Beat the Box",
     description: "Jugadores divididos en grupos pequeños que se reorganizan según rendimiento.",
-    status: "Preparado",
+    status: "Próximamente",
   },
   {
     key: "equipos",
     title: "Por equipos",
     description: "Equipos completos compiten entre sí sumando puntos por enfrentamiento.",
-    status: "Preparado",
+    status: "Próximamente",
   },
   {
     key: "express",
     title: "Express",
     description: "Torneo rápido de una mañana o una tarde, con partidos cortos.",
-    status: "Preparado",
+    status: "Próximamente",
   },
 ];
+
+const FUNCTIONAL_FORMAT_KEYS = ["americano", "simple"];
+const MAIN_TOURNAMENT_FORMATS = TOURNAMENT_FORMATS.filter((format) => FUNCTIONAL_FORMAT_KEYS.includes(format.key));
+const UPCOMING_TOURNAMENT_FORMATS = TOURNAMENT_FORMATS.filter((format) => !FUNCTIONAL_FORMAT_KEYS.includes(format.key));
 
 const FORMAT_RULE_FIELDS = {
   americano: [
@@ -172,7 +182,7 @@ const emptyTournamentForm = {
   pistas_necesarias: "",
   imagen: "",
   estado: "borrador",
-  tipo_torneo: "americano",
+  tipo_torneo: "simple",
 };
 
 const emptyAmericanoForm = {
@@ -195,6 +205,22 @@ const emptyMatchForm = {
   puntos_b: 0,
   estado: "pendiente",
 };
+
+const emptyIncidenceForm = {
+  tipo: "organizacion",
+  titulo: "",
+  descripcion: "",
+  partido_id: "",
+  pareja_id: "",
+};
+
+const AMERICANO_TABS = [
+  { key: "resumen", label: "Resumen" },
+  { key: "parejas", label: "Parejas" },
+  { key: "partidos", label: "Partidos" },
+  { key: "resultados", label: "Resultados" },
+  { key: "incidencias", label: "Incidencias" },
+];
 
 function formatFecha(fecha) {
   if (!fecha) return "Por confirmar";
@@ -287,16 +313,6 @@ function buildDefaultRules(tipoTorneo) {
   }, {});
 }
 
-function normalizeRuleValue(field, value) {
-  if (field.type === "checkbox") return Boolean(value);
-  if (field.type === "number") {
-    if (value === "") return "";
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : field.defaultValue;
-  }
-  return value;
-}
-
 function isClosedTournament(torneo) {
   return ["cerrado", "cancelado", "finalizado", "completo"].includes(torneo?.estado);
 }
@@ -330,6 +346,35 @@ function teamLabel(partido, side) {
   return [one, two].filter(Boolean).join(" / ");
 }
 
+function shuffleArray(array) {
+  const copy = [...array];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function generateRandomPairs(players) {
+  const shuffled = shuffleArray(players);
+  const reserve = shuffled.length % 2 === 1 ? shuffled.pop() : null;
+  const pairs = [];
+
+  for (let i = 0; i < shuffled.length; i += 2) {
+    pairs.push({ jugador1: shuffled[i], jugador2: shuffled[i + 1] });
+  }
+
+  return { pairs, reserve };
+}
+
+function pairPlayerIds(pair) {
+  return [pair.jugador1?.alumno_id, pair.jugador2?.alumno_id].filter(Boolean).map(Number);
+}
+
+function findAlumnoById(alumnos, alumnoId) {
+  return alumnos.find((alumno) => Number(alumno.alumno_id || alumno.id) === Number(alumnoId)) || null;
+}
+
 function Torneos() {
   const navigate = useNavigate();
   const [torneos, setTorneos] = useState([]);
@@ -349,6 +394,11 @@ function Torneos() {
   const [matchForm, setMatchForm] = useState(emptyMatchForm);
   const [americanoLoading, setAmericanoLoading] = useState(false);
   const [americanoError, setAmericanoError] = useState("");
+  const [americanoTab, setAmericanoTab] = useState("resumen");
+  const [pairDraft, setPairDraft] = useState([]);
+  const [pairReserve, setPairReserve] = useState(null);
+  const [pairNotice, setPairNotice] = useState("");
+  const [incidenceForm, setIncidenceForm] = useState(emptyIncidenceForm);
   const [selectedTorneo, setSelectedTorneo] = useState(null);
   const [adminTab, setAdminTab] = useState("activos");
   const [tournamentForm, setTournamentForm] = useState(emptyTournamentForm);
@@ -358,8 +408,6 @@ function Torneos() {
   const [creatorNotice, setCreatorNotice] = useState("");
 
   const canManageAmericanos = isStaffUser();
-  const selectedFormat = getFormatMeta(tournamentForm.tipo_torneo);
-  const selectedFormatFields = FORMAT_RULE_FIELDS[tournamentForm.tipo_torneo] || [];
 
   const loadTorneos = useCallback(async () => {
     try {
@@ -487,6 +535,17 @@ function Torneos() {
     [alumnosCatalog, selectedParticipantIds]
   );
   const participantOptions = americanoDetail?.participantes || [];
+  const americanoPairs = americanoDetail?.parejas || [];
+  const americanoIncidences = americanoDetail?.incidencias || [];
+  const activePairs = americanoPairs.filter((pair) => pair.estado !== "reserva");
+  const canGeneratePairs = !americanoDetail?.partidos?.length;
+
+  useEffect(() => {
+    setPairDraft([]);
+    setPairReserve(null);
+    setPairNotice("");
+    setIncidenceForm(emptyIncidenceForm);
+  }, [selectedAmericanoId]);
 
   const updateTournamentForm = (field, value) => {
     setTournamentForm((current) => ({ ...current, [field]: value }));
@@ -497,11 +556,14 @@ function Torneos() {
     setFormatRules(buildDefaultRules(formatKey));
   };
 
-  const updateFormatRule = (field, value, meta) => {
-    setFormatRules((current) => ({
-      ...current,
-      [field]: normalizeRuleValue(meta, value),
-    }));
+  const openAmericanoManager = () => {
+    setAdminTab("gestion");
+    setAmericanoOpen(true);
+  };
+
+  const openManualCreator = () => {
+    selectTournamentFormat("simple");
+    setAdminTab("crear");
   };
 
   const createTournament = async (event) => {
@@ -668,6 +730,158 @@ function Torneos() {
     }
   };
 
+  const generatePairsPreview = (message = "Parejas generadas correctamente.") => {
+    const players = americanoDetail?.participantes || [];
+    if (players.length < 4) {
+      setPairNotice("Necesitas al menos 4 jugadores para crear un americano.");
+      return;
+    }
+
+    const result = generateRandomPairs(players);
+    setPairDraft(result.pairs);
+    setPairReserve(result.reserve);
+    setPairNotice(result.reserve ? "Hay un jugador sin pareja. Puedes añadir otro jugador o dejarlo como reserva." : message);
+    setAmericanoTab("parejas");
+  };
+
+  const addManualPairDraft = () => {
+    setPairDraft((current) => [...current, { jugador1: null, jugador2: null }]);
+    setPairNotice("Añade dos jugadores para guardar la pareja manual.");
+    setAmericanoTab("parejas");
+  };
+
+  const updateDraftPair = (index, side, alumnoId) => {
+    const player = findAlumnoById(participantOptions, alumnoId);
+    setPairDraft((current) => current.map((pair, pairIndex) => (
+      pairIndex === index ? { ...pair, [side]: player } : pair
+    )));
+  };
+
+  const removeDraftPair = (index) => {
+    setPairDraft((current) => current.filter((_, pairIndex) => pairIndex !== index));
+  };
+
+  const validatePairDraft = () => {
+    const persistedIds = new Set(americanoPairs.flatMap((pair) => [
+      pair.jugador1_alumno_id,
+      pair.jugador2_alumno_id,
+    ]).filter(Boolean).map(Number));
+    const used = new Set();
+    for (const pair of pairDraft) {
+      const ids = pairPlayerIds(pair);
+      if (!ids.length) return "No se puede guardar una pareja vacía.";
+      if (ids.length < 2) return "No guardes parejas vacías o incompletas.";
+      if (ids[0] === ids[1]) return "No se puede guardar una pareja con el mismo jugador dos veces.";
+      for (const id of ids) {
+        if (persistedIds.has(id)) return "Jugador duplicado en otra pareja.";
+        if (used.has(id)) return "Jugador duplicado en otra pareja.";
+        used.add(id);
+      }
+    }
+    return "";
+  };
+
+  const confirmPairs = async () => {
+    const validation = validatePairDraft();
+    if (validation) {
+      setPairNotice(validation);
+      return;
+    }
+
+    try {
+      const parejas = pairDraft.map((pair) => ({
+        jugador1_alumno_id: pair.jugador1.alumno_id,
+        jugador2_alumno_id: pair.jugador2.alumno_id,
+        jugador1_nombre: pair.jugador1.nombre,
+        jugador2_nombre: pair.jugador2.nombre,
+        estado: "activa",
+      }));
+
+      if (pairReserve) {
+        parejas.push({
+          jugador1_alumno_id: pairReserve.alumno_id,
+          jugador1_nombre: pairReserve.nombre,
+          estado: "reserva",
+        });
+      }
+
+      const data = await apiPost(`/api/torneos/americanos/${selectedAmericanoId}/parejas`, { parejas });
+      setAmericanoDetail(data);
+      setPairDraft([]);
+      setPairReserve(null);
+      setPairNotice("Parejas generadas correctamente.");
+    } catch (e) {
+      setPairNotice(e.message || "No hemos podido guardar las parejas.");
+    }
+  };
+
+  const updatePersistedPair = async (pair, patch) => {
+    try {
+      const has = (field) => Object.prototype.hasOwnProperty.call(patch, field);
+      const data = await apiPut(`/api/torneos/americanos/${selectedAmericanoId}/parejas/${pair.id}`, {
+        jugador1_alumno_id: has("jugador1_alumno_id") ? patch.jugador1_alumno_id : pair.jugador1_alumno_id,
+        jugador2_alumno_id: has("jugador2_alumno_id") ? patch.jugador2_alumno_id : pair.jugador2_alumno_id,
+        jugador1_nombre: has("jugador1_nombre") ? patch.jugador1_nombre : pair.jugador1,
+        jugador2_nombre: has("jugador2_nombre") ? patch.jugador2_nombre : pair.jugador2,
+        estado: has("estado") ? patch.estado : pair.estado,
+        notas: has("notas") ? patch.notas : pair.notas,
+      });
+      setAmericanoDetail(data);
+      setPairNotice("Pareja actualizada.");
+    } catch (e) {
+      setPairNotice(e.message || "No hemos podido actualizar la pareja.");
+    }
+  };
+
+  const deletePair = async (pairId) => {
+    if (!window.confirm("¿Eliminar esta pareja?")) return;
+    try {
+      const data = await apiDelete(`/api/torneos/americanos/${selectedAmericanoId}/parejas/${pairId}`);
+      setAmericanoDetail(data);
+      setPairNotice("Pareja eliminada.");
+    } catch (e) {
+      setPairNotice(e.message || "No hemos podido eliminar la pareja.");
+    }
+  };
+
+  const updateAmericanoStatus = async (estado) => {
+    try {
+      const data = await apiPatch(`/api/torneos/americanos/${selectedAmericanoId}`, { estado });
+      setAmericanoDetail(data);
+      setFeedback("Estado del americano actualizado.");
+    } catch (e) {
+      setAmericanoError(e.message || "No hemos podido actualizar el estado.");
+    }
+  };
+
+  const createIncidence = async (event) => {
+    event.preventDefault();
+    try {
+      const data = await apiPost(`/api/torneos/americanos/${selectedAmericanoId}/incidencias`, {
+        ...incidenceForm,
+        partido_id: incidenceForm.partido_id || null,
+        pareja_id: incidenceForm.pareja_id || null,
+      });
+      setAmericanoDetail(data);
+      setIncidenceForm(emptyIncidenceForm);
+      setFeedback("Incidencia registrada.");
+    } catch (e) {
+      setAmericanoError(e.message || "No hemos podido registrar la incidencia.");
+    }
+  };
+
+  const resolveIncidence = async (incidenceId) => {
+    try {
+      const data = await apiPatch(`/api/torneos/americanos/${selectedAmericanoId}/incidencias/${incidenceId}`, {
+        estado: "resuelta",
+      });
+      setAmericanoDetail(data);
+      setFeedback("Incidencia actualizada.");
+    } catch (e) {
+      setAmericanoError(e.message || "No hemos podido actualizar la incidencia.");
+    }
+  };
+
   return (
     <section className="torneos" aria-label="Torneos del club">
       <div className="torneosShell">
@@ -709,9 +923,9 @@ function Torneos() {
               <div>
                 <span className="torneosSectionEyebrow">Administración</span>
                 <h3>Torneos del club</h3>
-                <p>Crea torneos por formato, publica jornadas y conserva la gestión actual de americanos.</p>
+                <p>Publica torneos manuales o entra en la gestión real de Americanos/Judex.</p>
               </div>
-              <button type="button" className="adminCreateBtn" onClick={() => setAdminTab("crear")}>
+              <button type="button" className="adminCreateBtn" onClick={openManualCreator}>
                 Crear torneo
               </button>
             </div>
@@ -748,156 +962,136 @@ function Torneos() {
                 </article>
                 <article>
                   <span>Formatos</span>
-                  <strong>{TOURNAMENT_FORMATS.length}</strong>
-                  <p>Americano, mexicano, liga, eliminatoria y más.</p>
+                  <strong>{MAIN_TOURNAMENT_FORMATS.length}</strong>
+                  <p>Americano y torneo simple disponibles.</p>
                 </article>
               </div>
             )}
 
             {adminTab === "crear" && (
-              <form className="tournamentCreator" onSubmit={createTournament}>
+              <div className="tournamentCreator">
                 <section className="creatorStep">
                   <div className="creatorStepHead">
-                    <span>Paso 1</span>
-                    <h4>Datos básicos</h4>
+                    <span>Crear torneo</span>
+                    <h4>Elige una opción real</h4>
                   </div>
-                  <div className="creatorGrid">
-                    <label className="creatorField creatorWide">
-                      Nombre
-                      <input value={tournamentForm.nombre} onChange={(e) => updateTournamentForm("nombre", e.target.value)} placeholder="Torneo primavera NaniPadel" required />
-                    </label>
-                    <label className="creatorField creatorWide">
-                      Descripción
-                      <textarea value={tournamentForm.descripcion} onChange={(e) => updateTournamentForm("descripcion", e.target.value)} rows={3} placeholder="Resumen breve para alumnos y jugadores." />
-                    </label>
-                    <label className="creatorField">
-                      Categoría
-                      <select value={tournamentForm.categoria} onChange={(e) => updateTournamentForm("categoria", e.target.value)}>
-                        {Object.entries(CATEGORY_META).map(([key, meta]) => (
-                          <option key={key} value={key}>{meta.label}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="creatorField">
-                      Nivel
-                      <input value={tournamentForm.nivel} onChange={(e) => updateTournamentForm("nivel", e.target.value)} placeholder="Todos, medio, avanzado..." />
-                    </label>
-                    <label className="creatorField">
-                      Fecha inicio
-                      <input type="date" value={tournamentForm.fecha_inicio} onChange={(e) => updateTournamentForm("fecha_inicio", e.target.value)} required />
-                    </label>
-                    <label className="creatorField">
-                      Hora inicio
-                      <input type="time" value={tournamentForm.hora_inicio} onChange={(e) => updateTournamentForm("hora_inicio", e.target.value)} />
-                    </label>
-                    <label className="creatorField">
-                      Fecha fin
-                      <input type="date" value={tournamentForm.fecha_fin} onChange={(e) => updateTournamentForm("fecha_fin", e.target.value)} />
-                    </label>
-                    <label className="creatorField">
-                      Precio
-                      <input type="number" min="0" step="0.01" value={tournamentForm.precio} onChange={(e) => updateTournamentForm("precio", e.target.value)} placeholder="0" />
-                    </label>
-                    <label className="creatorField creatorWide">
-                      Cartel o imagen
-                      <input value={tournamentForm.imagen} onChange={(e) => updateTournamentForm("imagen", e.target.value)} placeholder="URL del cartel si ya está publicado" />
-                    </label>
-                  </div>
-                </section>
-
-                <section className="creatorStep">
-                  <div className="creatorStepHead">
-                    <span>Paso 2</span>
-                    <h4>Elegir formato</h4>
-                  </div>
-                  <div className="formatSelectorGrid">
-                    {TOURNAMENT_FORMATS.map((format) => (
-                      <button
-                        type="button"
-                        key={format.key}
-                        className={`formatOptionCard${tournamentForm.tipo_torneo === format.key ? " isSelected" : ""}`}
-                        onClick={() => selectTournamentFormat(format.key)}
-                      >
-                        <strong>{format.title}</strong>
-                        <span>{format.description}</span>
-                        <em>{format.status}</em>
+                  <div className="mainFormatGrid">
+                    <article className="mainFormatCard">
+                      <div>
+                        <strong>Americano</strong>
+                        <p>Formato social con rotación y gestión de participantes. Ideal para torneos rápidos del club.</p>
+                      </div>
+                      <button type="button" className="adminCreateBtn" onClick={openAmericanoManager}>
+                        Crear americano
                       </button>
-                    ))}
+                    </article>
+                    <article className="mainFormatCard isSelected">
+                      <div>
+                        <strong>Torneo simple</strong>
+                        <p>Publica un torneo con cartel, fecha, plazas, precio e inscripción manual.</p>
+                      </div>
+                      <button type="button" className="adminCreateBtn" onClick={openManualCreator}>
+                        Crear torneo manual
+                      </button>
+                    </article>
                   </div>
                 </section>
 
-                <section className="creatorStep">
-                  <div className="creatorStepHead">
-                    <span>Paso 3</span>
-                    <h4>Reglas y puntuación</h4>
-                  </div>
-                  <div className="rulesGrid">
-                    {selectedFormatFields.map((field) => (
-                      <label key={field.key} className={`creatorField${field.type === "checkbox" ? " ruleCheckbox" : ""}`}>
-                        {field.type === "checkbox" ? (
-                          <>
-                            <input type="checkbox" checked={Boolean(formatRules[field.key])} onChange={(e) => updateFormatRule(field.key, e.target.checked, field)} />
-                            <span>{field.label}</span>
-                          </>
-                        ) : (
-                          <>
-                            {field.label}
-                            <input type={field.type === "number" ? "number" : "text"} value={formatRules[field.key] ?? ""} onChange={(e) => updateFormatRule(field.key, e.target.value, field)} />
-                          </>
-                        )}
-                      </label>
-                    ))}
-                  </div>
-                  <p className="formatAutomationNote">
-                    {tournamentForm.tipo_torneo === "americano"
-                      ? "El americano conserva su gestión actual de participantes, partidos y clasificación en la pestaña Gestión."
-                      : "Formato preparado. La generación automática de partidos se añadirá próximamente."}
-                  </p>
-                </section>
-
-                <section className="creatorStep">
-                  <div className="creatorStepHead">
-                    <span>Paso 4</span>
-                    <h4>Participantes y plazas</h4>
-                  </div>
-                  <div className="creatorGrid">
-                    <label className="creatorField">
-                      Plazas máximas
-                      <input type="number" min="2" value={tournamentForm.plazas_maximas} onChange={(e) => updateTournamentForm("plazas_maximas", e.target.value)} />
-                    </label>
-                    <label className="creatorField">
-                      Pistas necesarias
-                      <input type="number" min="1" value={tournamentForm.pistas_necesarias} onChange={(e) => updateTournamentForm("pistas_necesarias", e.target.value)} placeholder="2" />
-                    </label>
-                    <label className="creatorField">
-                      Estado
-                      <select value={tournamentForm.estado} onChange={(e) => updateTournamentForm("estado", e.target.value)}>
-                        <option value="borrador">Borrador</option>
-                        <option value="publicado">Publicado</option>
-                        <option value="abierto">Abierto</option>
-                        <option value="cerrado">Cerrado</option>
-                        <option value="finalizado">Finalizado</option>
-                      </select>
-                    </label>
-                  </div>
-                </section>
-
-                <section className="creatorStep creatorPublishStep">
-                  <div>
+                <form className="manualTournamentForm" onSubmit={createTournament}>
+                  <section className="creatorStep">
                     <div className="creatorStepHead">
-                      <span>Paso 5</span>
-                      <h4>Publicar</h4>
+                      <span>Inscripción manual</span>
+                      <h4>Publicar torneo simple</h4>
                     </div>
-                    <p>Se guardará como {selectedFormat.title}. Los formatos nuevos quedan listos para gestionar manualmente hasta automatizar partidos.</p>
-                  </div>
-                  <button type="submit" className="adminCreateBtn" disabled={creatingTournament}>
-                    {creatingTournament ? "Guardando..." : "Guardar torneo"}
-                  </button>
-                </section>
+                    <p className="manualCreatorNote">
+                      Este formato permite publicar el torneo y gestionar las inscripciones de forma manual. La organización deportiva se realiza desde el club.
+                    </p>
+                    <div className="creatorGrid">
+                      <label className="creatorField creatorWide">
+                        Nombre
+                        <input value={tournamentForm.nombre} onChange={(e) => updateTournamentForm("nombre", e.target.value)} placeholder="Torneo primavera NaniPadel" required />
+                      </label>
+                      <label className="creatorField creatorWide">
+                        Descripción
+                        <textarea value={tournamentForm.descripcion} onChange={(e) => updateTournamentForm("descripcion", e.target.value)} rows={3} placeholder="Resumen breve para alumnos y jugadores." />
+                      </label>
+                      <label className="creatorField">
+                        Categoría
+                        <select value={tournamentForm.categoria} onChange={(e) => updateTournamentForm("categoria", e.target.value)}>
+                          {Object.entries(CATEGORY_META).map(([key, meta]) => (
+                            <option key={key} value={key}>{meta.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="creatorField">
+                        Nivel
+                        <input value={tournamentForm.nivel} onChange={(e) => updateTournamentForm("nivel", e.target.value)} placeholder="Todos, medio, avanzado..." />
+                      </label>
+                      <label className="creatorField">
+                        Fecha
+                        <input type="date" value={tournamentForm.fecha_inicio} onChange={(e) => updateTournamentForm("fecha_inicio", e.target.value)} required />
+                      </label>
+                      <label className="creatorField">
+                        Hora
+                        <input type="time" value={tournamentForm.hora_inicio} onChange={(e) => updateTournamentForm("hora_inicio", e.target.value)} />
+                      </label>
+                      <label className="creatorField">
+                        Precio
+                        <input type="number" min="0" step="0.01" value={tournamentForm.precio} onChange={(e) => updateTournamentForm("precio", e.target.value)} placeholder="0" />
+                      </label>
+                      <label className="creatorField">
+                        Plazas
+                        <input type="number" min="2" value={tournamentForm.plazas_maximas} onChange={(e) => updateTournamentForm("plazas_maximas", e.target.value)} />
+                      </label>
+                      <label className="creatorField">
+                        Estado
+                        <select value={tournamentForm.estado} onChange={(e) => updateTournamentForm("estado", e.target.value)}>
+                          <option value="borrador">Borrador</option>
+                          <option value="publicado">Publicado</option>
+                          <option value="abierto">Abierto</option>
+                          <option value="cerrado">Cerrado</option>
+                          <option value="finalizado">Finalizado</option>
+                        </select>
+                      </label>
+                      <label className="creatorField creatorWide">
+                        Cartel o imagen
+                        <input value={tournamentForm.imagen} onChange={(e) => updateTournamentForm("imagen", e.target.value)} placeholder="URL del cartel si ya está publicado" />
+                      </label>
+                    </div>
+                  </section>
 
-                {creatorError && <div className="creatorError" role="alert">{creatorError}</div>}
-                {creatorNotice && <div className="creatorNotice" role="status">{creatorNotice}</div>}
-              </form>
+                  <section className="creatorStep creatorPublishStep">
+                    <div>
+                      <div className="creatorStepHead">
+                        <span>Publicar torneo</span>
+                        <h4>Torneo simple</h4>
+                      </div>
+                      <p>Se guardará como torneo simple para cartel, fecha, plazas e inscripción manual.</p>
+                    </div>
+                    <button type="submit" className="adminCreateBtn" disabled={creatingTournament}>
+                      {creatingTournament ? "Guardando..." : "Publicar torneo"}
+                    </button>
+                  </section>
+
+                  {creatorError && <div className="creatorError" role="alert">{creatorError}</div>}
+                  {creatorNotice && <div className="creatorNotice" role="status">{creatorNotice}</div>}
+                </form>
+
+                <section className="upcomingFormats" aria-label="Formatos preparados para futuras versiones">
+                  <div className="creatorStepHead">
+                    <span>Formatos próximamente</span>
+                    <h4>Preparados para futuras versiones</h4>
+                  </div>
+                  <div className="upcomingFormatGrid">
+                    {UPCOMING_TOURNAMENT_FORMATS.map((format) => (
+                      <article className="upcomingFormatCard" key={format.key}>
+                        <strong>{format.title}</strong>
+                        <span>Próximamente</span>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              </div>
             )}
           </section>
         )}
@@ -915,7 +1109,7 @@ function Torneos() {
                 className="americanoToggle"
                 onClick={() => setAmericanoOpen((value) => !value)}
               >
-                {americanoOpen ? "Ocultar panel" : "Crear americano"}
+                {americanoOpen ? "Ocultar panel" : "Gestionar americano"}
               </button>
             </div>
 
@@ -951,6 +1145,7 @@ function Torneos() {
                     {americanoDetail?.americano && (
                       <div className="americanoMiniStats">
                         <span>{americanoDetail.participantes?.length || 0} alumnos</span>
+                        <span>{activePairs.length} parejas</span>
                         <span>{americanoDetail.partidos?.length || 0} partidos</span>
                         <span>{americanoDetail.americano.categoria}</span>
                       </div>
@@ -960,86 +1155,247 @@ function Torneos() {
                   {americanoError && <div className="americanoError">{americanoError}</div>}
 
                   {americanoDetail?.americano ? (
-                    <div className="americanoDetailGrid">
-                      <section className="americanoCard participantesCard">
-                        <div className="americanoCardHead">
-                          <strong>Participantes</strong>
-                          <span>Selecciona hasta 10 o los que necesites</span>
-                        </div>
-                        <div className="alumnoPicker">
-                          <select multiple value={selectedAlumnoIds} onChange={(e) => setSelectedAlumnoIds(Array.from(e.target.selectedOptions).map((option) => option.value))}>
-                            {availableAlumnos.map((alumno) => (
-                              <option key={alumno.id} value={alumno.id}>{alumnoLabel(alumno)}</option>
-                            ))}
-                          </select>
-                          <button type="button" className="americanoSecondaryBtn" onClick={addParticipants} disabled={!selectedAlumnoIds.length}>Añadir seleccionados</button>
-                        </div>
-                        <div className="participantesList">
-                          {(americanoDetail.participantes || []).map((item) => (
-                            <span key={item.alumno_id}>
-                              {item.nombre}
-                              <button type="button" onClick={() => removeParticipant(item.alumno_id)} aria-label={`Quitar ${item.nombre}`}>x</button>
-                            </span>
-                          ))}
-                          {!americanoDetail.participantes?.length && <p>Aún no hay participantes.</p>}
-                        </div>
-                      </section>
+                    <div className="americanoManager">
+                      <div className="americanoTabs" role="tablist" aria-label="Gestión del americano">
+                        {AMERICANO_TABS.map((tab) => (
+                          <button
+                            key={tab.key}
+                            type="button"
+                            className={americanoTab === tab.key ? "isActive" : ""}
+                            onClick={() => setAmericanoTab(tab.key)}
+                            aria-pressed={americanoTab === tab.key}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
 
-                      <section className="americanoCard rankingCard">
-                        <div className="americanoCardHead">
-                          <strong>Clasificación</strong>
-                          <span>Ordenada automáticamente</span>
-                        </div>
-                        <div className="rankingTable">
-                          {(americanoDetail.clasificacion || []).map((row, index) => (
-                            <div className="rankingRow" key={row.alumno_id}>
-                              <strong>{index + 1}</strong>
-                              <span>{row.nombre}</span>
-                              <em>{row.puntos} pts</em>
-                              <small>{row.partidos} PJ · {row.victorias} V · Dif {row.diferencia}</small>
-                            </div>
-                          ))}
-                          {!americanoDetail.clasificacion?.length && <p>La clasificación aparecerá al añadir alumnos.</p>}
-                        </div>
-                      </section>
+                      {americanoTab === "resumen" && (
+                        <section className="americanoCard">
+                          <div className="americanoCardHead">
+                            <strong>Resumen</strong>
+                            <span>{americanoDetail.americano.estado}</span>
+                          </div>
+                          <div className="americanoSummaryGrid">
+                            <div><span>Nombre</span><strong>{americanoDetail.americano.nombre}</strong></div>
+                            <div><span>Fecha</span><strong>{formatFecha(americanoDetail.americano.fecha)}</strong></div>
+                            <div><span>Categoría</span><strong>{americanoDetail.americano.categoria}</strong></div>
+                            <div><span>Pistas</span><strong>{americanoDetail.americano.pistas || "Pendiente"}</strong></div>
+                            <div><span>Jugadores</span><strong>{americanoDetail.participantes?.length || 0}</strong></div>
+                            <div><span>Parejas</span><strong>{activePairs.length}</strong></div>
+                          </div>
+                          <div className="americanoActionBar">
+                            <button type="button" className="americanoSecondaryBtn" onClick={() => setAmericanoTab("parejas")}>Editar datos</button>
+                            <button type="button" className="americanoSecondaryBtn" onClick={() => updateAmericanoStatus("en_curso")}>Publicar</button>
+                            <button type="button" className="americanoSecondaryBtn" onClick={() => updateAmericanoStatus("en_curso")}>Cerrar inscripciones</button>
+                            <button type="button" className="americanoSecondaryBtn" onClick={() => updateAmericanoStatus("finalizado")}>Finalizar</button>
+                            <button type="button" className="matchDeleteBtn" onClick={() => updateAmericanoStatus("cancelado")}>Cancelar torneo</button>
+                          </div>
+                        </section>
+                      )}
 
-                      <section className="americanoCard partidosCard">
-                        <div className="americanoCardHead">
-                          <strong>Mini partidos</strong>
-                          <span>Creación manual preparada para automatizar después</span>
-                        </div>
-
-                        <form className="matchForm" onSubmit={createMatch}>
-                          <input type="number" min="1" value={matchForm.ronda} onChange={(e) => setMatchForm((current) => ({ ...current, ronda: e.target.value }))} aria-label="Ronda" />
-                          <input type="number" min="1" value={matchForm.orden} onChange={(e) => setMatchForm((current) => ({ ...current, orden: e.target.value }))} aria-label="Orden" />
-                          {["equipo_a_alumno_1_id", "equipo_a_alumno_2_id", "equipo_b_alumno_1_id", "equipo_b_alumno_2_id"].map((field) => (
-                            <select key={field} value={matchForm[field]} onChange={(e) => setMatchForm((current) => ({ ...current, [field]: e.target.value }))} required={field.endsWith("_1_id")}>
-                              <option value="">{field.includes("_a_") ? "Equipo A" : "Equipo B"}</option>
-                              {participantOptions.map((item) => <option key={`${field}-${item.alumno_id}`} value={item.alumno_id}>{item.nombre}</option>)}
+                      {americanoTab === "parejas" && (
+                        <section className="americanoCard">
+                          <div className="americanoCardHead">
+                            <strong>Parejas / Participantes</strong>
+                            <span>{activePairs.length} parejas activas</span>
+                          </div>
+                          <div className="alumnoPicker">
+                            <select multiple value={selectedAlumnoIds} onChange={(e) => setSelectedAlumnoIds(Array.from(e.target.selectedOptions).map((option) => option.value))}>
+                              {availableAlumnos.map((alumno) => (
+                                <option key={alumno.id} value={alumno.id}>{alumnoLabel(alumno)}</option>
+                              ))}
                             </select>
-                          ))}
-                          <button type="submit" className="americanoPrimaryBtn">Crear partido</button>
-                        </form>
+                            <div className="americanoActionBar">
+                              <button type="button" className="americanoSecondaryBtn" onClick={addParticipants} disabled={!selectedAlumnoIds.length}>Añadir seleccionados</button>
+                              <button type="button" className="americanoPrimaryBtn" onClick={() => generatePairsPreview()} disabled={!canGeneratePairs}>Generar parejas</button>
+                              <button type="button" className="americanoSecondaryBtn" onClick={() => generatePairsPreview("Sorteo regenerado.")} disabled={!canGeneratePairs}>Regenerar</button>
+                              <button type="button" className="americanoSecondaryBtn" onClick={addManualPairDraft}>Añadir pareja manual</button>
+                            </div>
+                          </div>
 
-                        <div className="matchList">
-                          {(americanoDetail.partidos || []).map((partido) => (
-                            <article className="matchCard" key={partido.id}>
-                              <div>
-                                <span>Ronda {partido.ronda || "-"} · Partido {partido.orden || partido.id}</span>
-                                <strong>{teamLabel(partido, "equipo_a")} vs {teamLabel(partido, "equipo_b")}</strong>
+                          {pairNotice && <div className="pairNotice">{pairNotice}</div>}
+
+                          <div className="participantesList">
+                            {(americanoDetail.participantes || []).map((item) => (
+                              <span key={item.alumno_id}>
+                                {item.nombre}
+                                <button type="button" onClick={() => removeParticipant(item.alumno_id)} aria-label={`Quitar ${item.nombre}`}>x</button>
+                              </span>
+                            ))}
+                            {!americanoDetail.participantes?.length && <p>Aún no hay participantes.</p>}
+                          </div>
+
+                          {pairDraft.length > 0 && (
+                            <div className="pairsPreview">
+                              <div className="americanoCardHead">
+                                <strong>Vista previa de parejas</strong>
+                                <button type="button" className="americanoPrimaryBtn" onClick={confirmPairs}>Confirmar parejas</button>
                               </div>
-                              <div className="scoreEditor">
-                                <input type="number" value={partido.puntos_a} onChange={(e) => updateMatch(partido.id, { puntos_a: Number(e.target.value), estado: "jugado" })} aria-label="Puntos equipo A" />
-                                <span>-</span>
-                                <input type="number" value={partido.puntos_b} onChange={(e) => updateMatch(partido.id, { puntos_b: Number(e.target.value), estado: "jugado" })} aria-label="Puntos equipo B" />
-                                <button type="button" onClick={() => updateMatch(partido.id, { estado: "jugado" })}>Guardar</button>
-                                <button type="button" className="matchDeleteBtn" onClick={() => deleteMatch(partido.id)}>Eliminar</button>
+                              <div className="pairsGrid">
+                                {pairDraft.map((pair, index) => (
+                                  <article className="pairCard" key={`draft-${index}`}>
+                                    <span>Pareja {index + 1}</span>
+                                    <select value={pair.jugador1?.alumno_id || ""} onChange={(e) => updateDraftPair(index, "jugador1", e.target.value)}>
+                                      <option value="">Jugador A</option>
+                                      {participantOptions.map((item) => <option key={`d1-${index}-${item.alumno_id}`} value={item.alumno_id}>{item.nombre}</option>)}
+                                    </select>
+                                    <select value={pair.jugador2?.alumno_id || ""} onChange={(e) => updateDraftPair(index, "jugador2", e.target.value)}>
+                                      <option value="">Jugador B</option>
+                                      {participantOptions.map((item) => <option key={`d2-${index}-${item.alumno_id}`} value={item.alumno_id}>{item.nombre}</option>)}
+                                    </select>
+                                    <button type="button" className="matchDeleteBtn" onClick={() => removeDraftPair(index)}>Eliminar</button>
+                                  </article>
+                                ))}
                               </div>
-                            </article>
-                          ))}
-                          {!americanoDetail.partidos?.length && <p>No hay mini partidos creados todavía.</p>}
-                        </div>
-                      </section>
+                              {pairReserve && <div className="reserveNotice">Reserva: {pairReserve.nombre}</div>}
+                            </div>
+                          )}
+
+                          <div className="pairsGrid">
+                            {americanoPairs.map((pair, index) => (
+                              <article className="pairCard" key={pair.id}>
+                                <span>{pair.estado === "reserva" ? "Reserva" : `Pareja ${index + 1}`}</span>
+                                <strong>{pair.jugador1} {pair.jugador2 ? `+ ${pair.jugador2}` : ""}</strong>
+                                <em>Estado: {pair.estado}</em>
+                                <select
+                                  value={pair.jugador1_alumno_id || ""}
+                                  onChange={(e) => {
+                                    const player = findAlumnoById(participantOptions, e.target.value);
+                                    updatePersistedPair(pair, {
+                                      jugador1_alumno_id: e.target.value,
+                                      jugador1_nombre: player?.nombre || pair.jugador1,
+                                    });
+                                  }}
+                                >
+                                  {participantOptions.map((item) => <option key={`p1-${pair.id}-${item.alumno_id}`} value={item.alumno_id}>{item.nombre}</option>)}
+                                </select>
+                                <select
+                                  value={pair.jugador2_alumno_id || ""}
+                                  onChange={(e) => {
+                                    const player = findAlumnoById(participantOptions, e.target.value);
+                                    updatePersistedPair(pair, {
+                                      jugador2_alumno_id: e.target.value || null,
+                                      jugador2_nombre: player?.nombre || null,
+                                    });
+                                  }}
+                                >
+                                  <option value="">Sin segundo jugador</option>
+                                  {participantOptions.map((item) => <option key={`p2-${pair.id}-${item.alumno_id}`} value={item.alumno_id}>{item.nombre}</option>)}
+                                </select>
+                                <div className="pairActions">
+                                  <button type="button" onClick={() => updatePersistedPair(pair, { estado: pair.estado === "baja" ? "activa" : "baja" })}>{pair.estado === "baja" ? "Activar" : "Marcar baja"}</button>
+                                  <button type="button" className="matchDeleteBtn" onClick={() => deletePair(pair.id)}>Eliminar</button>
+                                </div>
+                              </article>
+                            ))}
+                            {!americanoPairs.length && <div className="americanoEmpty">No hay parejas confirmadas todavía.</div>}
+                          </div>
+                        </section>
+                      )}
+
+                      {americanoTab === "partidos" && (
+                        <section className="americanoCard partidosCard">
+                          <div className="americanoCardHead">
+                            <strong>Partidos</strong>
+                            <span>{americanoDetail.partidos?.length || 0} creados</span>
+                          </div>
+                          <form className="matchForm" onSubmit={createMatch}>
+                            <input type="number" min="1" value={matchForm.ronda} onChange={(e) => setMatchForm((current) => ({ ...current, ronda: e.target.value }))} aria-label="Ronda" />
+                            <input type="number" min="1" value={matchForm.orden} onChange={(e) => setMatchForm((current) => ({ ...current, orden: e.target.value }))} aria-label="Orden" />
+                            {["equipo_a_alumno_1_id", "equipo_a_alumno_2_id", "equipo_b_alumno_1_id", "equipo_b_alumno_2_id"].map((field) => (
+                              <select key={field} value={matchForm[field]} onChange={(e) => setMatchForm((current) => ({ ...current, [field]: e.target.value }))} required={field.endsWith("_1_id")}>
+                                <option value="">{field.includes("_a_") ? "Equipo A" : "Equipo B"}</option>
+                                {participantOptions.map((item) => <option key={`${field}-${item.alumno_id}`} value={item.alumno_id}>{item.nombre}</option>)}
+                              </select>
+                            ))}
+                            <button type="submit" className="americanoPrimaryBtn">Crear partido</button>
+                          </form>
+                          <div className="matchList">
+                            {(americanoDetail.partidos || []).map((partido) => (
+                              <article className="matchCard" key={partido.id}>
+                                <div>
+                                  <span>Ronda {partido.ronda || "-"} · Partido {partido.orden || partido.id}</span>
+                                  <strong>{teamLabel(partido, "equipo_a")} vs {teamLabel(partido, "equipo_b")}</strong>
+                                </div>
+                                <div className="scoreEditor">
+                                  <input type="number" value={partido.puntos_a} onChange={(e) => updateMatch(partido.id, { puntos_a: Number(e.target.value), estado: "jugado" })} aria-label="Puntos equipo A" />
+                                  <span>-</span>
+                                  <input type="number" value={partido.puntos_b} onChange={(e) => updateMatch(partido.id, { puntos_b: Number(e.target.value), estado: "jugado" })} aria-label="Puntos equipo B" />
+                                  <button type="button" onClick={() => updateMatch(partido.id, { estado: "jugado" })}>Guardar</button>
+                                  <button type="button" className="matchDeleteBtn" onClick={() => deleteMatch(partido.id)}>Eliminar</button>
+                                </div>
+                              </article>
+                            ))}
+                            {!americanoDetail.partidos?.length && <p>Aún no se han generado partidos.</p>}
+                          </div>
+                        </section>
+                      )}
+
+                      {americanoTab === "resultados" && (
+                        <section className="americanoCard rankingCard">
+                          <div className="americanoCardHead">
+                            <strong>Resultados / Clasificación</strong>
+                            <span>Ordenada automáticamente</span>
+                          </div>
+                          <div className="rankingTable">
+                            {(americanoDetail.clasificacion || []).map((row, index) => (
+                              <div className="rankingRow" key={row.alumno_id}>
+                                <strong>{index + 1}</strong>
+                                <span>{row.nombre}</span>
+                                <em>{row.puntos} pts</em>
+                                <small>{row.partidos} PJ · {row.victorias} V · Dif {row.diferencia}</small>
+                              </div>
+                            ))}
+                            {!americanoDetail.clasificacion?.some((row) => row.partidos > 0) && <p>Todavía no hay resultados registrados.</p>}
+                          </div>
+                        </section>
+                      )}
+
+                      {americanoTab === "incidencias" && (
+                        <section className="americanoCard">
+                          <div className="americanoCardHead">
+                            <strong>Incidencias</strong>
+                            <span>{americanoIncidences.length} registradas</span>
+                          </div>
+                          <form className="incidenceForm" onSubmit={createIncidence}>
+                            <select value={incidenceForm.tipo} onChange={(e) => setIncidenceForm((current) => ({ ...current, tipo: e.target.value }))}>
+                              <option value="horario">Horario</option>
+                              <option value="pista">Pista</option>
+                              <option value="lesion">Lesión</option>
+                              <option value="ausencia">Ausencia</option>
+                              <option value="organizacion">Organización</option>
+                              <option value="otro">Otro</option>
+                            </select>
+                            <input value={incidenceForm.titulo} onChange={(e) => setIncidenceForm((current) => ({ ...current, titulo: e.target.value }))} placeholder="Título" required />
+                            <select value={incidenceForm.partido_id} onChange={(e) => setIncidenceForm((current) => ({ ...current, partido_id: e.target.value }))}>
+                              <option value="">Partido relacionado</option>
+                              {(americanoDetail.partidos || []).map((partido) => <option key={partido.id} value={partido.id}>Ronda {partido.ronda || "-"} · Partido {partido.orden || partido.id}</option>)}
+                            </select>
+                            <select value={incidenceForm.pareja_id} onChange={(e) => setIncidenceForm((current) => ({ ...current, pareja_id: e.target.value }))}>
+                              <option value="">Pareja relacionada</option>
+                              {americanoPairs.map((pair, index) => <option key={pair.id} value={pair.id}>{pair.estado === "reserva" ? "Reserva" : `Pareja ${index + 1}`} · {pair.jugador1}</option>)}
+                            </select>
+                            <textarea value={incidenceForm.descripcion} onChange={(e) => setIncidenceForm((current) => ({ ...current, descripcion: e.target.value }))} placeholder="Descripción" rows={3} />
+                            <button type="submit" className="americanoPrimaryBtn">Registrar incidencia</button>
+                          </form>
+                          <div className="incidenceList">
+                            {americanoIncidences.map((incidence) => (
+                              <article className="incidenceCard" key={incidence.id}>
+                                <div>
+                                  <span>{incidence.tipo} · {incidence.estado}</span>
+                                  <strong>{incidence.titulo}</strong>
+                                  {incidence.descripcion && <p>{incidence.descripcion}</p>}
+                                </div>
+                                {incidence.estado !== "resuelta" && (
+                                  <button type="button" className="americanoSecondaryBtn" onClick={() => resolveIncidence(incidence.id)}>Resolver</button>
+                                )}
+                              </article>
+                            ))}
+                            {!americanoIncidences.length && <div className="americanoEmpty">No hay incidencias registradas.</div>}
+                          </div>
+                        </section>
+                      )}
                     </div>
                   ) : (
                     <div className="americanoEmpty">Crea o selecciona un americano para empezar a gestionarlo.</div>

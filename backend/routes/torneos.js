@@ -45,6 +45,11 @@ async function getTableColumns(tableName) {
   return new Set(rows.map((row) => row.Field));
 }
 
+async function tableExists(tableName) {
+  const [rows] = await query("SHOW TABLES LIKE ?", [tableName]);
+  return rows.length > 0;
+}
+
 function alumnoNameSelect(columns, alias = "a") {
   const apellidos = columns.has("apellidos") ? `${alias}.apellidos` : "''";
   return `TRIM(CONCAT(COALESCE(${alias}.nombre, ''), ' ', COALESCE(${apellidos}, '')))`;
@@ -65,6 +70,39 @@ function pushInsertField(columns, insertColumns, insertValues, field, value) {
   if (!columns.has(field)) return;
   insertColumns.push(field);
   insertValues.push(value);
+}
+
+function shuffleArray(items) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function generateRandomPairs(players) {
+  const shuffled = shuffleArray(players);
+  const reserve = shuffled.length % 2 === 1 ? shuffled.pop() : null;
+  const pairs = [];
+
+  for (let i = 0; i < shuffled.length; i += 2) {
+    pairs.push({ jugador1: shuffled[i], jugador2: shuffled[i + 1] });
+  }
+
+  return { pairs, reserve };
+}
+
+function normalizeEstadoPareja(value) {
+  return ["activa", "baja", "reserva"].includes(value) ? value : "activa";
+}
+
+function normalizeIncidenciaTipo(value) {
+  return ["horario", "pista", "lesion", "ausencia", "organizacion", "otro"].includes(value) ? value : "otro";
+}
+
+function normalizeIncidenciaEstado(value) {
+  return ["abierta", "resuelta"].includes(value) ? value : "abierta";
 }
 
 async function fetchAmericanoDetail(americanoId) {
@@ -102,6 +140,36 @@ async function fetchAmericanoDetail(americanoId) {
     [americanoId]
   );
 
+  let parejas = [];
+  let incidencias = [];
+
+  if (await tableExists("americano_parejas")) {
+    const [parejasRows] = await query(
+      `SELECT
+        p.*,
+        COALESCE(p.jugador1_nombre, ${alumnoNameSelect(alumnoColumns, "a1")}) AS jugador1,
+        COALESCE(p.jugador2_nombre, ${alumnoNameSelect(alumnoColumns, "a2")}) AS jugador2
+       FROM americano_parejas p
+       JOIN alumnos a1 ON a1.id = p.jugador1_alumno_id
+       LEFT JOIN alumnos a2 ON a2.id = p.jugador2_alumno_id
+       WHERE p.americano_id = ?
+       ORDER BY p.estado = 'reserva', p.id`,
+      [americanoId]
+    );
+    parejas = parejasRows;
+  }
+
+  if (await tableExists("americano_incidencias")) {
+    const [incidenciaRows] = await query(
+      `SELECT i.*
+       FROM americano_incidencias i
+       WHERE i.americano_id = ?
+       ORDER BY i.estado = 'resuelta', i.created_at DESC, i.id DESC`,
+      [americanoId]
+    );
+    incidencias = incidenciaRows;
+  }
+
   const rankingMap = new Map(participantes.map((p) => [
     Number(p.alumno_id),
     { alumno_id: p.alumno_id, nombre: p.nombre, puntos: 0, partidos: 0, victorias: 0, diferencia: 0 },
@@ -138,7 +206,7 @@ async function fetchAmericanoDetail(americanoId) {
     b.puntos - a.puntos || b.victorias - a.victorias || b.diferencia - a.diferencia || a.nombre.localeCompare(b.nombre)
   );
 
-  return { americano: americanos[0], participantes, partidos, clasificacion };
+  return { americano: americanos[0], participantes, parejas, partidos, clasificacion, incidencias };
 }
 
 router.get("/americanos/catalogo/alumnos", requireAuth, requireAdmin, async (_req, res) => {
@@ -224,6 +292,35 @@ router.get("/americanos/:id", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+router.patch("/americanos/:id", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const allowed = ["nombre", "fecha", "categoria", "pistas", "duracion_min", "observaciones", "estado"];
+    const fields = [];
+    const values = [];
+
+    allowed.forEach((field) => {
+      if (!Object.prototype.hasOwnProperty.call(req.body, field)) return;
+      fields.push(`${field} = ?`);
+      if (field === "duracion_min") values.push(normalizeOptionalNumber(req.body[field]));
+      else values.push(req.body[field] === "" ? null : req.body[field]);
+    });
+
+    if (!fields.length) return res.status(400).json({ ok: false, message: "No hay cambios para guardar" });
+
+    await query(
+      `UPDATE torneos_americanos SET ${fields.join(", ")} WHERE id = ?`,
+      [...values, req.params.id]
+    );
+
+    const detail = await fetchAmericanoDetail(req.params.id);
+    if (!detail) return res.status(404).json({ ok: false, message: "Americano no encontrado" });
+    res.json({ ok: true, message: "Americano actualizado", ...detail });
+  } catch (e) {
+    console.error("Error PATCH /api/torneos/americanos/:id:", e);
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
+  }
+});
+
 router.post("/americanos/:id/participantes", requireAuth, requireAdmin, async (req, res) => {
   try {
     const alumnoIds = [...new Set((req.body.alumno_ids || [req.body.alumno_id]).map(Number).filter(Boolean))];
@@ -253,6 +350,229 @@ router.delete("/americanos/:id/participantes/:alumnoId", requireAuth, requireAdm
     res.json({ ok: true, message: "Participante eliminado", ...detail });
   } catch (e) {
     console.error("Error DELETE /api/torneos/americanos/:id/participantes/:alumnoId:", e);
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
+  }
+});
+
+router.post("/americanos/:id/generar-parejas", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const detail = await fetchAmericanoDetail(req.params.id);
+    if (!detail) return res.status(404).json({ ok: false, message: "Americano no encontrado" });
+
+    const requestedIds = [...new Set((req.body.alumno_ids || []).map(Number).filter(Boolean))];
+    const source = requestedIds.length
+      ? detail.participantes.filter((p) => requestedIds.includes(Number(p.alumno_id)))
+      : detail.participantes;
+
+    if (source.length < 4) {
+      return res.status(400).json({ ok: false, message: "Necesitas al menos 4 jugadores para crear un americano." });
+    }
+
+    const result = generateRandomPairs(source.map((player) => ({
+      alumno_id: player.alumno_id,
+      nombre: player.nombre,
+    })));
+
+    res.json({ ok: true, message: result.reserve ? "Hay un jugador sin pareja." : "Parejas generadas correctamente.", ...result });
+  } catch (e) {
+    console.error("Error POST /api/torneos/americanos/:id/generar-parejas:", e);
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
+  }
+});
+
+router.post("/americanos/:id/parejas", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    if (!(await tableExists("americano_parejas"))) {
+      return res.status(501).json({ ok: false, message: "Ejecuta primero la SQL de gestion de Americano." });
+    }
+
+    const detail = await fetchAmericanoDetail(req.params.id);
+    if (!detail) return res.status(404).json({ ok: false, message: "Americano no encontrado" });
+
+    const parejas = Array.isArray(req.body.parejas) ? req.body.parejas : [req.body];
+    const participantesIds = new Set(detail.participantes.map((p) => Number(p.alumno_id)));
+    const existingIds = new Set((detail.parejas || []).flatMap((p) => [
+      p.jugador1_alumno_id,
+      p.jugador2_alumno_id,
+    ]).filter(Boolean).map(Number));
+    const usedIds = new Set();
+    const rows = [];
+
+    for (const pareja of parejas) {
+      const jugador1Id = Number(pareja.jugador1_alumno_id || pareja.jugador1?.alumno_id);
+      const jugador2Id = normalizeOptionalNumber(pareja.jugador2_alumno_id || pareja.jugador2?.alumno_id);
+      const estado = normalizeEstadoPareja(pareja.estado);
+
+      if (!jugador1Id) return res.status(400).json({ ok: false, message: "No se puede guardar una pareja vacia." });
+      if (jugador2Id && jugador1Id === jugador2Id) {
+        return res.status(400).json({ ok: false, message: "No se puede guardar una pareja con el mismo jugador dos veces." });
+      }
+      if (!participantesIds.has(jugador1Id) || (jugador2Id && !participantesIds.has(jugador2Id))) {
+        return res.status(400).json({ ok: false, message: "Todos los jugadores deben pertenecer al americano." });
+      }
+      if (existingIds.has(jugador1Id) || (jugador2Id && existingIds.has(jugador2Id))) {
+        return res.status(400).json({ ok: false, message: "Jugador duplicado en otra pareja." });
+      }
+      if (usedIds.has(jugador1Id) || (jugador2Id && usedIds.has(jugador2Id))) {
+        return res.status(400).json({ ok: false, message: "Jugador duplicado en otra pareja." });
+      }
+
+      usedIds.add(jugador1Id);
+      if (jugador2Id) usedIds.add(jugador2Id);
+      rows.push([req.params.id, jugador1Id, jugador2Id, pareja.jugador1_nombre || null, pareja.jugador2_nombre || null, estado, pareja.notas || null]);
+    }
+
+    if (!rows.length) return res.status(400).json({ ok: false, message: "No hay parejas para guardar." });
+
+    await query(
+      `INSERT INTO americano_parejas
+       (americano_id, jugador1_alumno_id, jugador2_alumno_id, jugador1_nombre, jugador2_nombre, estado, notas)
+       VALUES ${rows.map(() => "(?, ?, ?, ?, ?, ?, ?)").join(", ")}`,
+      rows.flat()
+    );
+
+    const nextDetail = await fetchAmericanoDetail(req.params.id);
+    res.status(201).json({ ok: true, message: "Parejas guardadas.", ...nextDetail });
+  } catch (e) {
+    console.error("Error POST /api/torneos/americanos/:id/parejas:", e);
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
+  }
+});
+
+router.put("/americanos/:id/parejas/:parejaId", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    if (!(await tableExists("americano_parejas"))) {
+      return res.status(501).json({ ok: false, message: "Ejecuta primero la SQL de gestion de Americano." });
+    }
+
+    const jugador1Id = Number(req.body.jugador1_alumno_id);
+    const jugador2Id = normalizeOptionalNumber(req.body.jugador2_alumno_id);
+
+    if (!jugador1Id) return res.status(400).json({ ok: false, message: "No se puede guardar una pareja vacia." });
+    if (jugador2Id && jugador1Id === jugador2Id) {
+      return res.status(400).json({ ok: false, message: "No se puede guardar una pareja con el mismo jugador dos veces." });
+    }
+
+    const detail = await fetchAmericanoDetail(req.params.id);
+    if (!detail) return res.status(404).json({ ok: false, message: "Americano no encontrado" });
+
+    const participantesIds = new Set(detail.participantes.map((p) => Number(p.alumno_id)));
+    if (!participantesIds.has(jugador1Id) || (jugador2Id && !participantesIds.has(jugador2Id))) {
+      return res.status(400).json({ ok: false, message: "Todos los jugadores deben pertenecer al americano." });
+    }
+
+    const duplicated = (detail.parejas || []).some((pair) => {
+      if (Number(pair.id) === Number(req.params.parejaId)) return false;
+      return [pair.jugador1_alumno_id, pair.jugador2_alumno_id]
+        .filter(Boolean)
+        .map(Number)
+        .some((id) => id === jugador1Id || id === jugador2Id);
+    });
+
+    if (duplicated) return res.status(400).json({ ok: false, message: "Jugador duplicado en otra pareja." });
+
+    await query(
+      `UPDATE americano_parejas
+       SET jugador1_alumno_id = ?, jugador2_alumno_id = ?, jugador1_nombre = ?, jugador2_nombre = ?, estado = ?, notas = ?
+       WHERE id = ? AND americano_id = ?`,
+      [
+        jugador1Id,
+        jugador2Id,
+        req.body.jugador1_nombre || null,
+        req.body.jugador2_nombre || null,
+        normalizeEstadoPareja(req.body.estado),
+        req.body.notas || null,
+        req.params.parejaId,
+        req.params.id,
+      ]
+    );
+
+    const nextDetail = await fetchAmericanoDetail(req.params.id);
+    res.json({ ok: true, message: "Pareja actualizada.", ...nextDetail });
+  } catch (e) {
+    console.error("Error PUT /api/torneos/americanos/:id/parejas/:parejaId:", e);
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
+  }
+});
+
+router.delete("/americanos/:id/parejas/:parejaId", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    if (!(await tableExists("americano_parejas"))) {
+      return res.status(501).json({ ok: false, message: "Ejecuta primero la SQL de gestion de Americano." });
+    }
+
+    await query("DELETE FROM americano_parejas WHERE id = ? AND americano_id = ?", [req.params.parejaId, req.params.id]);
+    const detail = await fetchAmericanoDetail(req.params.id);
+    res.json({ ok: true, message: "Pareja eliminada.", ...detail });
+  } catch (e) {
+    console.error("Error DELETE /api/torneos/americanos/:id/parejas/:parejaId:", e);
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
+  }
+});
+
+router.post("/americanos/:id/incidencias", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    if (!(await tableExists("americano_incidencias"))) {
+      return res.status(501).json({ ok: false, message: "Ejecuta primero la SQL de gestion de Americano." });
+    }
+
+    const titulo = String(req.body.titulo || "").trim();
+    if (!titulo) return res.status(400).json({ ok: false, message: "El titulo de la incidencia es obligatorio." });
+
+    await query(
+      `INSERT INTO americano_incidencias
+       (americano_id, partido_id, pareja_id, tipo, titulo, descripcion, estado, creado_por)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        req.params.id,
+        normalizeOptionalNumber(req.body.partido_id),
+        normalizeOptionalNumber(req.body.pareja_id),
+        normalizeIncidenciaTipo(req.body.tipo),
+        titulo,
+        req.body.descripcion?.trim() || null,
+        normalizeIncidenciaEstado(req.body.estado),
+        req.user.id,
+      ]
+    );
+
+    const detail = await fetchAmericanoDetail(req.params.id);
+    res.status(201).json({ ok: true, message: "Incidencia registrada.", ...detail });
+  } catch (e) {
+    console.error("Error POST /api/torneos/americanos/:id/incidencias:", e);
+    res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
+  }
+});
+
+router.patch("/americanos/:id/incidencias/:incidenciaId", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    if (!(await tableExists("americano_incidencias"))) {
+      return res.status(501).json({ ok: false, message: "Ejecuta primero la SQL de gestion de Americano." });
+    }
+
+    const allowed = ["tipo", "titulo", "descripcion", "estado", "partido_id", "pareja_id"];
+    const fields = [];
+    const values = [];
+
+    allowed.forEach((field) => {
+      if (!Object.prototype.hasOwnProperty.call(req.body, field)) return;
+      fields.push(`${field} = ?`);
+      if (field === "tipo") values.push(normalizeIncidenciaTipo(req.body[field]));
+      else if (field === "estado") values.push(normalizeIncidenciaEstado(req.body[field]));
+      else if (field === "partido_id" || field === "pareja_id") values.push(normalizeOptionalNumber(req.body[field]));
+      else values.push(req.body[field] || null);
+    });
+
+    if (!fields.length) return res.status(400).json({ ok: false, message: "No hay cambios para guardar" });
+
+    await query(
+      `UPDATE americano_incidencias SET ${fields.join(", ")} WHERE id = ? AND americano_id = ?`,
+      [...values, req.params.incidenciaId, req.params.id]
+    );
+
+    const detail = await fetchAmericanoDetail(req.params.id);
+    res.json({ ok: true, message: "Incidencia actualizada.", ...detail });
+  } catch (e) {
+    console.error("Error PATCH /api/torneos/americanos/:id/incidencias/:incidenciaId:", e);
     res.status(500).json({ ok: false, message: "No se ha podido completar la operación." });
   }
 });
