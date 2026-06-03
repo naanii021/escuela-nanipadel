@@ -3,10 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet } from "../services/api";
 import { getUser, isLogged } from "../services/auth";
+import { buildClubWhatsappUrl } from "../services/whatsappLinks";
 
 const DAY_LABELS = { L: "Lunes", M: "Martes", X: "Miércoles", J: "Jueves", V: "Viernes", S: "Sábado", D: "Domingo" };
 const STAFF_ROLES = ["admin", "profesor", "profe"];
-const CONTACT_HREF = "mailto:info@nanipadel.com";
+const CONTACT_HREF = buildClubWhatsappUrl("Hola, quiero información sobre clases de pádel");
 
 const PUBLIC_LEVELS = [
   { title: "Niños", text: "Aprendizaje seguro y divertido, con juegos, técnica básica y hábitos de pista." },
@@ -193,7 +194,7 @@ function PublicClassesLanding({ notice }) {
             <h1 className="heroTitle">Clases de pádel para todos los niveles</h1>
             <p className="heroSub">Entrena en grupos reducidos, mejora tu juego y encuentra el horario que mejor encaje contigo.</p>
             <div className="heroActions">
-              <a href={CONTACT_HREF} className="heroCtaBtn">Solicitar información <IcArrow /></a>
+              <a href={CONTACT_HREF} className="heroCtaBtn" target="_blank" rel="noopener noreferrer">Solicitar información <IcArrow /></a>
               <a href="#niveles" className="heroSecondaryBtn">Ver niveles</a>
             </div>
             <div className="publicHeroBadges" aria-label="Tipos de clases disponibles">
@@ -219,7 +220,7 @@ function PublicClassesLanding({ notice }) {
         <div className="accountNotice">
           <strong>Tu cuenta aún no está vinculada como alumno de la escuela.</strong>
           <p>{notice}</p>
-          <a href={CONTACT_HREF} className="inlineHelpBtn">Contactar con el club</a>
+          <a href={CONTACT_HREF} className="inlineHelpBtn" target="_blank" rel="noopener noreferrer">Contactar con el club</a>
         </div>
       )}
 
@@ -252,7 +253,7 @@ function PublicClassesLanding({ notice }) {
             <article className="publicInfoCard" key={item.title}>
               <span>{item.title}</span>
               <p>{item.text}</p>
-              <a href={CONTACT_HREF}>Consultar</a>
+              <a href={CONTACT_HREF} target="_blank" rel="noopener noreferrer">Consultar</a>
             </article>
           ))}
         </div>
@@ -316,8 +317,8 @@ function PublicClassesLanding({ notice }) {
         <h2>¿Quieres encontrar tu grupo?</h2>
         <p>Cuéntanos tu nivel, disponibilidad y edad, y te ayudamos a buscar la mejor opción dentro de la escuela.</p>
         <div className="heroActions">
-          <a href={CONTACT_HREF} className="heroCtaBtn">Solicitar información</a>
-          <a href={CONTACT_HREF} className="heroSecondaryBtn">Contactar con el club</a>
+          <a href={CONTACT_HREF} className="heroCtaBtn" target="_blank" rel="noopener noreferrer">Solicitar información</a>
+          <a href={CONTACT_HREF} className="heroSecondaryBtn" target="_blank" rel="noopener noreferrer">Contactar con el club</a>
         </div>
       </section>
 
@@ -535,7 +536,7 @@ function StudentClassesDashboard({ classData, user, loading }) {
             <IcCourt />
             <strong>Aún no tienes clases asignadas.</strong>
             <p>Contacta con el club para más información.</p>
-            <a href={CONTACT_HREF} className="heroCtaBtn">Contactar con el club</a>
+            <a href={CONTACT_HREF} className="heroCtaBtn" target="_blank" rel="noopener noreferrer">Contactar con el club</a>
           </div>
         )}
       </section>
@@ -585,8 +586,8 @@ function StudentClassesDashboard({ classData, user, loading }) {
           <p>Contacta con el club o consulta con tu profesor para cambios de grupo, recuperaciones o dudas de horario.</p>
         </div>
         <div className="heroActions">
-          <a href={CONTACT_HREF} className="heroCtaBtn">Contactar con el club</a>
-          <a href={CONTACT_HREF} className="heroSecondaryBtn">Necesito ayuda con mis clases</a>
+          <a href={CONTACT_HREF} className="heroCtaBtn" target="_blank" rel="noopener noreferrer">Contactar con el club</a>
+          <a href={CONTACT_HREF} className="heroSecondaryBtn" target="_blank" rel="noopener noreferrer">Necesito ayuda con mis clases</a>
         </div>
       </section>
     </section>

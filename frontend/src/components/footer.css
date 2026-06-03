@@ -12,3 +12,16 @@
   padding-top: 1.2rem;
   font-size: 0.95rem;
 }
+
+.footerInner a {
+  color: #15803d;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+@media (max-width: 640px) {
+  .footerInner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

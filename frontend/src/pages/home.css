@@ -208,6 +208,12 @@
   border-color: rgba(255, 255, 255, 0.22);
 }
 
+.heroLeft .btn-whatsapp {
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(74, 222, 128, 0.34);
+  color: #bbf7d0;
+}
+
 .heroRight {
   gap: 0.95rem;
   animation: fadeSlideUp 0.5s ease 0.18s both;

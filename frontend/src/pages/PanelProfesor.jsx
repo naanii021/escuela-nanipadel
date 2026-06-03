@@ -407,6 +407,7 @@ export default function PanelProfesor() {
       ...sharedActions,
       { key: "notice", label: "Crear aviso", text: "Comunicación del club", to: "/avisos" },
       { key: "tournament", label: "Crear torneo", text: "Formatos y jornadas", to: "/torneos" },
+      { key: "whatsapp", label: "Mensajes WhatsApp", text: "Conversaciones y respuestas", to: "/panel/whatsapp" },
     ];
   }, [isAdmin]);
 
@@ -416,8 +417,9 @@ export default function PanelProfesor() {
     { key: "reservas", title: "Reservas", text: "Abre la agenda de pistas y partidas del club.", value: "Ver", label: "agenda", to: "/reservas" },
     { key: "torneos", title: "Torneos", text: "Gestiona torneos, americanos y nuevos formatos.", value: "Ver", label: "torneos", to: "/torneos" },
     { key: "avisos", title: "Avisos", text: "Crea comunicaciones para alumnos o profesores.", value: "Crear", label: "aviso", to: "/avisos" },
+    ...(isAdmin ? [{ key: "whatsapp", title: "WhatsApp", text: "Gestiona mensajes entrantes del club.", value: "Abrir", label: "mensajes", to: "/panel/whatsapp" }] : []),
     { key: "tienda", title: "Tienda", text: "Consulta productos y servicios publicados.", value: "Ver", label: "tienda", to: "/tienda" },
-  ], [panelMetrics.totalAlumnos, panelMetrics.totalGrupos]);
+  ], [isAdmin, panelMetrics.totalAlumnos, panelMetrics.totalGrupos]);
 
   const weeklySchedule = useMemo(() => {
     const base = Object.fromEntries(WEEK_DAYS.map((day) => [day.key, []]));

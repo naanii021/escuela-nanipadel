@@ -19,6 +19,12 @@
 
 @media (max-width: 560px) {
   .main {
-    padding: 0.8rem 0;
+    padding: 0.8rem 0 calc(5.7rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (min-width: 561px) and (max-width: 768px) {
+  .main {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
   }
 }

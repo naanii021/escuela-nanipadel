@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../services/api";
 import { getUser, isLogged } from "../services/auth";
 import { requestNotificationsRefresh } from "../services/notificationEvents";
+import { buildClubWhatsappUrl } from "../services/whatsappLinks";
 
 const HOURS = ["09:00", "10:30", "12:00", "13:30", "15:00", "16:30", "18:00", "19:30", "21:00", "22:30"];
 const TIME_LABELS = { morning: "Manana", afternoon: "Tarde", evening: "Noche" };
@@ -159,9 +160,15 @@ function PlayerAvatars({ nombreCliente, status, participantes = [], maxJugadores
 }
 
 function Reservas() {
-  const [todayISO, tomorrowISO] = useMemo(() => {
+  const [todayISO, tomorrowISO, weekendISO] = useMemo(() => {
     const now = new Date();
-    return [toISODate(now), toISODate(new Date(now.getTime() + 86400000))];
+    const day = now.getDay();
+    const daysUntilSaturday = day === 6 ? 0 : (6 - day + 7) % 7;
+    return [
+      toISODate(now),
+      toISODate(new Date(now.getTime() + 86400000)),
+      toISODate(new Date(now.getTime() + daysUntilSaturday * 86400000)),
+    ];
   }, []);
   const navigate = useNavigate();
   const toastTimerRef = useRef(null);
@@ -259,7 +266,8 @@ function Reservas() {
   const counts = useMemo(() => {
     const disponibles = slots.filter((slot) => slot.status === "disponible").length;
     const abiertas = slots.filter((slot) => slot.status === "abierta").length;
-    return { total: slots.length, disponibles, abiertas, ocupadas: slots.length - disponibles };
+    const mias = slots.filter((slot) => slot.reservaUserId === getUser()?.id).length;
+    return { total: slots.length, disponibles, abiertas, mias, ocupadas: slots.length - disponibles };
   }, [slots]);
 
   const showToast = useCallback((msg, type = "success") => {
@@ -402,12 +410,20 @@ function Reservas() {
         <div className="headerText">
           <span className="reservasEyebrow">Club NaniPadel</span>
           <h2 className="reservasTitle">Reserva pista</h2>
-          <p className="reservasIntro">Elige dia, pista y hora. Puedes reservar la pista completa o crear una partida abierta.</p>
+          <p className="reservasIntro">Consulta huecos disponibles y reserva en segundos.</p>
         </div>
         <div className="summary">
           <div className="summaryItem summaryGreen"><strong>{counts.disponibles}</strong><span>Disponibles</span></div>
           <div className="summaryItem summaryBlue"><strong>{counts.abiertas}</strong><span>Abiertas</span></div>
           <div className="summaryItem summaryRed"><strong>{counts.ocupadas}</strong><span>Ocupadas</span></div>
+          <a
+            className="summaryWhatsapp"
+            href={buildClubWhatsappUrl("Hola, quiero información sobre disponibilidad de pista")}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Hablar por WhatsApp
+          </a>
         </div>
       </header>
 
@@ -415,6 +431,7 @@ function Reservas() {
         <div className="datePills">
           <button className={`pillBtn${selectedDateISO === todayISO ? " active" : ""}`} onClick={() => setSelectedDateISO(todayISO)}>Hoy</button>
           <button className={`pillBtn${selectedDateISO === tomorrowISO ? " active" : ""}`} onClick={() => setSelectedDateISO(tomorrowISO)}>Manana</button>
+          <button className={`pillBtn${selectedDateISO === weekendISO ? " active" : ""}`} onClick={() => setSelectedDateISO(weekendISO)}>Este finde</button>
           <label className="datePicker">
             <span className="datePickerIcon" aria-hidden="true">□</span>
             <input type="date" value={selectedDateISO} onChange={(e) => setSelectedDateISO(e.target.value)} aria-label="Seleccionar fecha" />
@@ -435,8 +452,15 @@ function Reservas() {
       </div>
 
       <div className="dayTitle">
-        <strong>{prettyDate(selectedDateISO)}</strong>
-        <span>Toca una hora libre para reservar o una partida abierta para unirte.</span>
+        <div>
+          <strong>{prettyDate(selectedDateISO)}</strong>
+          <span>{counts.disponibles} huecos disponibles</span>
+        </div>
+        <div className="bookingLegend" aria-label="Leyenda de estados">
+          <span><i className="legendDot legendAvailable" />Disponible</span>
+          <span><i className="legendDot legendBusy" />Ocupada</span>
+          <span><i className="legendDot legendMine" />Mi reserva</span>
+        </div>
       </div>
 
       {loading ? (
@@ -459,7 +483,7 @@ function Reservas() {
                   {courtSlots.map((slot, idx) => (
                     <article
                       key={slot.id}
-                      className={`reservaCard ${slot.status} tod${cap(slot.timeOfDay)}`}
+                      className={`reservaCard ${slot.status} tod${cap(slot.timeOfDay)}${slot.reservaUserId === getUser()?.id ? " mine" : ""}`}
                       style={{ "--i": idx }}
                       aria-label={`${slot.courtName} ${slot.start}-${slot.end} ${slot.status}`}
                       role="button"
@@ -476,7 +500,7 @@ function Reservas() {
                       <div className="cardTop">
                         <span className={`timeTag tag${cap(slot.timeOfDay)}`}>{TIME_LABELS[slot.timeOfDay]}</span>
                         <span className={`statusBadge badge${cap(slot.status)}`}>
-                          {slot.status === "disponible" ? "Libre" : slot.tipoReserva === "abierta" ? (slot.plazasOcupadas >= slot.maxJugadores ? "Partida completa" : "Partida abierta") : "Reservada"}
+                          {slot.reservaUserId === getUser()?.id ? "Mi reserva" : slot.status === "disponible" ? "Disponible" : slot.tipoReserva === "abierta" ? (slot.plazasOcupadas >= slot.maxJugadores ? "Partida completa" : "Partida abierta") : "Ocupada"}
                         </span>
                       </div>
 

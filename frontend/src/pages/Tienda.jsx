@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
+import { buildClubWhatsappUrl } from "../services/whatsappLinks";
 import "./tienda.css";
 
 const shopImage = (fileName) => `${process.env.PUBLIC_URL}/fotosTienda/${fileName}`;
-const CLUB_WHATSAPP = process.env.REACT_APP_CLUB_WHATSAPP || "34656850729";
 
 const SHOP_FILTERS = [
   { key: "todas", label: "Todas" },
@@ -142,7 +142,7 @@ function buildWhatsappUrl(item) {
       ? `Hola, quiero consultar el servicio ${nombre} de NaniPadel. ¿Me podéis dar más información?`
       : `Hola, estoy interesado en el producto ${nombre} de la tienda NaniPadel. ¿Me podéis dar más información?`;
 
-  return `https://wa.me/${CLUB_WHATSAPP}?text=${encodeURIComponent(message)}`;
+  return buildClubWhatsappUrl(message);
 }
 
 function Tienda() {

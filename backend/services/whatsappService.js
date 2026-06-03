@@ -165,6 +165,13 @@ export async function enviarWhatsAppTexto(numeroDestino, mensaje) {
   });
 }
 
+export async function sendTextMessage(to, text) {
+  return sendWhatsAppMessage({
+    to,
+    body: text,
+  });
+}
+
 export async function sendWhatsAppTemplate({
   to,
   templateName,

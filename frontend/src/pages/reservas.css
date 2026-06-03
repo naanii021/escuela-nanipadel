@@ -195,6 +195,22 @@
 .summaryRed   strong { color: #f87171;             text-shadow: 0 0 18px rgba(239,68,68,0.4); }
 .summaryBlue  strong { color: #93c5fd;             text-shadow: 0 0 18px rgba(147,197,253,0.35); }
 
+.summaryWhatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  border-radius: 16px;
+  padding: 0.72rem 0.9rem;
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  background: rgba(22, 163, 74, 0.16);
+  color: #dcfce7;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-align: center;
+  text-decoration: none;
+}
+
 /* ============================================================
    TOOLBAR
    ============================================================ */
@@ -1878,14 +1894,12 @@
 @media (max-width: 380px) {
   .summary {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .summaryItem {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    text-align: left;
+    display: block;
+    text-align: center;
   }
 
   .cardTop,
@@ -2104,5 +2118,255 @@
   .modal,
   .reservationDetail {
     border-radius: 18px;
+  }
+}
+
+/* App-like mobile booking polish. */
+.bookingLegend {
+  display: flex;
+  gap: 0.48rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.bookingLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  border-radius: 999px;
+  padding: 0.32rem 0.55rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.legendAvailable {
+  background: #22c55e;
+}
+
+.legendBusy {
+  background: #ef4444;
+}
+
+.legendMine {
+  background: #60a5fa;
+}
+
+.reservaCard.mine {
+  border-color: rgba(96, 165, 250, 0.48);
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.12);
+}
+
+@media (max-width: 768px) {
+  .reservas {
+    padding-bottom: calc(6.3rem + env(safe-area-inset-bottom));
+  }
+
+  .reservasHeader {
+    padding-top: 0.55rem;
+  }
+
+  .reservasEyebrow {
+    display: none;
+  }
+
+  .reservasTitle {
+    letter-spacing: 0;
+  }
+
+  .reservasIntro {
+    max-width: 28ch;
+  }
+
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .summaryWhatsapp {
+    grid-column: 1 / -1;
+    min-height: 40px;
+    border-radius: 13px;
+    padding: 0.54rem 0.72rem;
+  }
+
+  .toolbar {
+    position: sticky;
+    top: 62px;
+    z-index: 5;
+  }
+
+  .datePills {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .datePicker {
+    grid-column: 1 / -1;
+  }
+
+  .dayTitle {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.7rem;
+    padding: 0.72rem 0.78rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .dayTitle > div:first-child {
+    display: grid;
+    gap: 0.18rem;
+  }
+
+  .bookingLegend {
+    justify-content: flex-start;
+  }
+
+  .courtsColumns {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .courtColumn {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .courtSlots {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.62rem;
+  }
+
+  .reservaCard {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) auto;
+    align-items: center;
+    min-height: 74px;
+    gap: 0.55rem;
+    padding: 0.66rem 0.72rem;
+  }
+
+  .reservaCard .cardStripe,
+  .reservaCard .playerSlots,
+  .reservaCard .metaRow {
+    display: none;
+  }
+
+  .reservaCard .cardTop {
+    display: grid;
+    gap: 0.28rem;
+  }
+
+  .statusBadge,
+  .timeTag {
+    width: fit-content;
+    padding: 0.28rem 0.48rem;
+    font-size: 0.66rem;
+  }
+
+  .timeDisplay {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    justify-content: start;
+    gap: 0.28rem;
+  }
+
+  .timeVal {
+    font-size: 1rem;
+  }
+
+  .reserveBtn {
+    min-width: 104px;
+    min-height: 40px;
+    padding: 0.48rem 0.62rem;
+    border-radius: 12px;
+    font-size: 0.78rem;
+  }
+
+  .openMatchActions {
+    min-width: 104px;
+  }
+
+  .modal,
+  .reservationDetail {
+    max-height: calc(100dvh - 1rem - env(safe-area-inset-bottom));
+  }
+
+  .modalSubtitle {
+    font-size: 0.86rem;
+  }
+
+  .modalInfo {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .modalActions {
+    position: sticky;
+    bottom: 0;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    background: #ffffff;
+  }
+
+  .toast {
+    bottom: calc(5.7rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 480px) {
+  .reservasHeader,
+  .toolbar,
+  .dayTitle,
+  .courtsColumns,
+  .loadingSlots {
+    width: calc(100% - 1.8rem);
+  }
+
+  .summaryItem {
+    padding: 0.48rem 0.42rem;
+  }
+
+  .summaryItem strong {
+    font-size: 1.05rem;
+  }
+
+  .summaryItem span {
+    font-size: 0.58rem;
+  }
+
+  .bookingLegend span {
+    padding: 0.25rem 0.42rem;
+    font-size: 0.66rem;
+  }
+
+  .filters {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .reservaCard {
+    grid-template-columns: minmax(76px, 0.82fr) minmax(82px, 1fr);
+  }
+
+  .reservaCard .reserveBtn,
+  .reservaCard .openMatchActions {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .modalInfo {
+    grid-template-columns: 1fr;
   }
 }

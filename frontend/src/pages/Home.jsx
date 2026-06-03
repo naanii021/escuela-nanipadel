@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { getWeatherForClub } from "../services/weatherService";
 import { apiGet } from "../services/api";
 import { isLogged } from "../services/auth";
+import { buildClubWhatsappUrl } from "../services/whatsappLinks";
 import HomeNewsCard from "../components/HomeNewsCard";
 import "./home.css";
 
@@ -222,6 +223,14 @@ function Home() {
               <Link className="btn btn-ghost" to="/torneos">
                 Ver torneos
               </Link>
+              <a
+                className="btn btn-whatsapp"
+                href={buildClubWhatsappUrl("Hola, quiero información sobre clases de pádel")}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Hablar por WhatsApp
+              </a>
               <Link className="btn btn-ghost" to={loggedIn ? "/avisos" : "/login"}>
                 {loggedIn ? "Mis avisos" : "Iniciar sesión"}
               </Link>
