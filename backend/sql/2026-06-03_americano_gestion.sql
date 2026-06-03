@@ -1,10 +1,10 @@
--- Gestion avanzada de Americano/Judex.
+﻿-- Gestion avanzada de Americano/Judex.
 -- Ejecutar manualmente en MySQL del miniPC cuando se quiera activar parejas e incidencias.
 -- No se ejecuta automaticamente desde backend ni frontend.
 
 CREATE TABLE IF NOT EXISTS americano_parejas (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  americano_id INT UNSIGNED NOT NULL,
+  id INT NOT NULL AUTO_INCREMENT,
+  americano_id INT NOT NULL,
   jugador1_alumno_id INT NOT NULL,
   jugador2_alumno_id INT NULL,
   jugador1_nombre VARCHAR(180) NULL,
@@ -29,10 +29,10 @@ CREATE TABLE IF NOT EXISTS americano_parejas (
 );
 
 CREATE TABLE IF NOT EXISTS americano_incidencias (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  americano_id INT UNSIGNED NOT NULL,
-  partido_id INT UNSIGNED NULL,
-  pareja_id INT UNSIGNED NULL,
+  id INT NOT NULL AUTO_INCREMENT,
+  americano_id INT NOT NULL,
+  partido_id INT NULL,
+  pareja_id INT NULL,
   tipo ENUM('horario','pista','lesion','ausencia','organizacion','otro') NOT NULL DEFAULT 'otro',
   titulo VARCHAR(180) NOT NULL,
   descripcion TEXT NULL,
