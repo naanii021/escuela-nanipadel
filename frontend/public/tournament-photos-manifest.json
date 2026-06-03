@@ -1,17 +1,17 @@
 {
-  "generatedAt": "2026-06-03T10:43:23.259Z",
+  "generatedAt": "2026-06-03T14:21:20.084Z",
   "photos": [
     {
       "id": 1,
-      "title": "Torneo1",
-      "src": "/fotosTorneo/torneo1.png",
+      "title": "Liga1",
+      "src": "/fotosTorneo/liga1.png",
       "highlight": "Momentos del torneo",
       "desc": "Imagen del ambiente competitivo, jornadas y actividad deportiva del club."
     },
     {
       "id": 2,
-      "title": "Liga1",
-      "src": "/fotosTorneo/liga1.png",
+      "title": "Torneo1",
+      "src": "/fotosTorneo/torneo1.png",
       "highlight": "Ambiente de competicion",
       "desc": "Imagen del ambiente competitivo, jornadas y actividad deportiva del club."
     }

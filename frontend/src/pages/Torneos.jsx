@@ -367,6 +367,11 @@ function generateRandomPairs(players) {
   return { pairs, reserve };
 }
 
+function uniquePlayerIds(players) {
+  const ids = players.map((player) => Number(player.alumno_id || player.id)).filter(Boolean);
+  return new Set(ids).size === ids.length;
+}
+
 function pairPlayerIds(pair) {
   return [pair.jugador1?.alumno_id, pair.jugador2?.alumno_id].filter(Boolean).map(Number);
 }
@@ -539,6 +544,7 @@ function Torneos() {
   const americanoIncidences = americanoDetail?.incidencias || [];
   const activePairs = americanoPairs.filter((pair) => pair.estado !== "reserva");
   const canGeneratePairs = !americanoDetail?.partidos?.length;
+  const hasValidPairDraft = pairDraft.some((pair) => pairPlayerIds(pair).length === 2);
 
   useEffect(() => {
     setPairDraft([]);
@@ -732,21 +738,33 @@ function Torneos() {
 
   const generatePairsPreview = (message = "Parejas generadas correctamente.") => {
     const players = americanoDetail?.participantes || [];
+    setAmericanoError("");
+    setPairNotice("");
+    setPairDraft([]);
+    setPairReserve(null);
+
     if (players.length < 4) {
-      setPairNotice("Necesitas al menos 4 jugadores para crear un americano.");
+      setPairNotice("Necesitas al menos 4 jugadores para generar parejas.");
+      setAmericanoTab("parejas");
+      return;
+    }
+
+    if (!uniquePlayerIds(players)) {
+      setPairNotice("Hay jugadores repetidos.");
+      setAmericanoTab("parejas");
       return;
     }
 
     const result = generateRandomPairs(players);
     setPairDraft(result.pairs);
     setPairReserve(result.reserve);
-    setPairNotice(result.reserve ? "Hay un jugador sin pareja. Puedes añadir otro jugador o dejarlo como reserva." : message);
+    setPairNotice(result.reserve ? "Hay un jugador sin pareja. Quedará como reserva." : message);
     setAmericanoTab("parejas");
   };
 
   const addManualPairDraft = () => {
     setPairDraft((current) => [...current, { jugador1: null, jugador2: null }]);
-    setPairNotice("Añade dos jugadores para guardar la pareja manual.");
+    setPairNotice("");
     setAmericanoTab("parejas");
   };
 
@@ -762,6 +780,8 @@ function Torneos() {
   };
 
   const validatePairDraft = () => {
+    if (!pairDraft.length) return "Selecciona jugadores y pulsa Generar parejas.";
+
     const persistedIds = new Set(americanoPairs.flatMap((pair) => [
       pair.jugador1_alumno_id,
       pair.jugador2_alumno_id,
@@ -769,12 +789,11 @@ function Torneos() {
     const used = new Set();
     for (const pair of pairDraft) {
       const ids = pairPlayerIds(pair);
-      if (!ids.length) return "No se puede guardar una pareja vacía.";
-      if (ids.length < 2) return "No guardes parejas vacías o incompletas.";
-      if (ids[0] === ids[1]) return "No se puede guardar una pareja con el mismo jugador dos veces.";
+      if (ids.length < 2) return "Completa o elimina la pareja manual antes de confirmar.";
+      if (ids[0] === ids[1]) return "Una pareja no puede tener el mismo jugador dos veces.";
       for (const id of ids) {
-        if (persistedIds.has(id)) return "Jugador duplicado en otra pareja.";
-        if (used.has(id)) return "Jugador duplicado en otra pareja.";
+        if (persistedIds.has(id)) return "Hay jugadores repetidos.";
+        if (used.has(id)) return "Hay jugadores repetidos.";
         used.add(id);
       }
     }
@@ -1207,9 +1226,9 @@ function Torneos() {
                               ))}
                             </select>
                             <div className="americanoActionBar">
-                              <button type="button" className="americanoSecondaryBtn" onClick={addParticipants} disabled={!selectedAlumnoIds.length}>Añadir seleccionados</button>
+                              <button type="button" className="americanoSecondaryBtn" onClick={addParticipants} disabled={!selectedAlumnoIds.length}>Añadir a participantes</button>
                               <button type="button" className="americanoPrimaryBtn" onClick={() => generatePairsPreview()} disabled={!canGeneratePairs}>Generar parejas</button>
-                              <button type="button" className="americanoSecondaryBtn" onClick={() => generatePairsPreview("Sorteo regenerado.")} disabled={!canGeneratePairs}>Regenerar</button>
+                              <button type="button" className="americanoSecondaryBtn" onClick={() => generatePairsPreview("Sorteo regenerado.")} disabled={!canGeneratePairs || !pairDraft.length}>Regenerar</button>
                               <button type="button" className="americanoSecondaryBtn" onClick={addManualPairDraft}>Añadir pareja manual</button>
                             </div>
                           </div>
@@ -1226,16 +1245,23 @@ function Torneos() {
                             {!americanoDetail.participantes?.length && <p>Aún no hay participantes.</p>}
                           </div>
 
+                          {pairDraft.length === 0 && (
+                            <div className="americanoEmpty">Selecciona jugadores y pulsa Generar parejas.</div>
+                          )}
+
                           {pairDraft.length > 0 && (
                             <div className="pairsPreview">
                               <div className="americanoCardHead">
                                 <strong>Vista previa de parejas</strong>
-                                <button type="button" className="americanoPrimaryBtn" onClick={confirmPairs}>Confirmar parejas</button>
+                                <button type="button" className="americanoPrimaryBtn" onClick={confirmPairs} disabled={!hasValidPairDraft}>Confirmar parejas</button>
                               </div>
                               <div className="pairsGrid">
                                 {pairDraft.map((pair, index) => (
                                   <article className="pairCard" key={`draft-${index}`}>
                                     <span>Pareja {index + 1}</span>
+                                    <strong>
+                                      Pareja {index + 1}: {pair.jugador1?.nombre || "Jugador A"} + {pair.jugador2?.nombre || "Jugador B"}
+                                    </strong>
                                     <select value={pair.jugador1?.alumno_id || ""} onChange={(e) => updateDraftPair(index, "jugador1", e.target.value)}>
                                       <option value="">Jugador A</option>
                                       {participantOptions.map((item) => <option key={`d1-${index}-${item.alumno_id}`} value={item.alumno_id}>{item.nombre}</option>)}
