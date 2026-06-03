@@ -2370,3 +2370,186 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Compact mobile correction: the booking controls must appear in the first view. */
+@media (max-width: 768px) {
+  .reservas {
+    min-height: auto;
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+
+  .reservasHeader {
+    align-items: stretch;
+    gap: 0.45rem;
+    padding-top: 0.2rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .headerText {
+    gap: 0.12rem;
+    min-width: 0;
+  }
+
+  .reservasTitle {
+    font-size: clamp(1.55rem, 8vw, 2.05rem);
+    line-height: 0.98;
+  }
+
+  .reservasIntro {
+    max-width: none;
+    font-size: 0.82rem;
+    line-height: 1.32;
+  }
+
+  .summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.34rem;
+    margin-top: 0.2rem;
+  }
+
+  .summaryItem {
+    padding: 0.38rem 0.34rem;
+    border-radius: 11px;
+  }
+
+  .summaryItem strong {
+    font-size: 0.98rem;
+  }
+
+  .summaryItem span {
+    margin-top: 0.06rem;
+    font-size: 0.54rem;
+    letter-spacing: 0.02em;
+  }
+
+  .summaryWhatsapp {
+    display: none;
+  }
+
+  .toolbar {
+    position: relative;
+    top: auto;
+    gap: 0.45rem;
+    margin-top: 0;
+    padding: 0.52rem;
+    border-radius: 14px;
+  }
+
+  .datePills {
+    gap: 0.35rem;
+  }
+
+  .pillBtn,
+  .datePicker {
+    min-height: 36px;
+    padding: 0.46rem 0.5rem;
+    border-radius: 11px;
+    font-size: 0.76rem;
+  }
+
+  .filters {
+    gap: 0.35rem;
+  }
+
+  .filters select,
+  .searchHour,
+  .check {
+    min-height: 36px;
+    padding: 0.44rem 0.52rem;
+    border-radius: 11px;
+    font-size: 0.76rem;
+  }
+
+  .dayTitle {
+    gap: 0.46rem;
+    margin-top: 0.5rem;
+    padding: 0.56rem 0.62rem;
+    border-radius: 13px;
+  }
+
+  .dayTitle strong {
+    font-size: 0.9rem;
+  }
+
+  .dayTitle span {
+    font-size: 0.74rem;
+  }
+
+  .bookingLegend {
+    gap: 0.28rem;
+  }
+
+  .bookingLegend span {
+    padding: 0.2rem 0.34rem;
+    font-size: 0.61rem;
+  }
+
+  .courtHeader {
+    padding: 0.52rem 0.62rem;
+  }
+
+  .courtSlots {
+    gap: 0.38rem;
+    padding: 0.5rem;
+  }
+
+  .reservaCard {
+    min-height: 62px;
+    gap: 0.42rem;
+    padding: 0.52rem 0.58rem;
+    border-radius: 13px;
+  }
+
+  .reserveBtn {
+    min-height: 36px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .reservasHeader,
+  .toolbar,
+  .dayTitle,
+  .courtsColumns,
+  .loadingSlots {
+    width: calc(100% - 1.3rem);
+  }
+
+  .reservasHeader {
+    gap: 0.38rem;
+  }
+
+  .summary {
+    gap: 0.26rem;
+  }
+
+  .summaryItem {
+    padding: 0.32rem 0.24rem;
+  }
+
+  .toolbar {
+    padding: 0.46rem;
+  }
+
+  .datePicker {
+    grid-column: auto;
+  }
+
+  .datePills {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .dayTitle {
+    display: grid;
+  }
+
+  .bookingLegend {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .bookingLegend span {
+    justify-content: center;
+  }
+}

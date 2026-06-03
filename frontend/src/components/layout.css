@@ -19,12 +19,12 @@
 
 @media (max-width: 560px) {
   .main {
-    padding: 0.8rem 0 calc(5.7rem + env(safe-area-inset-bottom));
+    padding: 0.55rem 0 calc(4.7rem + env(safe-area-inset-bottom));
   }
 }
 
 @media (min-width: 561px) and (max-width: 768px) {
   .main {
-    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
   }
 }

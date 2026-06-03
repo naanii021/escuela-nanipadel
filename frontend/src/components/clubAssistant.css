@@ -477,29 +477,29 @@
 @media (max-width: 720px) {
   .clubAssistant {
     right: 10px;
-    bottom: 10px;
+    bottom: calc(78px + env(safe-area-inset-bottom));
   }
 
   .assistantPanel {
     position: fixed;
     right: 10px;
-    bottom: 90px;
+    bottom: calc(136px + env(safe-area-inset-bottom));
     width: calc(100vw - 20px);
-    max-height: 85vh;
+    max-height: calc(100dvh - 150px);
   }
 }
 
 @media (max-width: 480px) {
   .clubAssistant {
     right: 10px;
-    bottom: calc(10px + env(safe-area-inset-bottom));
+    bottom: calc(76px + env(safe-area-inset-bottom));
   }
 
   .assistantPanel {
     right: 10px;
-    bottom: calc(86px + env(safe-area-inset-bottom));
+    bottom: calc(130px + env(safe-area-inset-bottom));
     width: calc(100vw - 20px);
-    max-height: 85vh;
+    max-height: calc(100dvh - 144px);
     border-radius: 18px;
   }
 
@@ -551,18 +551,18 @@
 /* Final mobile polish: the assistant should feel like a quick tool, not a full page. */
 @media (max-width: 768px) {
   .assistantFab {
-    width: 50px;
-    height: 50px;
+    width: 46px;
+    height: 46px;
   }
 
   .assistantFabInner {
-    width: 35px;
-    height: 35px;
-    font-size: 0.58rem;
+    width: 32px;
+    height: 32px;
+    font-size: 0.52rem;
   }
 
   .assistantPanel {
-    max-height: 82vh;
+    max-height: calc(100dvh - 150px);
   }
 
   .assistantPanelHead {

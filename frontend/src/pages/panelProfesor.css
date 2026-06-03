@@ -2449,3 +2449,40 @@ button:disabled {
     font-size: 0.74rem;
   }
 }
+
+/* Compact mobile correction: admin panel overview above the fold. */
+@media (max-width: 768px) {
+  .staffPanel {
+    gap: 0.65rem;
+    padding-top: 0.25rem;
+  }
+
+  .staffHero {
+    min-height: 0;
+    gap: 0.48rem;
+    padding: 0.72rem;
+    border-radius: 16px;
+  }
+
+  .staffHeroText {
+    gap: 0.25rem;
+  }
+
+  .staffHero h1 {
+    font-size: clamp(1.35rem, 7vw, 1.85rem);
+    line-height: 1.03;
+  }
+
+  .staffHero p {
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
+  .staffHero .btn,
+  .staffHero a {
+    min-height: 38px;
+    padding: 0.52rem 0.68rem;
+    border-radius: 11px;
+    font-size: 0.8rem;
+  }
+}

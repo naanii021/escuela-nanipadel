@@ -2341,3 +2341,65 @@
     -webkit-line-clamp: 1;
   }
 }
+
+/* Compact mobile correction: tournament controls should appear without a tall hero. */
+@media (max-width: 768px) {
+  .torneosShell {
+    gap: 0.7rem;
+    padding-top: 0.35rem;
+  }
+
+  .torneosHero {
+    min-height: 0;
+    gap: 0.48rem;
+    padding: 0.72rem;
+    border-radius: 16px;
+  }
+
+  .torneosHeroCopy {
+    gap: 0.35rem;
+  }
+
+  .torneosTitle {
+    font-size: clamp(1.45rem, 8vw, 1.9rem);
+    line-height: 1.02;
+  }
+
+  .intro {
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
+  .torneosMetrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.3rem;
+  }
+
+  .torneosMetricCard {
+    min-height: 54px;
+    padding: 0.38rem 0.3rem;
+    border-radius: 11px;
+  }
+
+  .torneosMetricCard strong {
+    font-size: 0.95rem;
+  }
+
+  .torneosMetricCard span {
+    font-size: 0.56rem;
+  }
+
+  .torneosAdminPanel,
+  .americanoPanel,
+  .torneosControlBar,
+  .torneosGallerySection {
+    padding: 0.75rem;
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .torneosMetrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

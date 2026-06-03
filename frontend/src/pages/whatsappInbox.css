@@ -395,3 +395,44 @@
     padding: 0.75rem;
   }
 }
+
+/* Compact mobile correction: keep the inbox practical on phone screens. */
+@media (max-width: 768px) {
+  .whatsappInbox {
+    gap: 0.65rem;
+    padding-top: 0.25rem;
+    padding-bottom: calc(4.8rem + env(safe-area-inset-bottom));
+  }
+
+  .whatsappHeader {
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0.72rem;
+    border-radius: 16px;
+  }
+
+  .whatsappHeader h1,
+  .whatsappAccessBox h1 {
+    font-size: clamp(1.35rem, 7vw, 1.8rem);
+    line-height: 1.03;
+  }
+
+  .whatsappHeader p,
+  .whatsappAccessBox p {
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
+  .whatsappBackLink,
+  .whatsappAccessBox button {
+    min-height: 38px;
+    padding: 0.52rem 0.68rem;
+    border-radius: 11px;
+    font-size: 0.8rem;
+  }
+
+  .whatsappShell {
+    min-height: calc(100dvh - 185px);
+    border-radius: 16px;
+  }
+}
