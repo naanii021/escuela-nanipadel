@@ -6,6 +6,7 @@ import { requireAuth, requireRoles } from "../middleware/auth.js";
 const router = express.Router();
 const query = (sql, params = []) => db.promise().query(sql, params);
 const STAFF_ROLES = ["admin", "profesor", "profe"];
+const GESTION_SEDE = "Seminario Diocesano";
 
 router.use(requireAuth);
 router.use(requireRoles(STAFF_ROLES));
@@ -80,6 +81,24 @@ async function getProfesorIdForUser(user) {
   return rows[0]?.id || 0;
 }
 
+async function getGestionContext() {
+  const [rows] = await query(
+    `SELECT
+      c.id AS curso_id,
+      c.nombre AS curso_nombre,
+      s.id AS sede_id,
+      s.nombre AS sede_nombre
+     FROM cursos_escolares c
+     JOIN sedes s ON s.nombre = ?
+     WHERE c.activo = 1
+     ORDER BY c.id DESC
+     LIMIT 1`,
+    [GESTION_SEDE]
+  );
+
+  return rows[0] || null;
+}
+
 function parseGroupRows(rows) {
   const groups = new Map();
 
@@ -97,6 +116,10 @@ function parseGroupRows(rows) {
         pista_habitual: row.pista_habitual,
         cupo: row.cupo,
         activo: row.activo,
+        curso_id: row.curso_id,
+        sede_id: row.sede_id,
+        deporte: row.deporte,
+        categoria: row.categoria,
         profesor_id: row.profesor_id,
         profesor: row.profesor,
         alumnos: [],
@@ -112,6 +135,8 @@ function parseGroupRows(rows) {
         nivel_juego: row.alumno_nivel_juego,
         email: row.alumno_email,
         telefono: row.alumno_telefono,
+        asiste_dia1: row.asiste_dia1,
+        asiste_dia2: row.asiste_dia2,
       });
     }
   });
@@ -123,6 +148,16 @@ router.get("/resumen", async (req, res) => {
   try {
     const profesorId = await getProfesorIdForUser(req.user);
     const isAdmin = String(req.user.rol).toLowerCase() === "admin";
+    const gestionContext = await getGestionContext();
+
+    if (!gestionContext) {
+      return res.status(404).json({
+        ok: false,
+        message: `No hay un curso activo para la sede ${GESTION_SEDE}`,
+      });
+    }
+
+    const { curso_id: cursoId, sede_id: sedeId } = gestionContext;
     const alumnoColumns = await getTableColumns("alumnos");
     const alumnoEmailSelect = alumnoColumns.has("email") ? "a.email" : "NULL AS email";
     const alumnoTelefonoSelect = alumnoColumns.has("telefono") ? "a.telefono" : "NULL AS telefono";
@@ -139,6 +174,8 @@ router.get("/resumen", async (req, res) => {
       return res.json({
         ok: true,
         scope: "profesor",
+        curso: { id: cursoId, nombre: gestionContext.curso_nombre },
+        sede: { id: sedeId, nombre: gestionContext.sede_nombre },
         alumnos: [],
         grupos: [],
         stats: { totalAlumnos: 0, totalGrupos: 0, gruposActivos: 0 },
@@ -163,21 +200,38 @@ router.get("/resumen", async (req, res) => {
         ${alumnoNivelJuegoSelect},
         GROUP_CONCAT(DISTINCT g.id ORDER BY g.hora_inicio SEPARATOR ',') AS grupo_ids,
         GROUP_CONCAT(DISTINCT g.nombre ORDER BY g.hora_inicio SEPARATOR ' | ') AS grupos,
-        GROUP_CONCAT(DISTINCT CONCAT_WS(' ', g.dia1, g.dia2, g.hora_inicio) ORDER BY g.hora_inicio SEPARATOR ' | ') AS horarios,
+        GROUP_CONCAT(
+          DISTINCT CONCAT_WS(
+            ' ',
+            IF(ga.asiste_dia1 = 1, g.dia1, NULL),
+            IF(ga.asiste_dia2 = 1, g.dia2, NULL),
+            g.hora_inicio
+          )
+          ORDER BY g.hora_inicio SEPARATOR ' | '
+        ) AS horarios,
         GROUP_CONCAT(DISTINCT g.pista_habitual ORDER BY g.pista_habitual SEPARATOR ', ') AS pistas,
         GROUP_CONCAT(DISTINCT CONCAT(p.nombre, ' ', p.apellidos) ORDER BY p.nombre SEPARATOR ', ') AS profesores
        FROM alumnos a
+       JOIN alumno_curso ac
+         ON ac.alumno_id = a.id
+        AND ac.curso_id = ?
+        AND ac.sede_id = ?
        ${alumnoJoinType} grupo_alumnos ga ON ga.alumno_id = a.id AND ga.activo = 1
-       ${alumnoJoinType} grupos g ON g.id = ga.grupo_id AND g.activo = 1 ${scopeWhere}
+       ${alumnoJoinType} grupos g
+         ON g.id = ga.grupo_id
+        AND g.activo = 1
+        AND g.curso_id = ac.curso_id
+        AND g.sede_id = ac.sede_id
+        ${scopeWhere}
        LEFT JOIN profesores p ON p.id = g.profesor_id
        WHERE ${alumnoColumns.has("activo") ? "a.activo = 1" : "1 = 1"}
        GROUP BY a.id, a.nombre, a.apellidos, a.nivel${alumnoGroupByEmail}${alumnoGroupByTelefono}${alumnoGroupByActivo}${alumnoGroupByUsuario}${alumnoGroupByNivelJuego}
        ORDER BY a.apellidos, a.nombre`,
-      scopeParams
+      [cursoId, sedeId, ...scopeParams]
     );
 
     const [groupRows] = await query(
-      `SELECT
+      `SELECT DISTINCT
         g.id,
         g.codigo,
         g.nombre,
@@ -189,7 +243,11 @@ router.get("/resumen", async (req, res) => {
         g.pista_habitual,
         g.cupo,
         g.activo,
-        p.id AS profesor_id,
+        g.curso_id,
+        g.sede_id,
+        g.deporte,
+        g.categoria,
+        g.profesor_id,
         CONCAT(p.nombre, ' ', p.apellidos) AS profesor,
         a.id AS alumno_id,
         a.nombre AS alumno_nombre,
@@ -197,14 +255,23 @@ router.get("/resumen", async (req, res) => {
         a.nivel AS alumno_nivel,
         ${alumnoColumns.has("nivel_juego") ? "a.nivel_juego" : "NULL"} AS alumno_nivel_juego,
         ${alumnoColumns.has("email") ? "a.email" : "NULL"} AS alumno_email,
-        ${alumnoColumns.has("telefono") ? "a.telefono" : "NULL"} AS alumno_telefono
+        ${alumnoColumns.has("telefono") ? "a.telefono" : "NULL"} AS alumno_telefono,
+        ga.asiste_dia1,
+        ga.asiste_dia2
        FROM grupos g
        LEFT JOIN profesores p ON p.id = g.profesor_id
        LEFT JOIN grupo_alumnos ga ON ga.grupo_id = g.id AND ga.activo = 1
-       LEFT JOIN alumnos a ON a.id = ga.alumno_id AND a.activo = 1
-       WHERE g.activo = 1 ${isAdmin ? "" : "AND g.profesor_id = ?"}
+       LEFT JOIN alumno_curso ac
+         ON ac.alumno_id = ga.alumno_id
+        AND ac.curso_id = g.curso_id
+        AND ac.sede_id = g.sede_id
+       LEFT JOIN alumnos a ON a.id = ac.alumno_id AND a.activo = 1
+       WHERE g.activo = 1
+         AND g.curso_id = ?
+         AND g.sede_id = ?
+         ${isAdmin ? "" : "AND g.profesor_id = ?"}
        ORDER BY g.hora_inicio, g.codigo, a.apellidos, a.nombre`,
-      scopeParams
+      [cursoId, sedeId, ...scopeParams]
     );
 
     const grupos = parseGroupRows(groupRows);
@@ -222,7 +289,7 @@ router.get("/resumen", async (req, res) => {
     );
 
     const [todosAlumnos] = await query(
-      `SELECT
+      `SELECT DISTINCT
         a.id,
         a.nombre,
         a.apellidos,
@@ -233,13 +300,20 @@ router.get("/resumen", async (req, res) => {
         ${alumnoColumns.has("activo") ? "a.activo" : "1 AS activo"},
         ${buildSelect("a", alumnoColumns, "usuario_id")}
        FROM alumnos a
+       JOIN alumno_curso ac
+         ON ac.alumno_id = a.id
+        AND ac.curso_id = ?
+        AND ac.sede_id = ?
        WHERE ${alumnoColumns.has("activo") ? "a.activo = 1" : "1 = 1"}
-       ORDER BY a.apellidos, a.nombre`
+       ORDER BY a.apellidos, a.nombre`,
+      [cursoId, sedeId]
     );
 
     res.json({
       ok: true,
       scope: isAdmin ? "admin" : "profesor",
+      curso: { id: cursoId, nombre: gestionContext.curso_nombre },
+      sede: { id: sedeId, nombre: gestionContext.sede_nombre },
       alumnos,
       grupos,
       catalogos: {
