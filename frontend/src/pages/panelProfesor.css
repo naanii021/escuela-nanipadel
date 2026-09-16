@@ -71,6 +71,26 @@
   line-height: 1.6;
 }
 
+.schoolContextBadge {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: fit-content;
+  margin-top: 0.85rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 0.88rem;
+  backdrop-filter: blur(10px);
+}
+
+.schoolContextBadge span {
+  color: hsl(145 45% 72%);
+}
+
 .staffSummary {
   display: grid;
   grid-template-columns: repeat(3, minmax(92px, 1fr));
@@ -622,6 +642,12 @@ button:disabled {
   margin: 0.2rem 0 0;
   color: var(--staff-muted);
   font-size: 0.8rem;
+}
+
+.studentMiniCard .studentAttendanceDays {
+  display: block;
+  color: var(--color-secondary-dark);
+  font-weight: 900;
 }
 
 /* Vista de alumnos */
@@ -1512,6 +1538,53 @@ button:disabled {
   white-space: nowrap;
 }
 
+.weeklyCourts {
+  display: grid;
+  gap: 1.15rem;
+}
+
+.courtSchedule {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--staff-border);
+  border-radius: 22px;
+  background: hsl(220 20% 98%);
+}
+
+.courtScheduleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.courtScheduleHeader span {
+  display: block;
+  margin-bottom: 0.16rem;
+  color: var(--staff-muted);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.courtScheduleHeader h3 {
+  margin: 0;
+  color: var(--staff-text);
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  text-transform: uppercase;
+}
+
+.courtScheduleHeader > strong {
+  padding: 0.42rem 0.68rem;
+  border-radius: 999px;
+  background: var(--color-secondary-light);
+  color: var(--color-secondary-dark);
+  font-size: 0.78rem;
+}
+
 .weeklyGrid {
   display: grid;
   grid-template-columns: repeat(6, minmax(180px, 1fr));
@@ -1592,6 +1665,24 @@ button:disabled {
 .emptyDay {
   color: var(--staff-muted);
   font-weight: 750;
+}
+
+.scheduleStudents {
+  display: grid;
+  gap: 0.18rem;
+  margin-top: 0.2rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--staff-border);
+}
+
+.scheduleStudents > span {
+  color: var(--staff-text);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.scheduleStudents small {
+  line-height: 1.35;
 }
 
 .emptyDay {

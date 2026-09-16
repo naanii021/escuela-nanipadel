@@ -50,6 +50,7 @@ const WEEK_DAYS = [
   { key: "V", label: "Viernes" },
   { key: "S", label: "Sábado" },
 ];
+const PRIMARY_COURTS = ["Pista 1", "Pista 2"];
 const ATTENDANCE_STATUS = [
   { key: "presente", label: "Presente", tone: "positive" },
   { key: "falta", label: "Falta", tone: "negative" },
@@ -156,6 +157,34 @@ function getGroupDays(group) {
   return [group?.dia1, group?.dia2].filter(Boolean);
 }
 
+function getCourtName(value) {
+  const raw = String(value || "").trim();
+  const normalized = raw.toLowerCase();
+
+  if (normalized === "1" || /pista\s*(n(?:o|umero)?\s*)?1\b/.test(normalized)) return "Pista 1";
+  if (normalized === "2" || /pista\s*(n(?:o|umero)?\s*)?2\b/.test(normalized)) return "Pista 2";
+  return raw || "Sin pista asignada";
+}
+
+function descriptorLabel(value, fallback = "-") {
+  const text = String(value || "").trim().replaceAll("_", " ").replaceAll("-", " ");
+  return text ? `${text.charAt(0).toUpperCase()}${text.slice(1)}` : fallback;
+}
+
+function getStudentsForDay(group, day) {
+  return (group?.alumnos || []).filter((student) =>
+    (group.dia1 === day && Number(student.asiste_dia1) === 1) ||
+    (group.dia2 === day && Number(student.asiste_dia2) === 1)
+  );
+}
+
+function getStudentDays(group, student) {
+  return formatDias(
+    Number(student?.asiste_dia1) === 1 ? group?.dia1 : null,
+    Number(student?.asiste_dia2) === 1 ? group?.dia2 : null
+  );
+}
+
 function toGroupForm(group) {
   return {
     codigo: group.codigo || "",
@@ -183,6 +212,8 @@ export default function PanelProfesor() {
   const [activeView, setActiveView] = useState("grupos");
   const [alumnos, setAlumnos] = useState([]);
   const [grupos, setGrupos] = useState([]);
+  const [curso, setCurso] = useState(null);
+  const [sede, setSede] = useState(null);
   const [catalogos, setCatalogos] = useState({ profesores: [], pistas: [], alumnos: [] });
   const [stats, setStats] = useState({ totalAlumnos: 0, totalGrupos: 0, gruposActivos: 0 });
   const [scope, setScope] = useState("profesor");
@@ -225,6 +256,8 @@ export default function PanelProfesor() {
 
       setAlumnos(data.alumnos || []);
       setGrupos(data.grupos || []);
+      setCurso(data.curso || null);
+      setSede(data.sede || null);
       setCatalogos(data.catalogos || { profesores: [], pistas: [], alumnos: [] });
       setStats(data.stats || { totalAlumnos: 0, totalGrupos: 0, gruposActivos: 0 });
       setScope(data.scope || "profesor");
@@ -307,7 +340,7 @@ export default function PanelProfesor() {
 
     return grupos.filter((item) => {
       const alumnosText = (item.alumnos || []).map((alumno) => `${alumno.nombre} ${alumno.apellidos}`).join(" ");
-      const matchText = !text || normalize(`${item.nombre} ${item.codigo} ${item.profesor} ${item.pista_habitual} ${alumnosText}`).includes(text);
+      const matchText = !text || normalize(`${item.nombre} ${item.codigo} ${item.profesor} ${item.pista_habitual} ${item.deporte} ${item.categoria} ${alumnosText}`).includes(text);
       const matchNivel = !nivel || item.nivel === nivel;
       const matchProfesor = !profesor || String(item.profesor_id) === String(profesor) || item.profesor === profesor;
       const matchGrupo = !grupo || String(item.id) === String(grupo);
@@ -422,21 +455,34 @@ export default function PanelProfesor() {
   ], [isAdmin, panelMetrics.totalAlumnos, panelMetrics.totalGrupos]);
 
   const weeklySchedule = useMemo(() => {
-    const base = Object.fromEntries(WEEK_DAYS.map((day) => [day.key, []]));
+    const createWeek = () => Object.fromEntries(WEEK_DAYS.map((day) => [day.key, []]));
+    const courts = new Map(PRIMARY_COURTS.map((court) => [court, createWeek()]));
 
     grupos
       .filter((item) => Number(item.activo ?? 1) === 1)
       .forEach((group) => {
+        const courtName = getCourtName(group.pista_habitual);
+        if (!courts.has(courtName)) courts.set(courtName, createWeek());
+
         getGroupDays(group).forEach((day) => {
-          if (base[day]) base[day].push(group);
+          const courtWeek = courts.get(courtName);
+          if (courtWeek[day]) {
+            courtWeek[day].push({
+              group,
+              students: getStudentsForDay(group, day),
+            });
+          }
         });
       });
 
-    Object.values(base).forEach((dayGroups) => {
-      dayGroups.sort((a, b) => String(a.hora_inicio || "").localeCompare(String(b.hora_inicio || "")));
+    courts.forEach((courtWeek) => {
+      Object.values(courtWeek).forEach((dayGroups) => {
+        dayGroups.sort((a, b) => String(a.group.hora_inicio || "").localeCompare(String(b.group.hora_inicio || "")));
+      });
     });
 
-    return base;
+    return Array.from(courts, ([name, days]) => ({ name, days }))
+      .filter(({ name, days }) => PRIMARY_COURTS.includes(name) || Object.values(days).some((items) => items.length));
   }, [grupos]);
 
   const selectedGroup = useMemo(
@@ -659,6 +705,11 @@ export default function PanelProfesor() {
         <div className="staffHeroText">
           <span className="staffEyebrow">Panel de escuela</span>
           <h1>{isAdmin ? "Panel de administración" : "Panel de profesor"}</h1>
+          <div className="schoolContextBadge" aria-label="Curso y sede activos">
+            <strong>Curso {curso?.nombre || "2026/27"}</strong>
+            <span>·</span>
+            <strong>{sede?.nombre || "Seminario Diocesano"}</strong>
+          </div>
           <p>
             {scope === "admin"
               ? "Gestiona clases, alumnos, reservas y avisos del club."
@@ -667,7 +718,7 @@ export default function PanelProfesor() {
         </div>
 
         <div className="staffSummary">
-          <div className="metricCard"><span>Grupos totales</span><strong>{loading ? "-" : panelMetrics.totalGrupos}</strong></div>
+          <div className="metricCard"><span>Grupos del curso</span><strong>{loading ? "-" : panelMetrics.totalGrupos}</strong></div>
           <div className="metricCard"><span>Alumnos totales</span><strong>{loading ? "-" : panelMetrics.totalAlumnos}</strong></div>
           <div className="metricCard"><span>Grupos con huecos</span><strong>{loading ? "-" : panelMetrics.gruposConHuecos}</strong></div>
           <div className="metricCard"><span>Sin acceso</span><strong>{loading ? "-" : panelMetrics.alumnosSinAcceso}</strong></div>
@@ -868,7 +919,9 @@ export default function PanelProfesor() {
                       <span className={nivelClass(item.nivel)}>{nivelLabel(item.nivel)}</span>
                       <span>{formatDias(item.dia1, item.dia2)}</span>
                       <span>{formatHora(item.hora_inicio, item.duracion_min)}</span>
-                      <span>{item.pista_habitual || "Sin pista"}</span>
+                      <span>{getCourtName(item.pista_habitual)}</span>
+                      <span>{descriptorLabel(item.deporte)}</span>
+                      <span>{descriptorLabel(item.categoria)}</span>
                     </span>
                   </button>
                 ))}
@@ -902,10 +955,12 @@ export default function PanelProfesor() {
                 </div>
 
                 <div className="groupMetaGrid">
-                  <div><span>Profesor</span><strong>{selectedGroup.profesor || "No disponible"}</strong></div>
+                  <div><span>Profesor</span><strong>{selectedGroup.profesor || "Sin profesor asignado"}</strong></div>
                   <div><span>Días</span><strong>{formatDias(selectedGroup.dia1, selectedGroup.dia2)}</strong></div>
                   <div><span>Horario</span><strong>{formatHora(selectedGroup.hora_inicio, selectedGroup.duracion_min)}</strong></div>
-                  <div><span>Pista</span><strong>{selectedGroup.pista_habitual || "-"}</strong></div>
+                  <div><span>Pista</span><strong>{getCourtName(selectedGroup.pista_habitual)}</strong></div>
+                  <div><span>Deporte</span><strong>{descriptorLabel(selectedGroup.deporte)}</strong></div>
+                  <div><span>Categoría</span><strong>{descriptorLabel(selectedGroup.categoria)}</strong></div>
                   <div><span>Cupo</span><strong>{selectedGroup.cupo || "-"}</strong></div>
                   <div><span>Estado</span><strong>{Number(selectedGroup.activo ?? 1) === 1 ? "Activo" : "Inactivo"}</strong></div>
                 </div>
@@ -934,6 +989,7 @@ export default function PanelProfesor() {
                       <div>
                         <h3>{alumno.nombre} {alumno.apellidos}</h3>
                         <p>{nivelLabel(alumno.nivel || selectedGroup.nivel)}</p>
+                        <small className="studentAttendanceDays">Asiste: {getStudentDays(selectedGroup, alumno)}</small>
                         {(alumno.telefono || alumno.email) && <small>{alumno.telefono || alumno.email}</small>}
                       </div>
                       {isAdmin && <button className="miniDangerBtn" onClick={() => removeStudentFromGroup(alumno)}>Quitar</button>}
@@ -996,46 +1052,70 @@ export default function PanelProfesor() {
             <div>
               <span className="staffEyebrow">Agenda semanal</span>
               <h2>Horario semanal</h2>
-              <p>Organiza la semana con los grupos activos de la escuela.</p>
+              <p>Curso {curso?.nombre || "2026/27"} · {sede?.nombre || "Seminario Diocesano"} · grupos organizados por pista.</p>
             </div>
             <span className="opsCounter">{grupos.filter((item) => Number(item.activo ?? 1) === 1).length} grupos activos</span>
           </div>
 
-          <div className="weeklyGrid">
-            {WEEK_DAYS.map((day) => (
-              <article className="weekDayColumn" key={day.key}>
-                <div className="weekDayHeader">
-                  <strong>{day.label}</strong>
-                  <span>{weeklySchedule[day.key]?.length || 0}</span>
-                </div>
+          <div className="weeklyCourts">
+            {weeklySchedule.map((court) => {
+              const courtGroupCount = new Set(
+                Object.values(court.days).flat().map(({ group }) => group.id)
+              ).size;
 
-                <div className="dayClassStack">
-                  {(weeklySchedule[day.key] || []).map((group) => (
-                    <button
-                      type="button"
-                      className="scheduleClassCard"
-                      data-level={group.nivel || "default"}
-                      key={`${day.key}-${group.id}`}
-                      onClick={() => {
-                        setSelectedGroupId(group.id);
-                        setControlGroupId(group.id);
-                        setActiveSection("control");
-                      }}
-                    >
-                      <span className="scheduleTime">{String(group.hora_inicio || "").slice(0, 5) || "-"}</span>
-                      <strong>{group.nombre}</strong>
-                      <span className={nivelClass(group.nivel)}>{nivelLabel(group.nivel)}</span>
-                      <small>{group.profesor || "Profesor sin asignar"}</small>
-                      <small>{group.pista_habitual || "Sin pista"} · {group.alumnos?.length || 0}/{group.cupo || "-"}</small>
-                    </button>
-                  ))}
+              return (
+                <section className="courtSchedule" key={court.name}>
+                  <div className="courtScheduleHeader">
+                    <div>
+                      <span>Pista</span>
+                      <h3>{court.name}</h3>
+                    </div>
+                    <strong>{courtGroupCount} grupo{courtGroupCount === 1 ? "" : "s"}</strong>
+                  </div>
 
-                  {(!weeklySchedule[day.key] || weeklySchedule[day.key].length === 0) && (
-                    <div className="emptyDay">Sin clases</div>
-                  )}
-                </div>
-              </article>
-            ))}
+                  <div className="weeklyGrid">
+                    {WEEK_DAYS.map((day) => (
+                      <article className="weekDayColumn" key={`${court.name}-${day.key}`}>
+                        <div className="weekDayHeader">
+                          <strong>{day.label}</strong>
+                          <span>{court.days[day.key]?.length || 0}</span>
+                        </div>
+
+                        <div className="dayClassStack">
+                          {(court.days[day.key] || []).map(({ group, students }) => (
+                            <button
+                              type="button"
+                              className="scheduleClassCard"
+                              data-level={group.nivel || "default"}
+                              key={`${court.name}-${day.key}-${group.id}`}
+                              onClick={() => {
+                                setSelectedGroupId(group.id);
+                                setActiveView("grupos");
+                                setActiveSection("gestion");
+                              }}
+                            >
+                              <span className="scheduleTime">{String(group.hora_inicio || "").slice(0, 5) || "-"}</span>
+                              <strong>{group.nombre}</strong>
+                              <span className={nivelClass(group.nivel)}>{nivelLabel(group.nivel)}</span>
+                              <small>{descriptorLabel(group.deporte)} · {descriptorLabel(group.categoria)}</small>
+                              <small>{group.profesor || "Profesor sin asignar"}</small>
+                              <div className="scheduleStudents">
+                                <span>{students.length} alumno{students.length === 1 ? "" : "s"} este día</span>
+                                <small>{students.length ? students.map((student) => student.nombre).join(", ") : "Sin alumnos asignados a este día"}</small>
+                              </div>
+                            </button>
+                          ))}
+
+                          {(!court.days[day.key] || court.days[day.key].length === 0) && (
+                            <div className="emptyDay">Sin clases</div>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
           </div>
         </section>
       )}
