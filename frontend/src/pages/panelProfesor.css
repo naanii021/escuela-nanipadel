@@ -860,6 +860,72 @@ button:disabled {
   font-size: 0.88rem;
 }
 
+.studentEnrollmentIntro {
+  display: grid;
+  gap: 0.22rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem;
+  border: 1px solid var(--staff-border);
+  border-radius: 16px;
+  background: hsl(220 20% 97%);
+}
+
+.studentEnrollmentIntro span {
+  color: var(--staff-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.studentEnrollmentIntro strong {
+  color: var(--staff-text);
+}
+
+.studentEnrollmentIntro small {
+  color: var(--staff-muted);
+  line-height: 1.4;
+}
+
+.formGrid .studentDaysField {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.86rem;
+  border: 1px solid var(--staff-border);
+  border-radius: 16px;
+  background: hsl(220 20% 97%);
+}
+
+.studentDaysField legend {
+  width: 100%;
+  padding: 0;
+  color: var(--staff-muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.formGrid .studentDaysField label {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--staff-border);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--staff-text);
+  cursor: pointer;
+}
+
+.formGrid .studentDaysField input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-secondary);
+}
+
 .formFieldWide {
   grid-column: 1 / -1;
 }
@@ -1235,6 +1301,7 @@ button:disabled {
 .groupMetaGrid div,
 .addStudentBar,
 .accessIntro,
+.studentEnrollmentIntro,
 .profileInfoGrid div,
 .profileNotes {
   background: hsl(220 20% 97%);

@@ -89,7 +89,10 @@ const emptyStudentForm = {
   email: "",
   activo: 1,
   observaciones: "",
+  matricula_activa: 1,
   grupo_id: "",
+  asiste_dia1: 1,
+  asiste_dia2: 0,
 };
 
 const emptyAccessForm = {
@@ -171,17 +174,21 @@ function descriptorLabel(value, fallback = "-") {
   return text ? `${text.charAt(0).toUpperCase()}${text.slice(1)}` : fallback;
 }
 
+function attendanceFlag(value, fallback) {
+  return value === undefined || value === null || value === "" ? fallback : Number(value) === 1;
+}
+
 function getStudentsForDay(group, day) {
   return (group?.alumnos || []).filter((student) =>
-    (group.dia1 === day && Number(student.asiste_dia1) === 1) ||
-    (group.dia2 === day && Number(student.asiste_dia2) === 1)
+    (group.dia1 === day && attendanceFlag(student.asiste_dia1, true)) ||
+    (group.dia2 === day && attendanceFlag(student.asiste_dia2, true))
   );
 }
 
 function getStudentDays(group, student) {
   return formatDias(
-    Number(student?.asiste_dia1) === 1 ? group?.dia1 : null,
-    Number(student?.asiste_dia2) === 1 ? group?.dia2 : null
+    attendanceFlag(student?.asiste_dia1, true) ? group?.dia1 : null,
+    attendanceFlag(student?.asiste_dia2, true) ? group?.dia2 : null
   );
 }
 
@@ -513,6 +520,16 @@ export default function PanelProfesor() {
     return grupos.find((item) => String(item.id) === String(firstGroupId)) || null;
   }, [grupos, studentProfile]);
 
+  const studentProfileMembership = useMemo(
+    () => studentProfileGroup?.alumnos?.find((item) => String(item.id) === String(studentProfile?.id)) || null,
+    [studentProfile, studentProfileGroup]
+  );
+
+  const studentFormGroup = useMemo(
+    () => grupos.find((item) => String(item.id) === String(studentForm.grupo_id)) || null,
+    [grupos, studentForm.grupo_id]
+  );
+
   const hasFilters = search || nivel || profesor || grupo || groupQuickFilter !== "todos" || studentQuickFilter !== "todos";
 
   const clearFilters = () => {
@@ -617,6 +634,10 @@ export default function PanelProfesor() {
   };
 
   const openEditStudent = (student) => {
+    const groupId = String(student.grupo_ids || "").split(",").filter(Boolean)[0] || "";
+    const assignedGroup = grupos.find((item) => String(item.id) === String(groupId));
+    const groupStudent = assignedGroup?.alumnos?.find((item) => String(item.id) === String(student.id));
+
     setCreatingStudent(false);
     setSelectedStudent(student);
     setStudentForm({
@@ -627,37 +648,63 @@ export default function PanelProfesor() {
       telefono: student.telefono || "",
       email: student.email || "",
       activo: Number(student.activo ?? 1),
+      observaciones: student.observaciones || "",
+      matricula_activa: Number(student.matricula_activa ?? 1),
+      grupo_id: groupId,
+      asiste_dia1: Number(groupStudent?.asiste_dia1 ?? (assignedGroup?.dia1 ? 1 : 0)),
+      asiste_dia2: Number(groupStudent?.asiste_dia2 ?? (assignedGroup?.dia2 ? 1 : 0)),
     });
     setStudentFormOpen(true);
   };
 
   const openNewStudent = () => {
+    const initialGroup = activeView === "grupos" ? selectedGroup : null;
     setCreatingStudent(true);
     setSelectedStudent(null);
     setStudentForm({
       ...emptyStudentForm,
-      grupo_id: selectedGroup?.id || "",
+      grupo_id: initialGroup?.id || "",
+      asiste_dia1: initialGroup?.dia1 ? 1 : 0,
+      asiste_dia2: initialGroup?.dia2 ? 1 : 0,
     });
     setStudentFormOpen(true);
+  };
+
+  const updateStudentEnrollment = (active) => {
+    setStudentForm((current) => ({
+      ...current,
+      matricula_activa: active,
+      ...(active ? {} : { grupo_id: "", asiste_dia1: 0, asiste_dia2: 0 }),
+    }));
+  };
+
+  const updateStudentGroup = (groupId) => {
+    const targetGroup = grupos.find((item) => String(item.id) === String(groupId));
+    setStudentForm((current) => ({
+      ...current,
+      grupo_id: groupId,
+      asiste_dia1: targetGroup?.dia1 ? 1 : 0,
+      asiste_dia2: targetGroup?.dia2 ? 1 : 0,
+    }));
   };
 
   const saveStudent = async (event) => {
     event.preventDefault();
     if (!isAdmin) return;
 
+    if (studentForm.grupo_id && !Number(studentForm.asiste_dia1) && !Number(studentForm.asiste_dia2)) {
+      setError("Selecciona al menos un día de asistencia para el grupo.");
+      return;
+    }
+
     try {
       setSaving(true);
       if (creatingStudent) {
-        const data = await apiPost("/api/gestion/alumnos", studentForm);
-
-        if (studentForm.grupo_id && data.id) {
-          await apiPost(`/api/gestion/grupos/${studentForm.grupo_id}/alumnos`, { alumno_id: data.id });
-        }
-
+        await apiPost("/api/gestion/alumnos", studentForm);
         showNotice(studentForm.grupo_id ? "Alumno creado y asignado al grupo." : "Alumno creado.");
       } else if (selectedStudent) {
         await apiPut(`/api/gestion/alumnos/${selectedStudent.id}`, studentForm);
-        showNotice("Alumno guardado.");
+        showNotice("Alumno, matrícula y grupo guardados.");
       }
 
       setStudentFormOpen(false);
@@ -1309,9 +1356,10 @@ export default function PanelProfesor() {
               <div><span>Email</span><strong>{studentProfile.email || "No disponible"}</strong></div>
               <div><span>Nivel de juego</span><strong>{gameLevelLabel(studentProfile.nivel_juego)}</strong></div>
               <div><span>Acceso plataforma</span><strong>{studentProfile.usuario_id ? "Con acceso" : "Sin acceso"}</strong></div>
+              <div><span>Matrícula 2026/27</span><strong>{Number(studentProfile.matricula_activa ?? 1) === 1 ? "Activa" : "Inactiva"}</strong></div>
               <div><span>Grupo</span><strong>{studentProfile.grupos || "No disponible"}</strong></div>
               <div><span>Profesor</span><strong>{studentProfile.profesores || studentProfileGroup?.profesor || "No disponible"}</strong></div>
-              <div><span>Días</span><strong>{studentProfileGroup ? formatDias(studentProfileGroup.dia1, studentProfileGroup.dia2) : "No disponible"}</strong></div>
+              <div><span>Días</span><strong>{studentProfileGroup && studentProfileMembership ? getStudentDays(studentProfileGroup, studentProfileMembership) : "No disponible"}</strong></div>
               <div><span>Horario</span><strong>{studentProfile.horarios || (studentProfileGroup ? formatHora(studentProfileGroup.hora_inicio, studentProfileGroup.duracion_min) : "No disponible")}</strong></div>
               <div><span>Pista</span><strong>{studentProfile.pistas || studentProfileGroup?.pista_habitual || "No disponible"}</strong></div>
             </div>
@@ -1374,6 +1422,11 @@ export default function PanelProfesor() {
         <div className="staffModalBackdrop">
           <form className="staffModal" onSubmit={saveStudent}>
             <div className="modalHeader"><h2>{creatingStudent ? "Crear alumno" : "Editar alumno"}</h2><button type="button" onClick={() => setStudentFormOpen(false)}>Cerrar</button></div>
+            <div className="studentEnrollmentIntro">
+              <span>Matrícula</span>
+              <strong>Curso {curso?.nombre || "2026/27"} · {sede?.nombre || "Seminario Diocesano"}</strong>
+              <small>El grupo es opcional y no necesita tener un profesor asignado.</small>
+            </div>
             <div className="formGrid">
               <label>Nombre<input value={studentForm.nombre || ""} onChange={(e) => setStudentForm({ ...studentForm, nombre: e.target.value })} required /></label>
               <label>Apellidos<input value={studentForm.apellidos || ""} onChange={(e) => setStudentForm({ ...studentForm, apellidos: e.target.value })} /></label>
@@ -1382,8 +1435,22 @@ export default function PanelProfesor() {
               <label>Teléfono<input value={studentForm.telefono || ""} onChange={(e) => setStudentForm({ ...studentForm, telefono: e.target.value })} /></label>
               <label>Email<input type="email" value={studentForm.email || ""} onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })} /></label>
               <label>Activo<select value={studentForm.activo ?? 1} onChange={(e) => setStudentForm({ ...studentForm, activo: Number(e.target.value) })}><option value={1}>Activo</option><option value={0}>Inactivo</option></select></label>
-              {creatingStudent && (
-                <label>Asignar a grupo<select value={studentForm.grupo_id || ""} onChange={(e) => setStudentForm({ ...studentForm, grupo_id: e.target.value })}><option value="">Sin grupo por ahora</option>{gruposOptions.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
+              <label>Matrícula<select value={studentForm.matricula_activa ?? 1} onChange={(e) => updateStudentEnrollment(Number(e.target.value))}><option value={1}>Activa</option><option value={0}>Inactiva</option></select></label>
+              <label>Asignar a grupo<select value={studentForm.grupo_id || ""} onChange={(e) => updateStudentGroup(e.target.value)} disabled={!Number(studentForm.matricula_activa)}><option value="">Sin grupo por ahora</option>{gruposOptions.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
+              {studentFormGroup && Number(studentForm.matricula_activa) === 1 && (
+                <fieldset className="formFieldWide studentDaysField">
+                  <legend>Días de asistencia en {studentFormGroup.nombre}</legend>
+                  <label>
+                    <input type="checkbox" checked={Number(studentForm.asiste_dia1) === 1} onChange={(e) => setStudentForm({ ...studentForm, asiste_dia1: e.target.checked ? 1 : 0 })} />
+                    <span>{formatDias(studentFormGroup.dia1)}</span>
+                  </label>
+                  {studentFormGroup.dia2 && (
+                    <label>
+                      <input type="checkbox" checked={Number(studentForm.asiste_dia2) === 1} onChange={(e) => setStudentForm({ ...studentForm, asiste_dia2: e.target.checked ? 1 : 0 })} />
+                      <span>{formatDias(studentFormGroup.dia2)}</span>
+                    </label>
+                  )}
+                </fieldset>
               )}
               <label className="formFieldWide">Observaciones<input value={studentForm.observaciones || ""} onChange={(e) => setStudentForm({ ...studentForm, observaciones: e.target.value })} placeholder="Notas internas opcionales" /></label>
             </div>
