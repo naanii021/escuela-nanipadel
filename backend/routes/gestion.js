@@ -2,6 +2,7 @@ import express from "express";
 import bcrypt from "bcrypt";
 import { db } from "../db/connection.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
+import gestionControlRouter from "./gestionControl.js";
 
 const router = express.Router();
 const query = (sql, params = []) => db.promise().query(sql, params);
@@ -10,6 +11,7 @@ const GESTION_SEDE = "Seminario Diocesano";
 
 router.use(requireAuth);
 router.use(requireRoles(STAFF_ROLES));
+router.use("/control", gestionControlRouter);
 
 async function getTableColumns(tableName, executor = db.promise()) {
   const [rows] = await executor.query(`SHOW COLUMNS FROM ${tableName}`);

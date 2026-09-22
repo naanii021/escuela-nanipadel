@@ -1794,6 +1794,7 @@ button:disabled {
 
 .sessionPanel select,
 .sessionPanel input,
+.sessionPanel textarea,
 .opsSelect {
   width: 100%;
   min-height: 44px;
@@ -1805,8 +1806,14 @@ button:disabled {
   font-weight: 800;
 }
 
+.sessionPanel textarea {
+  padding: 0.7rem 0.8rem;
+  resize: vertical;
+}
+
 .sessionPanel select:focus,
 .sessionPanel input:focus,
+.sessionPanel textarea:focus,
 .opsSelect:focus {
   border-color: hsl(145 45% 45% / 0.62);
   box-shadow: 0 0 0 3px hsl(145 45% 45% / 0.14);
@@ -1880,6 +1887,10 @@ button:disabled {
 .attendanceList {
   display: grid;
   gap: 0.65rem;
+}
+
+.attendancePanel > .staffPrimaryBtn {
+  margin-top: 1rem;
 }
 
 .attendanceRow {
