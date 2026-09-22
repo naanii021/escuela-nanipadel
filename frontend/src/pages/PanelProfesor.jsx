@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { apiDelete, apiGet, apiPost, apiPut } from "../services/api";
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "../services/api";
 import { getToken, getUser, logout } from "../services/auth";
 import "./panelProfesor.css";
 
@@ -59,6 +59,12 @@ const ATTENDANCE_STATUS = [
 const CLASS_STATUS = [
   { key: "programada", label: "Programada", tone: "neutral" },
   { key: "dada", label: "Clase dada", tone: "positive" },
+];
+const RECOVERY_STATUS = [
+  { key: "pendiente", label: "Pendiente" },
+  { key: "asignada", label: "Asignada" },
+  { key: "recuperada", label: "Recuperada" },
+  { key: "cancelada", label: "Cancelada" },
 ];
 
 const emptyGroupForm = {
@@ -261,6 +267,12 @@ export default function PanelProfesor() {
   const [controlLoading, setControlLoading] = useState(false);
   const [controlSaving, setControlSaving] = useState(false);
   const [controlError, setControlError] = useState("");
+  const [recoveries, setRecoveries] = useState([]);
+  const [recoverySessions, setRecoverySessions] = useState([]);
+  const [recoveryDrafts, setRecoveryDrafts] = useState({});
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [recoverySavingId, setRecoverySavingId] = useState(null);
+  const [recoveryError, setRecoveryError] = useState("");
   const [trackingGroupId, setTrackingGroupId] = useState("");
 
   const loadPanel = useCallback(async () => {
@@ -305,6 +317,29 @@ export default function PanelProfesor() {
 
     loadPanel();
   }, [loadPanel, navigate, token, userRole]);
+
+  const loadRecoveries = useCallback(async () => {
+    try {
+      setRecoveryLoading(true);
+      setRecoveryError("");
+      const data = await apiGet("/api/gestion/control/recuperaciones");
+      setRecoveries(data.recuperaciones || []);
+      setRecoverySessions(data.sesiones || []);
+      setRecoveryDrafts(Object.fromEntries((data.recuperaciones || []).map((item) => [item.id, {
+        estado: item.estado,
+        fecha_recuperacion: item.fecha_recuperacion || "",
+        sesion_recuperacion_id: item.sesion_recuperacion_id || "",
+      }])));
+    } catch (e) {
+      setRecoveryError(e.message || "No se pudieron cargar las recuperaciones.");
+    } finally {
+      setRecoveryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeSection === "recuperaciones") loadRecoveries();
+  }, [activeSection, loadRecoveries]);
 
   const profesores = useMemo(() => {
     const source = catalogos.profesores?.length
@@ -601,6 +636,26 @@ export default function PanelProfesor() {
   const showNotice = (message) => {
     setNotice(message);
     window.setTimeout(() => setNotice(""), 2600);
+  };
+
+  const saveRecovery = async (recoveryId) => {
+    const draft = recoveryDrafts[recoveryId];
+    if (!draft) return;
+    try {
+      setRecoverySavingId(recoveryId);
+      setRecoveryError("");
+      await apiPatch(`/api/gestion/control/recuperaciones/${recoveryId}`, {
+        estado: draft.estado,
+        fecha_recuperacion: draft.fecha_recuperacion || null,
+        sesion_recuperacion_id: draft.sesion_recuperacion_id || null,
+      });
+      await loadRecoveries();
+      showNotice("Recuperación actualizada.");
+    } catch (e) {
+      setRecoveryError(e.message || "No se pudo guardar la recuperación.");
+    } finally {
+      setRecoverySavingId(null);
+    }
   };
 
   const saveControlSession = async () => {
@@ -1369,30 +1424,67 @@ export default function PanelProfesor() {
             <div>
               <span className="staffEyebrow">Clases pendientes</span>
               <h2>Recuperaciones</h2>
-              <p>Revisa clases canceladas, faltas justificadas y sesiones pendientes.</p>
+              <p>Consulta y asigna las recuperaciones del curso actual.</p>
             </div>
+            <span className="opsCounter">{recoveries.length} recuperaciones</span>
           </div>
 
-          <div className="recoveryGrid">
-            <article className="recoveryCard">
-              <span className="statusDot warning" />
-              <div>
-                <strong>Sin recuperaciones registradas</strong>
-                <p>Cuando registres una clase pendiente, aparecerá aquí con alumno, fecha, motivo y estado.</p>
-              </div>
-              <button className="staffSecondaryBtn" type="button" disabled>Marcar como recuperada</button>
-            </article>
-            <article className="recoveryPlan">
-              <h3>Datos de cada recuperación</h3>
-              <div className="trackingTags">
-                <span>Alumno o grupo</span>
-                <span>Fecha perdida</span>
-                <span>Motivo</span>
-                <span>Estado</span>
-                <span>Recuperada</span>
-              </div>
-            </article>
-          </div>
+          {recoveryLoading && <div className="staffEmpty">Cargando recuperaciones...</div>}
+          {recoveryError && <div className="preparedNotice" role="alert">{recoveryError}</div>}
+          {!recoveryLoading && !recoveryError && recoveries.length === 0 && <div className="staffEmpty">No hay recuperaciones registradas en este curso.</div>}
+          {!recoveryLoading && recoveries.length > 0 && (
+            <div className="recoveryList">
+              {recoveries.map((item) => {
+                const draft = recoveryDrafts[item.id] || {};
+                const options = recoverySessions.filter((session) =>
+                  session.fecha === draft.fecha_recuperacion && Number(session.id) !== Number(item.sesion_origen_id)
+                );
+                return (
+                  <article className="recoveryCard recoveryEntry" key={item.id}>
+                    <div>
+                      <strong>{item.alumno_nombre} {item.alumno_apellidos}</strong>
+                      <p>Grupo de origen: {item.grupo_origen} · Fecha original: {item.fecha_original}</p>
+                      <p>Motivo: {item.motivo === "falta_justificada" ? "Falta justificada" : descriptorLabel(item.motivo)}</p>
+                      <p>Estado: {RECOVERY_STATUS.find((status) => status.key === item.estado)?.label || item.estado}
+                        {item.fecha_recuperacion ? ` · Fecha asignada: ${item.fecha_recuperacion}` : ""}
+                        {item.sesion_recuperacion_id ? ` · Sesión #${item.sesion_recuperacion_id}` : ""}
+                      </p>
+                    </div>
+                    <div className="recoveryControls">
+                      <label>Estado
+                        <select value={draft.estado || "pendiente"} onChange={(e) => setRecoveryDrafts((current) => ({
+                          ...current, [item.id]: { ...current[item.id], estado: e.target.value },
+                        }))}>
+                          {RECOVERY_STATUS.map((status) => <option key={status.key} value={status.key}>{status.label}</option>)}
+                        </select>
+                      </label>
+                      <label>Fecha de recuperación
+                        <input type="date" value={draft.fecha_recuperacion || ""} onChange={(e) => setRecoveryDrafts((current) => ({
+                          ...current, [item.id]: {
+                            ...current[item.id], fecha_recuperacion: e.target.value, sesion_recuperacion_id: "",
+                            estado: e.target.value && current[item.id]?.estado === "pendiente" ? "asignada" : current[item.id]?.estado,
+                          },
+                        }))} />
+                      </label>
+                      <label>Sesión existente
+                        <select value={draft.sesion_recuperacion_id || ""} disabled={!draft.fecha_recuperacion} onChange={(e) => setRecoveryDrafts((current) => ({
+                          ...current, [item.id]: { ...current[item.id], sesion_recuperacion_id: e.target.value },
+                        }))}>
+                          <option value="">Sin sesión asignada</option>
+                          {options.map((session) => <option key={session.id} value={session.id}>
+                            {session.grupo_nombre} · {String(session.hora_inicio || "").slice(0, 5)} · #{session.id}
+                          </option>)}
+                        </select>
+                      </label>
+                      <button className="staffPrimaryBtn" type="button" onClick={() => saveRecovery(item.id)} disabled={recoverySavingId === item.id}>
+                        {recoverySavingId === item.id ? "Guardando..." : "Guardar recuperación"}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </section>
       )}
 

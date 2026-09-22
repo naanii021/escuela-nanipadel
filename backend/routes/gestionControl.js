@@ -6,6 +6,7 @@ const SEDE = "Seminario Diocesano";
 const DAYS = ["D", "L", "M", "X", "J", "V", "S"];
 const ATTENDANCE = new Set(["presente", "falta", "justificada"]);
 const SESSION_STATES = new Set(["programada", "dada"]);
+const RECOVERY_STATES = new Set(["pendiente", "asignada", "recuperada", "cancelada"]);
 
 function fail(status, message) {
   const error = new Error(message);
@@ -18,6 +19,14 @@ function validDate(value) {
   const date = new Date(`${value}T00:00:00Z`);
   if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) fail(400, "Indica una fecha valida");
   return DAYS[date.getUTCDay()];
+}
+
+function dateOnly(value) {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+  }
+  return String(value).slice(0, 10);
 }
 
 async function getContext(connection) {
@@ -123,6 +132,36 @@ async function getAttendance(connection, sessionId) {
   return rows;
 }
 
+async function syncRecoveries(connection, sesion, asistencias) {
+  for (const asistencia of asistencias) {
+    const [rows] = await connection.query(
+      `SELECT id, estado FROM recuperaciones_clase
+       WHERE alumno_id = ? AND sesion_origen_id = ? LIMIT 1 FOR UPDATE`,
+      [asistencia.alumno_id, sesion.id]
+    );
+    const recovery = rows[0];
+    const needsRecovery = sesion.estado === "dada" && asistencia.estado === "justificada";
+
+    if (needsRecovery && !recovery) {
+      await connection.query(
+        `INSERT INTO recuperaciones_clase
+         (alumno_id, grupo_id, fecha_original, motivo, estado, sesion_origen_id)
+         VALUES (?, ?, ?, 'falta_justificada', 'pendiente', ?)`,
+        [asistencia.alumno_id, sesion.grupo_id, sesion.fecha, sesion.id]
+      );
+    } else if (needsRecovery && recovery.estado === "cancelada") {
+      await connection.query(
+        `UPDATE recuperaciones_clase
+         SET estado = 'pendiente', fecha_recuperacion = NULL, sesion_recuperacion_id = NULL
+         WHERE id = ?`,
+        [recovery.id]
+      );
+    } else if (!needsRecovery && recovery && recovery.estado !== "cancelada" && recovery.estado !== "recuperada") {
+      await connection.query("UPDATE recuperaciones_clase SET estado = 'cancelada' WHERE id = ?", [recovery.id]);
+    }
+  }
+}
+
 function sendError(res, error) {
   if (!error.status || error.status >= 500) console.error("Error control de clases:", error);
   res.status(error.status || 500).json({ ok: false, message: error.message });
@@ -163,6 +202,114 @@ router.get("/grupos/:grupoId/sesiones", async (req, res) => {
     res.json({ ok: true, sesiones: sesion ? [sesion] : [], alumnos, asistencias, dia: day, profesor_actual_id: professorId });
   } catch (error) {
     sendError(res, error);
+  }
+});
+
+router.get("/recuperaciones", async (req, res) => {
+  try {
+    const connection = db.promise();
+    await requireStaffProfessor(connection, req.user);
+    const context = await getContext(connection);
+    const [recuperaciones] = await connection.query(
+      `SELECT r.id, r.alumno_id, r.grupo_id, r.sesion_origen_id,
+              r.sesion_recuperacion_id,
+              DATE_FORMAT(r.fecha_original, '%Y-%m-%d') AS fecha_original,
+              DATE_FORMAT(r.fecha_recuperacion, '%Y-%m-%d') AS fecha_recuperacion,
+              r.motivo, r.estado, r.observaciones,
+              a.nombre AS alumno_nombre, a.apellidos AS alumno_apellidos,
+              g.nombre AS grupo_origen
+       FROM recuperaciones_clase r
+       JOIN grupos g ON g.id = r.grupo_id
+         AND g.curso_id = ? AND g.sede_id = ?
+       LEFT JOIN alumnos a ON a.id = r.alumno_id
+       ORDER BY r.fecha_original DESC, r.id DESC`,
+      [context.curso_id, context.sede_id]
+    );
+    const [sesiones] = await connection.query(
+      `SELECT s.id, s.grupo_id, DATE_FORMAT(s.fecha, '%Y-%m-%d') AS fecha,
+              s.hora_inicio, g.nombre AS grupo_nombre
+       FROM sesiones_clase s
+       JOIN grupos g ON g.id = s.grupo_id
+         AND g.curso_id = ? AND g.sede_id = ?
+       ORDER BY s.fecha DESC, s.hora_inicio, s.id`,
+      [context.curso_id, context.sede_id]
+    );
+    res.json({ ok: true, recuperaciones, sesiones });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+router.patch("/recuperaciones/:id", async (req, res) => {
+  let connection;
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) fail(400, "Recuperacion no valida");
+    const fields = ["estado", "fecha_recuperacion", "sesion_recuperacion_id", "observaciones"];
+    if (!fields.some((field) => Object.prototype.hasOwnProperty.call(req.body, field))) {
+      fail(400, "No hay campos para actualizar");
+    }
+    connection = await db.promise().getConnection();
+    await connection.beginTransaction();
+    await requireStaffProfessor(connection, req.user);
+    const context = await getContext(connection);
+    const [rows] = await connection.query(
+      `SELECT r.id, r.estado, r.fecha_recuperacion, r.sesion_origen_id,
+              r.sesion_recuperacion_id, r.observaciones
+       FROM recuperaciones_clase r
+       JOIN grupos g ON g.id = r.grupo_id
+         AND g.curso_id = ? AND g.sede_id = ?
+       WHERE r.id = ? LIMIT 1 FOR UPDATE`,
+      [context.curso_id, context.sede_id, id]
+    );
+    const recovery = rows[0];
+    if (!recovery) fail(404, "Recuperacion no encontrada en el curso actual");
+
+    const estado = req.body.estado ?? recovery.estado;
+    if (!RECOVERY_STATES.has(estado)) fail(400, "Estado de recuperacion no valido");
+    let fecha = Object.prototype.hasOwnProperty.call(req.body, "fecha_recuperacion")
+      ? (req.body.fecha_recuperacion || null) : recovery.fecha_recuperacion;
+    fecha = dateOnly(fecha);
+    if (fecha) validDate(fecha);
+    let targetId = Object.prototype.hasOwnProperty.call(req.body, "sesion_recuperacion_id")
+      ? (req.body.sesion_recuperacion_id || null) : recovery.sesion_recuperacion_id;
+    if (targetId != null) {
+      targetId = Number(targetId);
+      if (!Number.isInteger(targetId) || targetId <= 0 || targetId === Number(recovery.sesion_origen_id)) {
+        fail(400, "Selecciona otra sesion valida para la recuperacion");
+      }
+      const [targets] = await connection.query(
+        `SELECT s.id, DATE_FORMAT(s.fecha, '%Y-%m-%d') AS fecha
+         FROM sesiones_clase s
+         JOIN grupos g ON g.id = s.grupo_id
+           AND g.curso_id = ? AND g.sede_id = ?
+         WHERE s.id = ? LIMIT 1`,
+        [context.curso_id, context.sede_id, targetId]
+      );
+      if (!targets.length) fail(400, "La sesion de recuperacion no pertenece al curso actual");
+      if (fecha && fecha !== targets[0].fecha) {
+        fail(400, "La fecha no coincide con la sesion de recuperacion");
+      }
+      fecha = targets[0].fecha;
+    }
+    if ((estado === "asignada" || estado === "recuperada") && !fecha) {
+      fail(400, "Indica la fecha de recuperacion");
+    }
+    const observaciones = Object.prototype.hasOwnProperty.call(req.body, "observaciones")
+      ? req.body.observaciones : recovery.observaciones;
+    await connection.query(
+      `UPDATE recuperaciones_clase
+       SET estado = ?, fecha_recuperacion = ?, sesion_recuperacion_id = ?, observaciones = ?
+       WHERE id = ?`,
+      [estado, fecha, targetId, observaciones, id]
+    );
+    await connection.commit();
+    res.json({ ok: true, id, estado, fecha_recuperacion: fecha, sesion_recuperacion_id: targetId });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    sendError(res, error);
+  } finally {
+    connection?.release();
   }
 });
 
@@ -238,6 +385,7 @@ async function save(req, res, sessionId = null) {
     }
     sesion = await getSession(connection, group.id, fecha);
     const asistencias = await getAttendance(connection, sesion.id);
+    await syncRecoveries(connection, sesion, asistencias);
     await connection.commit();
     res.json({ ok: true, sesion, alumnos, asistencias, dia: day });
   } catch (error) {

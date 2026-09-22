@@ -74,6 +74,8 @@ async function query(sql, params = []) {
     attendance.set(Number(params[2]), params[0]);
     return [{ affectedRows: 1 }];
   }
+  if (sql.includes("FROM recuperaciones_clase") && sql.includes("sesion_origen_id = ?")) return [[]];
+  if (sql.startsWith("INSERT INTO recuperaciones_clase")) return [{ insertId: 1 }];
   throw new Error(`Consulta inesperada: ${sql}`);
 }
 
