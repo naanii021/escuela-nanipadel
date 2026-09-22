@@ -7,6 +7,8 @@ const attendance = new Map();
 let commits = 0;
 let rollbacks = 0;
 let inserts = 0;
+let professorActive = true;
+let professorLinked = true;
 const students = [
   { id: 1, nombre: "Ana", apellidos: "A", asiste_dia1: 1, asiste_dia2: 0 },
   { id: 2, nombre: "Beto", apellidos: "B", asiste_dia1: 0, asiste_dia2: 1 },
@@ -16,6 +18,10 @@ const students = [
 async function query(sql, params = []) {
   if (sql.includes("FROM cursos_escolares c")) return [[{ curso_id: 26, sede_id: 4 }]];
   if (sql.includes("FROM grupos g") && sql.includes("g.activo = 1")) {
+    if (sql.includes("LEFT JOIN profesores p")) {
+      assert.deepEqual(params, [26, 4]);
+      return [[{ id: 8, nombre: "Grupo", profesor_id: null, dia1: "L", dia2: "M" }]];
+    }
     assert.deepEqual(params, ["8", 26, 4]);
     return [[{ id: 8, nombre: "Grupo", profesor_id: null, dia1: "L", dia2: "M", hora_inicio: "18:00:00", duracion_min: 60 }]];
   }
@@ -27,13 +33,22 @@ async function query(sql, params = []) {
     return [students.filter((student) =>
       (day === "L" && student.asiste_dia1) || (day === "M" && student.asiste_dia2))];
   }
-  if (sql.includes("FROM sesiones_clase WHERE grupo_id")) return [session ? [{ ...session }] : []];
+  if (sql.includes("FROM sesiones_clase WHERE grupo_id")) {
+    return [session && session.fecha === params[1] ? [{ ...session }] : []];
+  }
   if (sql.includes("FROM asistencia_clase WHERE sesion_id = ?") && !sql.includes("alumno_id = ?")) {
     return [[...attendance].map(([alumno_id, estado]) => ({ alumno_id, estado }))];
   }
-  if (sql === "SHOW COLUMNS FROM profesores") return [[{ Field: "id" }]];
+  if (sql === "SHOW COLUMNS FROM profesores") {
+    return [[{ Field: "id" }, { Field: "usuario_id" }, { Field: "activo" }]];
+  }
   if (sql === "SELECT id FROM profesores WHERE id = ? LIMIT 1") return [[{ id: params[0] }]];
-  if (sql.startsWith("SELECT id FROM profesores WHERE ")) return [[]];
+  if (sql.startsWith("SELECT id FROM profesores WHERE ")) {
+    assert.match(sql, /usuario_id = \?/);
+    assert.match(sql, /activo = 1/);
+    assert.doesNotMatch(sql, /profesor_id/);
+    return [professorActive && professorLinked && Number(params[0]) === 99 ? [{ id: 51 }] : []];
+  }
   if (sql.startsWith("INSERT INTO sesiones_clase")) {
     inserts += 1;
     session = {
@@ -104,6 +119,8 @@ async function call(method, path, { fecha = "2026-09-22", ...body } = {}, role =
 const path = "/grupos/:grupoId/sesiones";
 
 test("sesión y asistencia del martes: guardar, reabrir y actualizar sin duplicados", async () => {
+  const groups = await call("get", "/grupos");
+  assert.deepEqual(groups.body.grupos.map((group) => group.id), [8]);
   const before = await call("get", path);
   assert.deepEqual(before.body.alumnos.map((item) => item.id), [2, 3]);
   assert.deepEqual(before.body.sesiones, []);
@@ -157,7 +174,45 @@ test("el lunes muestra otra lista y no crea sesión fuera del horario del grupo"
   assert.equal(inserts, 1);
 });
 
-test("solo administración puede controlar un grupo sin profesor habitual", async () => {
-  const response = await call("get", path, {}, "profesor");
-  assert.equal(response.statusCode, 403);
+test("profesor activo puede controlar un grupo sin profesor habitual y queda como docente de la sesión", async () => {
+  const groups = await call("get", "/grupos", {}, "profesor");
+  assert.equal(groups.statusCode, 200);
+  assert.deepEqual(groups.body.grupos.map((group) => group.id), [8]);
+  assert.equal(groups.body.profesor_actual_id, 51);
+
+  const visible = await call("get", path, { fecha: "2026-09-21" }, "profe");
+  assert.equal(visible.statusCode, 200);
+  assert.equal(visible.body.profesor_actual_id, 51);
+
+  const saved = await call("post", path, {
+    fecha: "2026-09-21", estado: "dada",
+    asistencias: [{ alumno_id: 1, estado: "presente" }, { alumno_id: 3, estado: "justificada" }],
+  }, "profesor");
+  assert.equal(saved.statusCode, 200);
+  assert.equal(saved.body.sesion.profesor_id, 51);
+  assert.equal(saved.body.sesion.estado, "dada");
+
+  const adminClear = await call("put", `${path}/:sesionId/asistencia`, {
+    fecha: "2026-09-21", profesor_id: null,
+  });
+  assert.equal(adminClear.body.sesion.profesor_id, null);
+
+  const professorUpdate = await call("put", `${path}/:sesionId/asistencia`, {
+    fecha: "2026-09-21", estado: "dada",
+  }, "profe");
+  assert.equal(professorUpdate.body.sesion.profesor_id, 51);
+});
+
+test("profesor inactivo o usuario ajeno a staff no accede", async () => {
+  professorActive = false;
+  const inactive = await call("get", path, {}, "profesor");
+  assert.equal(inactive.statusCode, 403);
+  assert.equal((await call("get", "/grupos", {}, "profesor")).statusCode, 403);
+  professorActive = true;
+  professorLinked = false;
+  assert.equal((await call("get", path, {}, "profe")).statusCode, 403);
+  professorLinked = true;
+  const nonStaff = await call("get", path, {}, "alumno");
+  assert.equal(nonStaff.statusCode, 403);
+  assert.equal((await call("get", "/grupos", {}, "alumno")).statusCode, 403);
 });

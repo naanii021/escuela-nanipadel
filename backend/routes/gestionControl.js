@@ -34,24 +34,40 @@ async function getContext(connection) {
 }
 
 async function getProfessorId(connection, user) {
-  if (String(user?.rol).toLowerCase() === "admin") return null;
   const [columns] = await connection.query("SHOW COLUMNS FROM profesores");
   const names = new Set(columns.map((row) => row.Field));
-  const conditions = ["id = ?"];
-  const params = [user.id];
+  const conditions = [];
+  const params = [];
   if (names.has("usuario_id")) {
-    conditions.unshift("usuario_id = ?");
-    params.unshift(user.id);
+    conditions.push("usuario_id = ?");
+    params.push(user.id);
   }
   if (names.has("email") && user.email) {
-    conditions.unshift("email = ?");
-    params.unshift(user.email);
+    conditions.push("email = ?");
+    params.push(user.email);
   }
-  const [rows] = await connection.query(`SELECT id FROM profesores WHERE ${conditions.join(" OR ")} LIMIT 1`, params);
+  if (!conditions.length) {
+    if (names.has("usuario_id") || names.has("email")) return 0;
+    conditions.push("id = ?");
+    params.push(user.id);
+  }
+  const activeFilter = names.has("activo") ? " AND activo = 1" : "";
+  const [rows] = await connection.query(
+    `SELECT id FROM profesores WHERE (${conditions.join(" OR ")})${activeFilter} LIMIT 1`, params
+  );
   return rows[0]?.id || 0;
 }
 
+async function requireStaffProfessor(connection, user) {
+  const role = String(user?.rol || "").toLowerCase();
+  if (role !== "admin" && role !== "profesor" && role !== "profe") fail(403, "No tienes acceso al control de clases");
+  const professorId = role === "admin" ? null : await getProfessorId(connection, user);
+  if (role !== "admin" && !professorId) fail(403, "Tu cuenta no esta vinculada a un profesor activo");
+  return professorId;
+}
+
 async function getGroup(connection, user, groupId, lock = false) {
+  const professorId = await requireStaffProfessor(connection, user);
   const context = await getContext(connection);
   const [rows] = await connection.query(
     `SELECT g.id, g.nombre, g.profesor_id, g.dia1, g.dia2, g.hora_inicio, g.duracion_min
@@ -62,11 +78,7 @@ async function getGroup(connection, user, groupId, lock = false) {
   );
   const group = rows[0];
   if (!group) fail(404, "Grupo activo no encontrado en el curso y sede actuales");
-  if (String(user?.rol).toLowerCase() !== "admin") {
-    const professorId = await getProfessorId(connection, user);
-    if (!professorId || Number(group.profesor_id) !== Number(professorId)) fail(403, "No tienes acceso a este grupo");
-  }
-  return { group, context };
+  return { group, context, professorId };
 }
 
 function endTime(start, minutes) {
@@ -116,18 +128,39 @@ function sendError(res, error) {
   res.status(error.status || 500).json({ ok: false, message: error.message });
 }
 
+router.get("/grupos", async (req, res) => {
+  try {
+    const connection = db.promise();
+    const professorId = await requireStaffProfessor(connection, req.user);
+    const context = await getContext(connection);
+    const [grupos] = await connection.query(
+      `SELECT g.id, g.codigo, g.nombre, g.nivel, g.dia1, g.dia2,
+              g.hora_inicio, g.duracion_min, g.pista_habitual, g.profesor_id,
+              CONCAT(p.nombre, ' ', p.apellidos) AS profesor
+       FROM grupos g
+       LEFT JOIN profesores p ON p.id = g.profesor_id
+       WHERE g.curso_id = ? AND g.sede_id = ? AND g.activo = 1
+       ORDER BY g.hora_inicio, g.nombre`,
+      [context.curso_id, context.sede_id]
+    );
+    res.json({ ok: true, grupos, profesor_actual_id: professorId });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
 router.get("/grupos/:grupoId/sesiones", async (req, res) => {
   try {
     const fecha = String(req.query.fecha || "");
     const day = validDate(fecha);
     const connection = db.promise();
-    const { group, context } = await getGroup(connection, req.user, req.params.grupoId);
+    const { group, context, professorId } = await getGroup(connection, req.user, req.params.grupoId);
     const [sesion, alumnos] = await Promise.all([
       getSession(connection, group.id, fecha),
       getRoster(connection, group, context, day),
     ]);
     const asistencias = await getAttendance(connection, sesion?.id);
-    res.json({ ok: true, sesiones: sesion ? [sesion] : [], alumnos, asistencias, dia: day });
+    res.json({ ok: true, sesiones: sesion ? [sesion] : [], alumnos, asistencias, dia: day, profesor_actual_id: professorId });
   } catch (error) {
     sendError(res, error);
   }
@@ -140,7 +173,7 @@ async function save(req, res, sessionId = null) {
     const day = validDate(fecha);
     connection = await db.promise().getConnection();
     await connection.beginTransaction();
-    const { group, context } = await getGroup(connection, req.user, req.params.grupoId, true);
+    const { group, context, professorId: linkedProfessorId } = await getGroup(connection, req.user, req.params.grupoId, true);
     if (day !== group.dia1 && day !== group.dia2) fail(400, "El grupo no tiene clase en ese dia");
     const alumnos = await getRoster(connection, group, context, day);
     const allowed = new Set(alumnos.map((alumno) => Number(alumno.id)));
@@ -158,9 +191,12 @@ async function save(req, res, sessionId = null) {
       if (seen.size !== allowed.size) fail(400, "Indica la asistencia de todos los alumnos del dia");
     }
     if (req.body.estado !== undefined && !SESSION_STATES.has(req.body.estado)) fail(400, "Estado de sesion no valido");
-    const professorId = req.body.profesor_id === "" || req.body.profesor_id == null
-      ? null : Number(req.body.profesor_id);
-    if (req.body.profesor_id !== undefined && professorId !== null) {
+    const hasProfessorId = Object.prototype.hasOwnProperty.call(req.body, "profesor_id");
+    const isAdmin = String(req.user?.rol).toLowerCase() === "admin";
+    const professorId = hasProfessorId && req.body.profesor_id !== "" && req.body.profesor_id != null
+      ? Number(req.body.profesor_id)
+      : isAdmin ? (hasProfessorId ? null : undefined) : linkedProfessorId;
+    if (hasProfessorId && professorId !== null && professorId !== linkedProfessorId) {
       if (!Number.isInteger(professorId) || professorId <= 0) fail(400, "Profesor no valido");
       const [professors] = await connection.query("SELECT id FROM profesores WHERE id = ? LIMIT 1", [professorId]);
       if (!professors.length) fail(400, "Profesor no encontrado");
@@ -172,15 +208,15 @@ async function save(req, res, sessionId = null) {
         `INSERT INTO sesiones_clase
          (grupo_id, profesor_id, fecha, hora_inicio, hora_fin, estado, observaciones)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [group.id, req.body.profesor_id === undefined ? group.profesor_id : professorId,
+        [group.id, professorId ?? null,
           fecha, group.hora_inicio, endTime(group.hora_inicio, group.duracion_min),
           req.body.estado || "programada", req.body.observaciones ?? null]
       );
       sesion = { id: inserted.insertId };
-    } else if (entries !== undefined || req.body.profesor_id !== undefined || req.body.estado !== undefined || req.body.observaciones !== undefined) {
+    } else if (entries !== undefined || professorId !== undefined || req.body.estado !== undefined || req.body.observaciones !== undefined) {
       await connection.query(
         `UPDATE sesiones_clase SET profesor_id = ?, estado = ?, observaciones = ? WHERE id = ?`,
-        [req.body.profesor_id === undefined ? sesion.profesor_id : professorId,
+        [professorId === undefined ? sesion.profesor_id : professorId,
           req.body.estado ?? sesion.estado, req.body.observaciones === undefined ? sesion.observaciones : req.body.observaciones,
           sesion.id]
       );

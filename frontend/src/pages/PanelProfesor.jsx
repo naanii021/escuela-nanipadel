@@ -249,6 +249,8 @@ export default function PanelProfesor() {
   const [accessForm, setAccessForm] = useState(emptyAccessForm);
   const [studentToAdd, setStudentToAdd] = useState("");
   const [controlGroupId, setControlGroupId] = useState("");
+  const [controlGroups, setControlGroups] = useState([]);
+  const [controlGroupsLoading, setControlGroupsLoading] = useState(false);
   const [controlDate, setControlDate] = useState(todayDate);
   const [classStatus, setClassStatus] = useState("programada");
   const [attendanceDraft, setAttendanceDraft] = useState({});
@@ -503,10 +505,22 @@ export default function PanelProfesor() {
     [filteredGrupos, selectedGroupId]
   );
 
+  useEffect(() => {
+    if (activeSection !== "control") return;
+    let cancelled = false;
+    setControlGroupsLoading(true);
+    setControlGroups([]);
+    setControlError("");
+    apiGet("/api/gestion/control/grupos")
+      .then((data) => { if (!cancelled) setControlGroups(data.grupos || []); })
+      .catch((e) => { if (!cancelled) setControlError(e.message || "No se pudieron cargar los grupos."); })
+      .finally(() => { if (!cancelled) setControlGroupsLoading(false); });
+    return () => { cancelled = true; };
+  }, [activeSection]);
+
   const controlGroup = useMemo(
-    () => grupos.find((item) => String(item.id) === String(controlGroupId) && Number(item.activo ?? 1) === 1)
-      || grupos.find((item) => Number(item.activo ?? 1) === 1) || null,
-    [controlGroupId, grupos]
+    () => controlGroups.find((item) => String(item.id) === String(controlGroupId)) || controlGroups[0] || null,
+    [controlGroupId, controlGroups]
   );
 
   const controlDay = useMemo(() => {
@@ -537,7 +551,7 @@ export default function PanelProfesor() {
         setControlStudents(data.alumnos || []);
         setAttendanceDraft(Object.fromEntries((data.asistencias || []).map((item) => [item.alumno_id, item.estado])));
         setClassStatus(session?.estado || "programada");
-        setControlProfessorId(session?.profesor_id ?? controlGroup.profesor_id ?? "");
+        setControlProfessorId(session?.profesor_id ?? data.profesor_actual_id ?? "");
         setControlObservations(session?.observaciones || "");
       })
       .catch((e) => { if (!cancelled) setControlError(e.message || "No se pudo cargar la sesión."); })
@@ -593,7 +607,7 @@ export default function PanelProfesor() {
     if (!controlGroup || !controlHasClass || controlLoading || controlSaving) return;
     const body = {
       fecha: controlDate,
-      profesor_id: controlProfessorId || null,
+      ...(isAdmin || controlProfessorId ? { profesor_id: controlProfessorId || null } : {}),
       estado: classStatus,
       observaciones: controlObservations,
       asistencias: controlStudents.map((alumno) => ({
@@ -609,6 +623,7 @@ export default function PanelProfesor() {
         ? await apiPut(`${path}/${controlSession.id}/asistencia`, body)
         : await apiPost(path, body);
       setControlSession(data.sesion);
+      setControlProfessorId(data.sesion?.profesor_id ?? "");
       setControlStudents(data.alumnos || []);
       setAttendanceDraft(Object.fromEntries((data.asistencias || []).map((item) => [item.alumno_id, item.estado])));
       showNotice("Sesión y asistencia guardadas.");
@@ -1256,7 +1271,7 @@ export default function PanelProfesor() {
               <label>
                 Grupo
                 <select value={controlGroup?.id || ""} onChange={(e) => setControlGroupId(e.target.value)}>
-                  {grupos.filter((item) => Number(item.activo ?? 1) === 1).map((item) => <option key={item.id} value={item.id}>{item.nombre || item.codigo || `Grupo ${item.id}`}</option>)}
+                  {controlGroups.map((item) => <option key={item.id} value={item.id}>{item.nombre || item.codigo || `Grupo ${item.id}`}</option>)}
                 </select>
               </label>
               <label>
@@ -1276,7 +1291,7 @@ export default function PanelProfesor() {
               <label>
                 Profesor de esta sesión
                 <select value={controlProfessorId} onChange={(e) => setControlProfessorId(e.target.value)}>
-                  <option value="">Sin profesor asignado</option>
+                  <option value="">{isAdmin ? "Sin profesor asignado" : "Usar mi profesor"}</option>
                   {profesores.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </label>
@@ -1307,7 +1322,9 @@ export default function PanelProfesor() {
               </div>
 
               {controlLoading && <div className="staffEmpty">Cargando asistencia...</div>}
+              {controlGroupsLoading && <div className="staffEmpty">Cargando grupos...</div>}
               {controlError && <div className="preparedNotice" role="alert">{controlError}</div>}
+              {!controlGroupsLoading && !controlError && !controlGroup && <div className="staffEmpty">No hay grupos activos para este curso y sede.</div>}
               {!controlLoading && controlGroup && !controlHasClass && <div className="staffEmpty">Este grupo no tiene clase el día elegido.</div>}
 
               <div className="attendanceList">
@@ -1338,7 +1355,7 @@ export default function PanelProfesor() {
               </div>
 
               {!controlLoading && controlHasClass && controlStudents.length === 0 && <div className="staffEmpty">No hay alumnos asignados para este día.</div>}
-              <button className="staffPrimaryBtn" type="button" onClick={saveControlSession} disabled={!controlHasClass || controlLoading || controlSaving || !controlGroup || !!controlError}>
+              <button className="staffPrimaryBtn" type="button" onClick={saveControlSession} disabled={!controlHasClass || controlGroupsLoading || controlLoading || controlSaving || !controlGroup || !!controlError}>
                 {controlSaving ? "Guardando..." : controlSession ? "Actualizar sesión y asistencia" : "Guardar sesión y asistencia"}
               </button>
             </main>
