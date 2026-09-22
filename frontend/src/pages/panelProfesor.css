@@ -1948,6 +1948,37 @@ button:disabled {
   line-height: 1.5;
 }
 
+.telegramLinkPanel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--staff-border);
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.telegramLinkPanel > div,
+.telegramLinkCode {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.telegramLinkPanel span,
+.telegramLinkCode small {
+  color: var(--staff-muted);
+}
+
+.telegramLinkCode code {
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  background: hsl(220 20% 95%);
+  color: var(--staff-text);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
 .recoveryList {
   display: grid;
   gap: 0.9rem;

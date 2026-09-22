@@ -235,6 +235,7 @@ export default function PanelProfesor() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [telegramLink, setTelegramLink] = useState(null);
 
   const [search, setSearch] = useState("");
   const [nivel, setNivel] = useState("");
@@ -638,6 +639,19 @@ export default function PanelProfesor() {
     window.setTimeout(() => setNotice(""), 2600);
   };
 
+  const createTelegramLink = async () => {
+    try {
+      setSaving(true);
+      setError("");
+      const data = await apiPost("/api/gestion/control/telegram/link-code", {});
+      setTelegramLink(data);
+    } catch (e) {
+      setError(e.message || "No se pudo generar el código de Telegram.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveRecovery = async (recoveryId) => {
     const draft = recoveryDrafts[recoveryId];
     if (!draft) return;
@@ -916,6 +930,24 @@ export default function PanelProfesor() {
       </header>
 
       {notice && <div className="staffNotice">{notice}</div>}
+      {!isAdmin && (
+        <div className="telegramLinkPanel">
+          <div>
+            <strong>Telegram para profesores</strong>
+            <span>Vincula este usuario con un chat privado mediante un código de un solo uso.</span>
+          </div>
+          {telegramLink ? (
+            <div className="telegramLinkCode">
+              <code>{telegramLink.command}</code>
+              {telegramLink.link && <a className="staffPrimaryBtn" href={telegramLink.link} target="_blank" rel="noreferrer">Abrir Telegram</a>}
+              <button className="staffSecondaryBtn" type="button" onClick={createTelegramLink} disabled={saving}>Generar otro código</button>
+              <small>Caduca en {telegramLink.expires_in_minutes} minutos.</small>
+            </div>
+          ) : (
+            <button className="staffSecondaryBtn" type="button" onClick={createTelegramLink} disabled={saving}>Generar código de Telegram</button>
+          )}
+        </div>
+      )}
 
       <section className="adminOverview" aria-label="Resumen de hoy">
         <div className="adminOverviewHead">
