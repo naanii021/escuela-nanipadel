@@ -334,8 +334,8 @@ export default function PanelProfesor() {
         studentQuickFilter === "todos" ||
         (studentQuickFilter === "sin-acceso" && !alumno.usuario_id) ||
         (studentQuickFilter === "con-acceso" && alumno.usuario_id) ||
-        (studentQuickFilter === "activos" && Number(alumno.activo ?? 1) === 1) ||
-        (studentQuickFilter === "inactivos" && Number(alumno.activo ?? 1) === 0) ||
+        (studentQuickFilter === "activos" && Number(alumno.matricula_activa ?? 1) === 1) ||
+        (studentQuickFilter === "inactivos" && Number(alumno.matricula_activa ?? 1) === 0) ||
         (studentQuickFilter.startsWith("nivel:") && alumno.nivel === studentQuickFilter.replace("nivel:", ""));
 
       return matchText && matchNivel && matchProfesor && matchGrupo && matchQuick;
