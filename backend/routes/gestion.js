@@ -110,7 +110,14 @@ function booleanFlag(value, fallback = 0) {
   return Number(value) === 1 || value === true ? 1 : 0;
 }
 
-async function upsertCurrentEnrollment(connection, alumnoId, gestionContext, active, columns) {
+function enrollmentActiveSelect(columns, alias = "ac") {
+  if (columns.has("estado")) {
+    return `CASE WHEN ${alias}.estado = 'baja' THEN 0 ELSE 1 END`;
+  }
+  return columns.has("activo") ? `COALESCE(${alias}.activo, 1)` : "1";
+}
+
+async function upsertCurrentEnrollment(connection, alumnoId, gestionContext, active, columns, groupId) {
   const [existing] = await connection.query(
     `SELECT *
      FROM alumno_curso
@@ -121,15 +128,35 @@ async function upsertCurrentEnrollment(connection, alumnoId, gestionContext, act
   );
 
   if (existing.length > 0) {
-    if (columns.has("activo") && active !== undefined) {
+    const enrollmentActive = active === undefined
+      ? (columns.has("estado") ? Number(existing[0].estado !== "baja") : booleanFlag(existing[0].activo, 1))
+      : active;
+    const updates = [];
+    const values = [];
+
+    if (active !== undefined && columns.has("activo")) {
+      updates.push("activo = ?");
+      values.push(active);
+    }
+    if (columns.has("estado") && (active !== undefined || groupId !== undefined)) {
+      const state = !enrollmentActive
+        ? "baja"
+        : groupId !== undefined
+          ? (groupId ? "grupo_asignado" : "pendiente_grupo")
+          : existing[0].estado === "baja" ? "pendiente_grupo" : existing[0].estado;
+      updates.push("estado = ?");
+      values.push(state);
+    }
+    if (columns.has("fecha_baja") && active !== undefined) {
+      updates.push(`fecha_baja = ${enrollmentActive ? "NULL" : "CURDATE()"}`);
+    }
+    if (updates.length) {
       await connection.query(
-        "UPDATE alumno_curso SET activo = ? WHERE alumno_id = ? AND curso_id = ? AND sede_id = ?",
-        [active, alumnoId, gestionContext.curso_id, gestionContext.sede_id]
+        `UPDATE alumno_curso SET ${updates.join(", ")} WHERE alumno_id = ? AND curso_id = ? AND sede_id = ?`,
+        [...values, alumnoId, gestionContext.curso_id, gestionContext.sede_id]
       );
     }
-    return columns.has("activo")
-      ? (active === undefined ? booleanFlag(existing[0].activo, 1) : active)
-      : 1;
+    return enrollmentActive;
   }
 
   const enrollmentActive = active === undefined ? 1 : active;
@@ -138,15 +165,18 @@ async function upsertCurrentEnrollment(connection, alumnoId, gestionContext, act
     curso_id: gestionContext.curso_id,
     sede_id: gestionContext.sede_id,
     activo: enrollmentActive,
+    estado: enrollmentActive ? (groupId ? "grupo_asignado" : "pendiente_grupo") : "baja",
   };
   const { fields, values } = pickWritableFields(
     payload,
-    ["alumno_id", "curso_id", "sede_id", "activo"],
+    ["alumno_id", "curso_id", "sede_id", "activo", "estado"],
     columns
   );
 
+  if (!enrollmentActive && columns.has("fecha_baja")) fields.push("fecha_baja");
+
   await connection.query(
-    `INSERT INTO alumno_curso (${fields.join(", ")}) VALUES (${fields.map(() => "?").join(", ")})`,
+    `INSERT INTO alumno_curso (${fields.join(", ")}) VALUES (${fields.map((field) => field === "fecha_baja" ? "CURDATE()" : "?").join(", ")})`,
     values
   );
 
@@ -305,14 +335,16 @@ router.get("/resumen", async (req, res) => {
     const alumnoUsuarioSelect = alumnoColumns.has("usuario_id") ? "a.usuario_id" : "NULL AS usuario_id";
     const alumnoNivelJuegoSelect = alumnoColumns.has("nivel_juego") ? "a.nivel_juego" : "NULL AS nivel_juego";
     const alumnoObservacionesSelect = alumnoColumns.has("observaciones") ? "a.observaciones" : "NULL AS observaciones";
-    const matriculaActivaSelect = alumnoCursoColumns.has("activo") ? "ac.activo AS matricula_activa" : "1 AS matricula_activa";
+    const matriculaActivaSelect = `${enrollmentActiveSelect(alumnoCursoColumns)} AS matricula_activa`;
     const alumnoGroupByEmail = alumnoColumns.has("email") ? ", a.email" : "";
     const alumnoGroupByTelefono = alumnoColumns.has("telefono") ? ", a.telefono" : "";
     const alumnoGroupByActivo = alumnoColumns.has("activo") ? ", a.activo" : "";
     const alumnoGroupByUsuario = alumnoColumns.has("usuario_id") ? ", a.usuario_id" : "";
     const alumnoGroupByNivelJuego = alumnoColumns.has("nivel_juego") ? ", a.nivel_juego" : "";
     const alumnoGroupByObservaciones = alumnoColumns.has("observaciones") ? ", a.observaciones" : "";
-    const alumnoGroupByMatriculaActiva = alumnoCursoColumns.has("activo") ? ", ac.activo" : "";
+    const alumnoGroupByMatriculaActiva = alumnoCursoColumns.has("estado")
+      ? ", ac.estado"
+      : alumnoCursoColumns.has("activo") ? ", ac.activo" : "";
 
     if (!isAdmin && !profesorId) {
       return res.json({
@@ -411,6 +443,7 @@ router.get("/resumen", async (req, res) => {
          ON ac.alumno_id = ga.alumno_id
         AND ac.curso_id = g.curso_id
         AND ac.sede_id = g.sede_id
+        ${alumnoCursoColumns.has("estado") ? "AND ac.estado <> 'baja'" : alumnoCursoColumns.has("activo") ? "AND ac.activo = 1" : ""}
        LEFT JOIN alumnos a ON a.id = ac.alumno_id AND a.activo = 1
        WHERE g.activo = 1
          AND g.curso_id = ?
@@ -445,7 +478,7 @@ router.get("/resumen", async (req, res) => {
         ${buildSelect("a", alumnoColumns, "telefono")},
         ${buildSelect("a", alumnoColumns, "observaciones")},
         ${alumnoColumns.has("activo") ? "a.activo" : "1 AS activo"},
-        ${alumnoCursoColumns.has("activo") ? "ac.activo AS matricula_activa" : "1 AS matricula_activa"},
+        ${matriculaActivaSelect},
         ${buildSelect("a", alumnoColumns, "usuario_id")}
        FROM alumnos a
        JOIN alumno_curso ac
@@ -638,7 +671,9 @@ router.post("/grupos/:id/alumnos", requireAdmin, async (req, res) => {
 
     const alumnoCursoColumns = await getTableColumns("alumno_curso", connection);
     const grupoAlumnoColumns = await getTableColumns("grupo_alumnos", connection);
-    const enrollmentActiveWhere = alumnoCursoColumns.has("activo") ? "AND activo = 1" : "";
+    const enrollmentActiveWhere = alumnoCursoColumns.has("estado")
+      ? "AND estado <> 'baja'"
+      : alumnoCursoColumns.has("activo") ? "AND activo = 1" : "";
     const [enrollments] = await connection.query(
       `SELECT alumno_id
        FROM alumno_curso
@@ -662,6 +697,10 @@ router.post("/grupos/:id/alumnos", requireAdmin, async (req, res) => {
         asisteDia2: req.body.asiste_dia2,
       },
       grupoAlumnoColumns
+    );
+
+    await upsertCurrentEnrollment(
+      connection, alumnoId, gestionContext, undefined, alumnoCursoColumns, assignment.grupoId
     );
 
     await connection.commit();
@@ -754,7 +793,8 @@ router.post("/alumnos", requireAdmin, async (req, res) => {
       result.insertId,
       gestionContext,
       matriculaActiva,
-      alumnoCursoColumns
+      alumnoCursoColumns,
+      matriculaActiva ? req.body.grupo_id || null : null
     );
 
     const assignment = await replaceCurrentGroupAssignment(
@@ -860,7 +900,8 @@ router.put("/alumnos/:id", requireAdmin, async (req, res) => {
       req.params.id,
       gestionContext,
       requestedEnrollmentActive,
-      alumnoCursoColumns
+      alumnoCursoColumns,
+      editsAssignment ? req.body.grupo_id || null : undefined
     );
 
     let assignment = null;
