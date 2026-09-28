@@ -9,6 +9,7 @@ let rollbacks = 0;
 let inserts = 0;
 let professorActive = true;
 let professorLinked = true;
+let showColumnsQueries = 0;
 const students = [
   { id: 1, nombre: "Ana", apellidos: "A", asiste_dia1: 1, asiste_dia2: 0 },
   { id: 2, nombre: "Beto", apellidos: "B", asiste_dia1: 0, asiste_dia2: 1 },
@@ -40,6 +41,7 @@ async function query(sql, params = []) {
     return [[...attendance].map(([alumno_id, estado]) => ({ alumno_id, estado }))];
   }
   if (sql === "SHOW COLUMNS FROM profesores") {
+    showColumnsQueries += 1;
     return [[{ Field: "id" }, { Field: "usuario_id" }, { Field: "activo" }]];
   }
   if (sql === "SELECT id FROM profesores WHERE id = ? LIMIT 1") return [[{ id: params[0] }]];
@@ -101,7 +103,7 @@ registerHooks({
   },
 });
 
-const { default: router } = await import("../routes/gestionControl.js");
+const { default: router, resetProfessorColumnsCache } = await import("../routes/gestionControl.js");
 
 async function call(method, path, { fecha = "2026-09-22", ...body } = {}, role = "admin") {
   const route = router.stack.find((layer) => layer.route?.path === path && layer.route.methods[method]).route;
@@ -217,4 +219,19 @@ test("profesor inactivo o usuario ajeno a staff no accede", async () => {
   const nonStaff = await call("get", path, {}, "alumno");
   assert.equal(nonStaff.statusCode, 403);
   assert.equal((await call("get", "/grupos", {}, "alumno")).statusCode, 403);
+});
+
+test("las columnas de profesores se consultan una sola vez y la caché se puede reiniciar", async () => {
+  professorActive = true;
+  professorLinked = true;
+  resetProfessorColumnsCache();
+  showColumnsQueries = 0;
+  await call("get", "/grupos", {}, "profesor");
+  await call("get", path, { fecha: "2026-09-21" }, "profesor");
+  await call("get", "/grupos", {}, "profe");
+  assert.equal(showColumnsQueries, 1);
+
+  resetProfessorColumnsCache();
+  await call("get", "/grupos", {}, "profesor");
+  assert.equal(showColumnsQueries, 2);
 });

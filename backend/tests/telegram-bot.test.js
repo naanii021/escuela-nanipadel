@@ -221,3 +221,95 @@ test("pasar lista guarda al profesor y genera recuperación por justificada", as
   assert.equal(recoveries.get(11).motivo, "falta_justificada");
   assert.match(api.calls.at(-1).text, /Justificadas: 1/);
 });
+
+function freshAttendance() {
+  session = null;
+  attendance.clear();
+  recoveries.clear();
+  linkedChatId = "100";
+}
+
+const callback = (id, data, messageId = 50) => ({ callback_query: { id, data, message: { message_id: messageId, chat: { id: 100 } } } });
+
+test("tras un reinicio sin borrador no guarda la lista y obliga a pasarla de nuevo en el mismo mensaje", async () => {
+  freshAttendance();
+  const api = fakeApi();
+  const firstRun = createTelegramBot({ api, database: globalThis.__telegramTestDb });
+  await firstRun.handleUpdate(callback("cb1", "attendance:1:2026-09-22"));
+  await firstRun.handleUpdate(callback("cb2", "mark:1:20260922:11:f"));
+
+  // Simula el reinicio: nueva instancia, Map de borradores vacío.
+  const restarted = createTelegramBot({ api, database: globalThis.__telegramTestDb });
+  api.calls.length = 0;
+  await restarted.handleUpdate(callback("cb3", "save:1:20260922"));
+
+  assert.equal(session, null);
+  assert.equal(attendance.size, 0);
+  assert.equal(api.calls.filter((item) => item.method === "sendMessage").length, 0);
+  const answer = api.calls.find((item) => item.method === "answerCallback");
+  assert.match(answer.text, /perdida/i);
+  const edits = api.calls.filter((item) => item.method === "editMessage");
+  assert.equal(edits.length, 1);
+  assert.equal(edits[0].messageId, 50);
+  assert.match(edits[0].text, /se ha perdido.*No se ha guardado nada/s);
+  assert.ok(edits[0].reply_markup.inline_keyboard.flat().some((button) => button.text === "Guardar lista"));
+
+  // El nuevo borrador empieza desde lo guardado (nada) y ya permite guardar.
+  api.calls.length = 0;
+  await restarted.handleUpdate(callback("cb4", "save:1:20260922"));
+  assert.equal(session.estado, "dada");
+  assert.equal(attendance.get(11), "presente");
+});
+
+test("marcar sin borrador reconstruye la lista en el mismo mensaje sin enviar otro teclado", async () => {
+  freshAttendance();
+  const api = fakeApi();
+  const bot = createTelegramBot({ api, database: globalThis.__telegramTestDb });
+  await bot.handleUpdate(callback("cb1", "mark:1:20260922:11:j", 77));
+
+  assert.equal(api.calls.filter((item) => item.method === "sendMessage").length, 0);
+  const edits = api.calls.filter((item) => item.method === "editMessage");
+  assert.equal(edits.length, 1);
+  assert.equal(edits[0].messageId, 77);
+  const draft = bot.drafts.get("100:1:20260922");
+  assert.equal(draft.messageId, 77);
+  assert.equal(draft.states[11], "presente");
+  assert.equal(session, null);
+
+  await bot.handleUpdate(callback("cb2", "mark:1:20260922:11:j", 77));
+  assert.equal(bot.drafts.get("100:1:20260922").states[11], "justificada");
+  assert.equal(api.calls.filter((item) => item.method === "sendMessage").length, 0);
+  assert.ok(api.calls.filter((item) => item.method === "editMessage").every((item) => item.messageId === 77));
+});
+
+test("los borradores caducan a los 60 minutos, no se guardan y se limpian del Map", async () => {
+  freshAttendance();
+  let clock = new Date("2026-09-22T10:00:00Z").getTime();
+  const api = fakeApi();
+  const bot = createTelegramBot({ api, database: globalThis.__telegramTestDb, now: () => new Date(clock) });
+  await bot.handleUpdate(callback("cb1", "attendance:1:2026-09-22"));
+  await bot.handleUpdate(callback("cb2", "attendance:2:2026-09-22", 51));
+  assert.equal(bot.drafts.size, 2);
+
+  // La actividad renueva la caducidad del borrador del grupo 1.
+  clock += 40 * 60 * 1000;
+  await bot.handleUpdate(callback("cb3", "mark:1:20260922:11:f"));
+  clock += 30 * 60 * 1000;
+  await bot.handleUpdate({ message: { chat: { id: 100, type: "private" }, text: "/ayuda" } });
+  assert.deepEqual([...bot.drafts.keys()], ["100:1:20260922"]);
+
+  clock += 61 * 60 * 1000;
+  api.calls.length = 0;
+  await bot.handleCallback(callback("cb4", "save:1:20260922").callback_query);
+  assert.equal(session, null);
+  assert.match(api.calls.find((item) => item.method === "answerCallback").text, /caducada/i);
+  const edit = api.calls.find((item) => item.method === "editMessage");
+  assert.equal(edit.messageId, 50);
+  assert.match(edit.text, /caducado.*No se ha guardado nada/s);
+  assert.equal(api.calls.filter((item) => item.method === "sendMessage").length, 0);
+  assert.equal(bot.drafts.get("100:1:20260922").states[11], "presente");
+
+  clock += 61 * 60 * 1000;
+  bot.pruneExpiredDrafts();
+  assert.equal(bot.drafts.size, 0);
+});

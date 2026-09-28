@@ -43,10 +43,28 @@ async function getContext(connection) {
   return rows[0];
 }
 
+// El esquema de profesores no cambia en caliente: se consulta una vez por proceso.
+let professorColumnsPromise = null;
+
+function getProfessorColumns(connection) {
+  if (!professorColumnsPromise) {
+    professorColumnsPromise = connection.query("SHOW COLUMNS FROM profesores")
+      .then(([columns]) => new Set(columns.map((row) => row.Field)))
+      .catch((error) => {
+        professorColumnsPromise = null;
+        throw error;
+      });
+  }
+  return professorColumnsPromise;
+}
+
+export function resetProfessorColumnsCache() {
+  professorColumnsPromise = null;
+}
+
 export async function getProfessorId(connection, user) {
   if (Number.isInteger(Number(user?.profesor_id)) && Number(user.profesor_id) > 0) return Number(user.profesor_id);
-  const [columns] = await connection.query("SHOW COLUMNS FROM profesores");
-  const names = new Set(columns.map((row) => row.Field));
+  const names = await getProfessorColumns(connection);
   const conditions = [];
   const params = [];
   if (names.has("usuario_id")) {

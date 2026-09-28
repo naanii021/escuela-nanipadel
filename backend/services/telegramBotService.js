@@ -9,6 +9,11 @@ import { consumeTelegramLinkCode, getTelegramProfessor } from "./telegramLinkSer
 
 const DAY_CODES = ["D", "L", "M", "X", "J", "V", "S"];
 const STATUS = { presente: "✅", falta: "❌", justificada: "🟠" };
+export const DRAFT_TTL_MS = 60 * 60 * 1000;
+const DRAFT_NOTICES = {
+  lost: "⚠️ La lista en curso se ha perdido (el bot se ha reiniciado). No se ha guardado nada: vuelve a pasar lista y pulsa Guardar.",
+  expired: "⚠️ La lista en curso ha caducado por inactividad. No se ha guardado nada: vuelve a pasar lista y pulsa Guardar.",
+};
 
 function madridDate(now = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -87,8 +92,27 @@ export class TelegramApi {
   }
 }
 
-export function createTelegramBot({ api, database = db, now = () => new Date() }) {
+export function createTelegramBot({ api, database = db, now = () => new Date(), draftTtlMs = DRAFT_TTL_MS }) {
   const drafts = new Map();
+  const nowMs = () => now().getTime();
+  const isExpired = (draft) => nowMs() - draft.touchedAt > draftTtlMs;
+
+  function pruneExpiredDrafts() {
+    for (const [key, draft] of drafts) {
+      if (isExpired(draft)) drafts.delete(key);
+    }
+  }
+
+  function takeDraft(key) {
+    const draft = drafts.get(key);
+    if (!draft) return { reason: "lost" };
+    if (isExpired(draft)) {
+      drafts.delete(key);
+      return { reason: "expired" };
+    }
+    draft.touchedAt = nowMs();
+    return { draft };
+  }
   const promiseDb = () => database.promise();
 
   async function linked(chatId) {
@@ -128,12 +152,12 @@ export function createTelegramBot({ api, database = db, now = () => new Date() }
     return api.sendMessage(chatId, `Recuperaciones:\n${lines.join("\n")}`);
   }
 
-  function draftMessage(draft) {
+  function draftMessage(draft, notice = "") {
     const lines = draft.students.map((student) => {
       const state = draft.states[student.id] || "presente";
       return `${STATUS[state]} ${student.nombre} ${student.apellidos || ""}`.trim();
     });
-    return `Pasar lista · ${draft.group.nombre} · ${draft.date}\n${lines.join("\n")}`;
+    return `${notice ? `${notice}\n\n` : ""}Pasar lista · ${draft.group.nombre} · ${draft.date}\n${lines.join("\n")}`;
   }
 
   function draftKeyboard(draft) {
@@ -150,18 +174,21 @@ export function createTelegramBot({ api, database = db, now = () => new Date() }
     return { inline_keyboard: rows };
   }
 
-  async function beginAttendance(chatId, professor, groupId, date, messageId = null) {
+  async function beginAttendance(chatId, professor, groupId, date, messageId = null, notice = "") {
     const data = await loadControlSession(actor(professor), groupId, date, promiseDb());
     const group = { ...data.grupo, id: Number(groupId) };
     const stored = Object.fromEntries(data.asistencias.map((item) => [item.alumno_id, item.estado]));
     const draft = {
       group, date, compactDate: date.replaceAll("-", ""), students: data.alumnos,
       states: Object.fromEntries(data.alumnos.map((student) => [student.id, stored[student.id] || "presente"])),
+      messageId, touchedAt: nowMs(),
     };
     drafts.set(`${chatId}:${groupId}:${draft.compactDate}`, draft);
     const markup = draftKeyboard(draft);
-    if (messageId) return api.editMessage(chatId, messageId, draftMessage(draft), markup);
-    return api.sendMessage(chatId, draftMessage(draft), markup);
+    if (messageId) return api.editMessage(chatId, messageId, draftMessage(draft, notice), markup);
+    const sent = await api.sendMessage(chatId, draftMessage(draft, notice), markup);
+    draft.messageId = sent?.message_id ?? null;
+    return sent;
   }
 
   async function handleMessage(message) {
@@ -214,11 +241,13 @@ export function createTelegramBot({ api, database = db, now = () => new Date() }
       await api.answerCallback(callback.id);
       return beginAttendance(chatId, professor, groupId, date, messageId);
     }
-    const key = `${chatId}:${groupId}:${compactDate}`;
-    let draft = drafts.get(key);
+    if (action !== "mark" && action !== "save") return api.answerCallback(callback.id, "Acción no reconocida");
+    const key = `${chatId}:${groupId}:${date.replaceAll("-", "")}`;
+    const { draft, reason } = takeDraft(key);
     if (!draft) {
-      await beginAttendance(chatId, professor, groupId, date);
-      draft = drafts.get(key);
+      // Sin borrador nunca se guarda: se recarga la lista en el mismo mensaje para repasarla entera.
+      await api.answerCallback(callback.id, reason === "expired" ? "Lista caducada" : "Lista perdida, vuelve a pasarla");
+      return beginAttendance(chatId, professor, groupId, date, messageId, DRAFT_NOTICES[reason]);
     }
     if (action === "mark") {
       const studentId = Number(parts[3]);
@@ -228,7 +257,7 @@ export function createTelegramBot({ api, database = db, now = () => new Date() }
       }
       draft.states[studentId] = state;
       await api.answerCallback(callback.id, `${state}`);
-      return api.editMessage(chatId, messageId, draftMessage(draft), draftKeyboard(draft));
+      return api.editMessage(chatId, messageId || draft.messageId, draftMessage(draft), draftKeyboard(draft));
     }
     if (action === "save") {
       const result = await saveControlSession({
@@ -241,18 +270,18 @@ export function createTelegramBot({ api, database = db, now = () => new Date() }
       drafts.delete(key);
       const counts = result.asistencias.reduce((acc, item) => ({ ...acc, [item.estado]: (acc[item.estado] || 0) + 1 }), {});
       await api.answerCallback(callback.id, "Asistencia guardada");
-      return api.editMessage(chatId, messageId,
+      return api.editMessage(chatId, messageId || draft.messageId,
         `✅ Clase guardada como dada.\nPresentes: ${counts.presente || 0} · Faltas: ${counts.falta || 0} · Justificadas: ${counts.justificada || 0}`);
     }
-    return api.answerCallback(callback.id, "Acción no reconocida");
   }
 
   async function handleUpdate(update) {
+    pruneExpiredDrafts();
     if (update.message) return handleMessage(update.message);
     if (update.callback_query) return handleCallback(update.callback_query);
   }
 
-  return { handleUpdate, handleMessage, handleCallback, drafts };
+  return { handleUpdate, handleMessage, handleCallback, drafts, pruneExpiredDrafts };
 }
 
 export async function runTelegramPolling({ api, bot, onError = console.error }) {

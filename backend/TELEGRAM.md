@@ -42,3 +42,10 @@ npm run telegram:bot
 Debe existir una sola instancia del proceso de polling. El profesor genera el
 código de un solo uso desde su panel autenticado y lo envía al bot en un chat
 privado. El código caduca a los diez minutos.
+
+La lista que se está pasando vive solo en memoria del proceso y caduca tras
+60 minutos sin actividad. Si el bot se reinicia o la lista caduca, pulsar
+"Guardar lista" no guarda nada: el bot recarga la lista en el mismo mensaje con
+un aviso y el profesor debe repasarla antes de guardar.
+
+Tests del backend: `npm test`.

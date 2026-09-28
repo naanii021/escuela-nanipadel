@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "telegram:bot": "node scripts/telegram-bot.js"
+    "telegram:bot": "node scripts/telegram-bot.js",
+    "test": "node --test \"tests/*.test.js\""
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
