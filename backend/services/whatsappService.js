@@ -30,7 +30,7 @@ export const WHATSAPP_TEMPLATES = {
 // 34622040926      -> +34622040926
 // +34622040926     -> +34622040926
 // whatsapp:+346... -> +346...
-function normalizePhoneNumber(phone) {
+export function normalizePhoneNumber(phone) {
   if (!phone) return null;
 
   // Convertimos el teléfono a texto y quitamos espacios

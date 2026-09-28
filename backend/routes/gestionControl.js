@@ -30,7 +30,7 @@ function dateOnly(value) {
   return String(value).slice(0, 10);
 }
 
-async function getContext(connection) {
+export async function getContext(connection) {
   const [rows] = await connection.query(
     `SELECT c.id AS curso_id, s.id AS sede_id
      FROM cursos_escolares c

@@ -2,10 +2,12 @@ import express from "express";
 import { db } from "../db/connection.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
 import { sendTextMessage } from "../services/whatsappService.js";
+import { ASSISTANT_TABLE, assistantEnabled, createWhatsAppAssistant } from "../services/whatsappAssistantService.js";
 
 const router = express.Router();
 const query = (sql, params = []) => db.promise().query(sql, params);
 const ADMIN_ONLY = [requireAuth, requireRoles(["admin"])];
+const assistant = createWhatsAppAssistant();
 
 async function tableExists(tableName) {
   const [rows] = await query("SHOW TABLES LIKE ?", [tableName]);
@@ -111,6 +113,40 @@ async function saveInboundMessage(conversation, message, value) {
   );
 }
 
+async function messageAlreadyStored(metaMessageId) {
+  if (!metaMessageId) return false;
+  const [rows] = await query("SELECT id FROM whatsapp_messages WHERE meta_message_id = ? LIMIT 1", [metaMessageId]);
+  return rows.length > 0;
+}
+
+async function replyWithAssistant(conversation, message) {
+  if (!assistantEnabled() || message?.type !== "text") return;
+  if (!(await tableExists(ASSISTANT_TABLE))) {
+    console.warn("Asistente de WhatsApp activado pero falta la tabla whatsapp_conversacion_alumno.");
+    return;
+  }
+
+  const reply = await assistant.reply({
+    conversationId: conversation.id,
+    phone: conversation.wa_id,
+    text: message.text?.body || "",
+  });
+  if (!reply) return;
+
+  const result = await sendTextMessage(conversation.wa_id, reply);
+  const createdAt = mysqlDateFromDate(new Date());
+  await query(
+    `INSERT INTO whatsapp_messages
+      (conversation_id, meta_message_id, direccion, tipo, contenido, estado, raw_payload, created_at)
+     VALUES (?, ?, 'outbound', 'text', ?, 'enviado', ?, ?)`,
+    [conversation.id, result.messageId || null, reply, JSON.stringify({ provider: result.provider, asistente: true }), createdAt]
+  );
+  await query(
+    "UPDATE whatsapp_conversations SET ultimo_mensaje = ?, ultimo_mensaje_en = ? WHERE id = ?",
+    [reply, createdAt, conversation.id]
+  );
+}
+
 async function processStatus(status) {
   const nextStatus = normalizeMessageStatus(status.status);
   if (!nextStatus || !status.id) return;
@@ -161,6 +197,8 @@ router.post("/webhook", async (req, res) => {
         for (const message of value.messages || []) {
           const waId = message.from;
           if (!waId) continue;
+          // Meta reintenta webhooks: un mensaje ya guardado no se procesa ni se responde dos veces.
+          if (await messageAlreadyStored(message.id)) continue;
 
           const contact = contacts.get(waId);
           const content = messageContent(message);
@@ -174,6 +212,12 @@ router.post("/webhook", async (req, res) => {
           });
 
           await saveInboundMessage(conversation, message, value);
+
+          try {
+            await replyWithAssistant(conversation, message);
+          } catch (error) {
+            console.error("Error en el asistente de WhatsApp:", error.message);
+          }
         }
       }
     }
