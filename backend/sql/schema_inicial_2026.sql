@@ -73,6 +73,87 @@
 --   del miniPC/microcontrolador), no por este backend. Sus tipos son una
 --   estimación razonable, no una confirmación de código.
 -- =====================================================================
+--
+-- =====================================================================
+-- REVISIÓN DE INTEGRIDAD REFERENCIAL (tras validar las 31 tablas en
+-- MySQL 8.4). Objetivo: que borrar un alumno, un grupo, una sesión o un
+-- torneo no pueda destruir en cascada matrículas, asistencias,
+-- recuperaciones, inscripciones o resultados históricos.
+--
+-- CRITERIO APLICADO (tres categorías, no una conversión mecánica de todo
+-- a RESTRICT):
+--
+--   RESTRICT  -> el hijo ES el hecho histórico (una asistencia, una
+--                recuperación, un resultado de partido, una inscripción).
+--                No se puede borrar el padre (alumno/grupo/sesión/torneo)
+--                mientras ese hecho exista. La baja sigue siendo posible:
+--                vía baja lógica (activo = 0 / alumno_curso.estado =
+--                'baja' / torneos_americanos.estado = 'cancelado', punto
+--                4) o vía anonimización en el propio registro (UPDATE que
+--                vacía nombre/telefono/email, punto 6): ninguna de las dos
+--                operaciones es un DELETE y por tanto ninguna choca con
+--                RESTRICT. Solo se bloquea el DELETE físico de una fila
+--                con historial real.
+--
+--   SET NULL  -> el hijo es un hecho histórico, pero la columna identifica
+--                a una PERSONA (usuario) en vez de a un ALUMNO. Para
+--                usuarios sí se permite el DELETE físico: se desvincula el
+--                nombre pero el hecho en sí (una reserva, una inscripción,
+--                una plaza ocupada) permanece íntegro, incluyendo recuentos
+--                como "plazas_ocupadas", que dependen de que la fila siga
+--                existiendo, solo que ya sin nombre. Esto es justo lo que
+--                pide el punto 6: una baja de cuenta (RGPD) no debe quedar
+--                bloqueada por el historial del club.
+--
+--   CASCADE   -> el hijo es prescindible por sí mismo: datos temporales
+--                (códigos de enlace de Telegram, punto 2), el estado
+--                puramente personal de un usuario (sus preferencias de
+--                aviso, su propia bandeja de notificaciones) o una fila que
+--                solo tiene sentido dentro de su padre inmediato (un
+--                participante dentro de SU reserva, un mensaje dentro de
+--                SU conversación de WhatsApp). Borrar el padre aquí no
+--                borra ningún resultado del club, y mantener CASCADE
+--                también permite completar una solicitud legítima de
+--                supresión total (p. ej. "borra toda mi conversación de
+--                WhatsApp") sin dejar filas huérfanas.
+--
+-- Por qué alumnos (RESTRICT) y usuarios (SET NULL) se tratan distinto:
+-- un "usuario" es una cuenta de acceso (login); un "alumno" es la persona
+-- real con historial deportivo del club (asistencias, recuperaciones,
+-- partidos). Borrar la cuenta de acceso de alguien no debería chocar con
+-- nada —de ahí SET NULL en usuarios—, pero borrar físicamente al alumno
+-- sí borraría ese historial —de ahí RESTRICT en alumnos—. Si algún día
+-- hay que atender una baja de datos personales de un alumno (no solo de su
+-- cuenta), el camino no es DELETE FROM alumnos: es anonimizar sus campos
+-- personales en la misma fila (nombre, apellidos, telefono, tutor_telefono,
+-- email, observaciones) y marcar activo = 0. RESTRICT nunca bloquea un
+-- UPDATE, solo un DELETE.
+--
+-- RESUMEN DE RELACIONES MODIFICADAS (detalle junto a cada tabla)
+-- ------------------------------------------------------------------
+-- CASCADE -> RESTRICT (19 relaciones):
+--   alumno_curso.alumno_id, sesiones_clase.grupo_id,
+--   asistencia_clase.{sesion_id,alumno_id},
+--   recuperaciones_clase.{alumno_id,grupo_id}, avisos_clase.grupo_id,
+--   torneo_inscripciones.torneo_id,
+--   americano_participantes.{americano_id,alumno_id},
+--   americano_partidos.{americano_id,equipo_a_alumno_1_id,equipo_b_alumno_1_id},
+--   americano_parejas.{americano_id,jugador1_alumno_id},
+--   americano_incidencias.americano_id.
+-- SET NULL -> RESTRICT (3 relaciones, por coherencia: un jugador en el
+-- "hueco opcional" de un partido/pareja protege su historial igual que el
+-- titular):
+--   americano_partidos.{equipo_a_alumno_2_id,equipo_b_alumno_2_id},
+--   americano_parejas.jugador2_alumno_id.
+-- CASCADE -> SET NULL (4 relaciones; usuario_id pasa a NULL-able donde
+-- antes era NOT NULL, ver detalle en cada tabla):
+--   reservas_pista.usuario_id, torneo_inscripciones.usuario_id,
+--   reservas_pista_participantes.{usuario_id,invitado_de_usuario_id}.
+-- Sin cambios, documentados explícitamente donde el borrado sí es seguro
+-- en CASCADE (códigos Telegram, preferencias/bandeja propia de un
+-- usuario, filas que solo existen dentro de su agregado inmediato) o ya
+-- era SET NULL/RESTRICT correcto (ver comentarios junto a cada tabla).
+-- =====================================================================
 
 SET NAMES utf8mb4;
 
@@ -249,6 +330,11 @@ CREATE TABLE grupos (
 -- soporta solo como alternativa de compatibilidad con bases antiguas; en
 -- un esquema nuevo "estado" es suficiente y es el camino que cubren los
 -- tests actuales.
+-- [INTEGRIDAD] fk_alumno_curso_alumno pasa de CASCADE a RESTRICT: una
+-- matrícula es exactamente lo que el punto 1 pide proteger. Baja de
+-- alumno = alumnos.activo = 0 (o alumno_curso.estado = 'baja'), nunca
+-- DELETE FROM alumnos. Si hace falta anonimizar al alumno (RGPD), se
+-- vacían sus campos personales con UPDATE; RESTRICT no afecta a UPDATE.
 CREATE TABLE alumno_curso (
   alumno_id     INT UNSIGNED NOT NULL,
   curso_id      INT UNSIGNED NOT NULL,
@@ -259,7 +345,7 @@ CREATE TABLE alumno_curso (
   updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (alumno_id, curso_id, sede_id),
   KEY idx_alumno_curso_curso_sede (curso_id, sede_id, estado),
-  CONSTRAINT fk_alumno_curso_alumno FOREIGN KEY (alumno_id) REFERENCES alumnos(id) ON DELETE CASCADE,
+  CONSTRAINT fk_alumno_curso_alumno FOREIGN KEY (alumno_id) REFERENCES alumnos(id) ON DELETE RESTRICT,
   CONSTRAINT fk_alumno_curso_curso FOREIGN KEY (curso_id) REFERENCES cursos_escolares(id) ON DELETE RESTRICT,
   CONSTRAINT fk_alumno_curso_sede FOREIGN KEY (sede_id) REFERENCES sedes(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -268,6 +354,12 @@ CREATE TABLE alumno_curso (
 -- el código siempre consulta/actualiza por esa pareja. asiste_dia1/2
 -- confirmados con DEFAULT 1 (patrón COALESCE(ga.asiste_dia1, 1) repetido
 -- en clases.js, gestionControl.js y gestion.js).
+-- [INTEGRIDAD] Se mantiene CASCADE en ambas FK a propósito: esta tabla es
+-- el roster ACTUAL de un grupo, no un hecho histórico (eso lo registran
+-- asistencia_clase y recuperaciones_clase, ya protegidas con RESTRICT más
+-- abajo). Además, en la práctica nunca se llega a borrar aquí por
+-- CASCADE: alumno_curso.alumno_id ya es RESTRICT y bloquea el DELETE de
+-- cualquier alumno con matrícula antes de que esta tabla entre en juego.
 CREATE TABLE grupo_alumnos (
   grupo_id      INT UNSIGNED NOT NULL,
   alumno_id     INT UNSIGNED NOT NULL,
@@ -287,6 +379,15 @@ CREATE TABLE grupo_alumnos (
 -- ser referenciado desde asistencia_clase.sesion_id y
 -- recuperaciones_clase.sesion_origen_id/sesion_recuperacion_id sin chocar
 -- de tipos (ver cabecera del fichero, punto 1).
+-- [INTEGRIDAD] fk_sesiones_clase_grupo pasa de CASCADE a RESTRICT: una
+-- sesión es el registro de que una clase tuvo lugar (o se programó) un
+-- día concreto. Borrar un grupo no debe arrastrar ese historial. Baja de
+-- grupo = grupos.activo = 0, nunca DELETE FROM grupos mientras tenga
+-- sesiones. gestion.js DELETE /grupos/:id ya hace la baja lógica cuando
+-- la columna activo existe (siempre, en este esquema); su rama de borrado
+-- físico (DELETE FROM grupos) queda como código muerto en la práctica, y
+-- si alguna vez se alcanzara fallaría con un error de FK en vez de borrar
+-- sesiones en silencio — ver resumen de endpoints al final del fichero.
 CREATE TABLE sesiones_clase (
   id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
   grupo_id      INT UNSIGNED NOT NULL,
@@ -301,13 +402,19 @@ CREATE TABLE sesiones_clase (
   PRIMARY KEY (id),
   UNIQUE KEY uq_sesiones_clase_grupo_fecha (grupo_id, fecha),
   KEY idx_sesiones_clase_profesor (profesor_id),
-  CONSTRAINT fk_sesiones_clase_grupo FOREIGN KEY (grupo_id) REFERENCES grupos(id) ON DELETE CASCADE,
+  CONSTRAINT fk_sesiones_clase_grupo FOREIGN KEY (grupo_id) REFERENCES grupos(id) ON DELETE RESTRICT,
   CONSTRAINT fk_sesiones_clase_profesor FOREIGN KEY (profesor_id) REFERENCES profesores(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- [INCOMPATIBILIDAD] sesion_id y alumno_id pasan de BIGINT UNSIGNED a
 -- INT UNSIGNED para coincidir con sesiones_clase.id y alumnos.id (ver
 -- cabecera, punto 1). El resto es exacto de la migración original.
+-- [INTEGRIDAD] Ambas FK pasan de CASCADE a RESTRICT: una fila de
+-- asistencia ES literalmente "hubo clase y este alumno estuvo presente/
+-- faltó/justificó" — el ejemplo más directo de "resultado histórico" del
+-- punto 1. Ni una sesión ni un alumno con asistencias registradas se
+-- pueden borrar físicamente; la baja de alumno sigue siendo
+-- alumnos.activo = 0 (punto 4).
 CREATE TABLE asistencia_clase (
   id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
   sesion_id     INT UNSIGNED NOT NULL,
@@ -318,8 +425,8 @@ CREATE TABLE asistencia_clase (
   PRIMARY KEY (id),
   UNIQUE KEY uq_asistencia_clase_sesion_alumno (sesion_id, alumno_id),
   KEY idx_asistencia_clase_alumno (alumno_id),
-  CONSTRAINT fk_asistencia_clase_sesion FOREIGN KEY (sesion_id) REFERENCES sesiones_clase(id) ON DELETE CASCADE,
-  CONSTRAINT fk_asistencia_clase_alumno FOREIGN KEY (alumno_id) REFERENCES alumnos(id) ON DELETE CASCADE
+  CONSTRAINT fk_asistencia_clase_sesion FOREIGN KEY (sesion_id) REFERENCES sesiones_clase(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_asistencia_clase_alumno FOREIGN KEY (alumno_id) REFERENCES alumnos(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- [CONFIRMADO] Esta tabla NUNCA tuvo un CREATE TABLE propio en el repo:
@@ -330,6 +437,13 @@ CREATE TABLE asistencia_clase (
 -- UNIQUE (alumno_id, sesion_origen_id) y el KEY de sesion_recuperacion_id)
 -- + las columnas base que gestionControl.js inserta/lee directamente
 -- (alumno_id, grupo_id, fecha_original, fecha_recuperacion, observaciones).
+-- [INTEGRIDAD] fk_recuperaciones_alumno y fk_recuperaciones_grupo pasan
+-- de CASCADE a RESTRICT: "recuperaciones" es una de las categorías que el
+-- punto 1 nombra explícitamente. sesion_origen_id/sesion_recuperacion_id
+-- se dejan en SET NULL (no se tocan): son opcionales por diseño (una
+-- recuperación "pendiente" no tiene sesión de destino todavía) y perder
+-- solo esa referencia puntual, sin perder la fila de recuperación en sí,
+-- es el comportamiento correcto.
 CREATE TABLE recuperaciones_clase (
   id                      INT UNSIGNED NOT NULL AUTO_INCREMENT,
   alumno_id               INT UNSIGNED NOT NULL,
@@ -347,8 +461,8 @@ CREATE TABLE recuperaciones_clase (
   UNIQUE KEY uq_recuperacion_alumno_origen (alumno_id, sesion_origen_id),
   KEY idx_recuperacion_sesion_destino (sesion_recuperacion_id),
   KEY idx_recuperaciones_grupo (grupo_id),
-  CONSTRAINT fk_recuperaciones_alumno FOREIGN KEY (alumno_id) REFERENCES alumnos(id) ON DELETE CASCADE,
-  CONSTRAINT fk_recuperaciones_grupo FOREIGN KEY (grupo_id) REFERENCES grupos(id) ON DELETE CASCADE,
+  CONSTRAINT fk_recuperaciones_alumno FOREIGN KEY (alumno_id) REFERENCES alumnos(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_recuperaciones_grupo FOREIGN KEY (grupo_id) REFERENCES grupos(id) ON DELETE RESTRICT,
   CONSTRAINT fk_recuperaciones_sesion_origen FOREIGN KEY (sesion_origen_id) REFERENCES sesiones_clase(id) ON DELETE SET NULL,
   CONSTRAINT fk_recuperaciones_sesion_destino FOREIGN KEY (sesion_recuperacion_id) REFERENCES sesiones_clase(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -357,6 +471,12 @@ CREATE TABLE recuperaciones_clase (
 -- backend/routes/clases.js: pickRefColumn prefiere "grupo_id", tipo
 -- default 'info', visible_desde/visible_hasta comparados con NOW(),
 -- activo con DEFAULT 1, creado_en referenciado directamente en el ORDER BY.
+-- [INTEGRIDAD] fk_avisos_clase_grupo pasa de CASCADE a RESTRICT: un aviso
+-- es el rastro de lo que se comunicó a un grupo (ej. "clase movida a
+-- pista 2"); no está en la lista explícita del punto 1, pero es historial
+-- de comunicación tan legítimo como una recuperación, y sesiones_clase ya
+-- bloquea en la práctica el borrado de cualquier grupo con clases dadas,
+-- así que esta restricción es coherente y de coste nulo.
 CREATE TABLE avisos_clase (
   id              INT UNSIGNED NOT NULL AUTO_INCREMENT,
   grupo_id        INT UNSIGNED NOT NULL,
@@ -372,7 +492,7 @@ CREATE TABLE avisos_clase (
   PRIMARY KEY (id),
   KEY idx_avisos_clase_grupo (grupo_id),
   KEY idx_avisos_clase_profesor (profesor_id),
-  CONSTRAINT fk_avisos_clase_grupo FOREIGN KEY (grupo_id) REFERENCES grupos(id) ON DELETE CASCADE,
+  CONSTRAINT fk_avisos_clase_grupo FOREIGN KEY (grupo_id) REFERENCES grupos(id) ON DELETE RESTRICT,
   CONSTRAINT fk_avisos_clase_profesor FOREIGN KEY (profesor_id) REFERENCES profesores(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -382,6 +502,10 @@ CREATE TABLE avisos_clase (
 -- profesores.id" y dejaba la FK comentada) a INT UNSIGNED, para that
 -- coincidir con profesores.id tal como se fija en este esquema. Se añade
 -- la FK que el fichero original dejaba pendiente.
+-- [INTEGRIDAD] fk_telegram_codigos_profesor se mantiene en CASCADE a
+-- propósito: son códigos de un solo uso con 10 minutos de validez (ver
+-- createTelegramLinkCode), el ejemplo exacto de "dato dependiente y
+-- prescindible" del punto 2. No hay nada que proteger aquí.
 CREATE TABLE telegram_profesor_codigos (
   id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   profesor_id   INT UNSIGNED NOT NULL,
@@ -405,10 +529,20 @@ CREATE TABLE telegram_profesor_codigos (
 -- siempre presente (creador), alumno_id opcional, estado/tipo_reserva/
 -- max_jugadores/nivel_min/nivel_max exactos de la migración de partidas
 -- abiertas, duracion_min DEFAULT 90 confirmado en el payload de creación.
+-- [INTEGRIDAD] usuario_id pasa de NOT NULL a NULL y fk_reservas_pista_usuario
+-- de CASCADE a SET NULL: una reserva es historial de uso de pista (quién
+-- jugó, cuándo, en qué pista) que debe sobrevivir a la baja de una
+-- cuenta. Con CASCADE, borrar un usuario borraba TODAS sus reservas
+-- pasadas; con SET NULL, la reserva queda sin nombre pero intacta. El
+-- código ya lee este campo con LEFT JOIN y usa "|| 'jugador'" como
+-- fallback en los mensajes (notifyReservaCreada/Cancelada), así que
+-- tolera NULL sin cambios. El check de "una reserva por día" y el de
+-- propiedad para cancelar comparan contra el id del usuario que hace la
+-- petición, nunca contra NULL, así que no se ven afectados.
 CREATE TABLE reservas_pista (
   id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
   alumno_id      INT UNSIGNED NULL,
-  usuario_id     INT UNSIGNED NOT NULL,
+  usuario_id     INT UNSIGNED NULL,
   nombre_cliente VARCHAR(160) NULL,
   telefono_cliente VARCHAR(30) NULL,
   pista_id       INT UNSIGNED NOT NULL,
@@ -427,7 +561,7 @@ CREATE TABLE reservas_pista (
   KEY idx_reservas_pista_tipo_estado (tipo_reserva, estado),
   KEY idx_reservas_pista_usuario (usuario_id, fecha),
   CONSTRAINT fk_reservas_pista_pista FOREIGN KEY (pista_id) REFERENCES pistas(id) ON DELETE RESTRICT,
-  CONSTRAINT fk_reservas_pista_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+  CONSTRAINT fk_reservas_pista_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
   CONSTRAINT fk_reservas_pista_alumno FOREIGN KEY (alumno_id) REFERENCES alumnos(id) ON DELETE SET NULL,
   CONSTRAINT chk_reservas_pista_nivel CHECK (
     (nivel_min IS NULL OR nivel_min BETWEEN 0 AND 6) AND
@@ -443,6 +577,20 @@ CREATE TABLE reservas_pista (
 -- el INSERT ... ON DUPLICATE KEY UPDATE de "unirse"). Son columnas reales
 -- de la base perdida que nunca llegaron a una migración: añadidas aquí.
 -- Los dos UNIQUE KEY son exactos del fichero original.
+-- [INTEGRIDAD] fk_participante_usuario y fk_participante_invitado_de
+-- pasan de CASCADE a SET NULL (la columna ya era NULL-able, no hace
+-- falta tocarla). Si se borrara en CASCADE, dar de baja a un jugador
+-- borraría su fila de participante y alteraría retroactivamente el
+-- recuento de "plazas_ocupadas" de partidas abiertas ya jugadas — el
+-- propio updateOpenReservationState cuenta "COUNT(*) WHERE estado =
+-- 'confirmado'", así que una fila que desaparece sí cambia la cifra
+-- histórica. Con SET NULL la fila y su "confirmado" se mantienen; solo se
+-- pierde el nombre.
+-- fk_participante_reserva se mantiene en CASCADE: un participante solo
+-- tiene sentido dentro de SU reserva (igual que el punto 2 describe para
+-- datos "dependientes y prescindibles" respecto a su padre inmediato); si
+-- algún día se borra la reserva entera, es razonable que sus
+-- participantes se vayan con ella.
 CREATE TABLE reservas_pista_participantes (
   id                      INT UNSIGNED NOT NULL AUTO_INCREMENT,
   reserva_id              INT UNSIGNED NOT NULL,
@@ -459,9 +607,9 @@ CREATE TABLE reservas_pista_participantes (
   UNIQUE KEY uq_reserva_alumno (reserva_id, alumno_id),
   KEY idx_participantes_invitado_de (invitado_de_usuario_id),
   CONSTRAINT fk_participante_reserva FOREIGN KEY (reserva_id) REFERENCES reservas_pista(id) ON DELETE CASCADE,
-  CONSTRAINT fk_participante_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+  CONSTRAINT fk_participante_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
   CONSTRAINT fk_participante_alumno FOREIGN KEY (alumno_id) REFERENCES alumnos(id) ON DELETE SET NULL,
-  CONSTRAINT fk_participante_invitado_de FOREIGN KEY (invitado_de_usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+  CONSTRAINT fk_participante_invitado_de FOREIGN KEY (invitado_de_usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- =====================================================================
@@ -513,10 +661,20 @@ CREATE TABLE torneos (
 -- permite volver a inscribirse tras cancelar insertando una fila nueva
 -- (hace SELECT ... WHERE estado != 'cancelada' antes de insertar, no usa
 -- ON DUPLICATE KEY), así que una unicidad estricta rompería ese flujo.
+-- [INTEGRIDAD] fk_torneo_inscripciones_torneo pasa de CASCADE a RESTRICT:
+-- "inscripciones" es otra de las categorías que nombra el punto 1. No se
+-- puede borrar un torneo con inscripciones; la baja de torneo usa su
+-- propio campo estado (p. ej. 'cancelado'/'cerrado'), no un DELETE.
+-- [INTEGRIDAD] usuario_id pasa de NOT NULL a NULL y
+-- fk_torneo_inscripciones_usuario de CASCADE a SET NULL, por la misma
+-- razón que en reservas_pista.usuario_id: borrar la cuenta de quien se
+-- inscribió no debe borrar la plaza ocupada en el torneo. El código
+-- consulta siempre por el id del usuario que hace la petición, nunca
+-- contra NULL, así que no se ve afectado.
 CREATE TABLE torneo_inscripciones (
   id                  INT UNSIGNED NOT NULL AUTO_INCREMENT,
   torneo_id           INT UNSIGNED NOT NULL,
-  usuario_id          INT UNSIGNED NOT NULL,
+  usuario_id          INT UNSIGNED NULL,
   nombre_pareja       VARCHAR(160) NULL,
   telefono_contacto   VARCHAR(30) NULL,
   estado              VARCHAR(20) NOT NULL DEFAULT 'inscrita',
@@ -524,8 +682,8 @@ CREATE TABLE torneo_inscripciones (
   PRIMARY KEY (id),
   KEY idx_torneo_inscripciones_torneo (torneo_id, estado),
   KEY idx_torneo_inscripciones_usuario (usuario_id, estado),
-  CONSTRAINT fk_torneo_inscripciones_torneo FOREIGN KEY (torneo_id) REFERENCES torneos(id) ON DELETE CASCADE,
-  CONSTRAINT fk_torneo_inscripciones_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+  CONSTRAINT fk_torneo_inscripciones_torneo FOREIGN KEY (torneo_id) REFERENCES torneos(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_torneo_inscripciones_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- [CONFIRMADO] Exacta de backend/db/americanos_judex.sql.
@@ -548,6 +706,12 @@ CREATE TABLE torneos_americanos (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- [CONFIRMADO] Exacta de backend/db/americanos_judex.sql.
+-- [INTEGRIDAD] Ambas FK pasan de CASCADE a RESTRICT: ser participante de
+-- un Americano es resultado histórico del punto 1 ("torneos" + "resultados
+-- históricos"). Ni el torneo ni el alumno se pueden borrar mientras
+-- conste su participación; baja de torneo = torneos_americanos.estado =
+-- 'cancelado' (ya existe ese valor en el ENUM), baja de alumno =
+-- alumnos.activo = 0.
 CREATE TABLE americano_participantes (
   id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
   americano_id   INT UNSIGNED NOT NULL,
@@ -556,11 +720,19 @@ CREATE TABLE americano_participantes (
   PRIMARY KEY (id),
   UNIQUE KEY uq_americano_alumno (americano_id, alumno_id),
   KEY idx_americano_participantes_alumno (alumno_id),
-  CONSTRAINT fk_americano_participantes_americano FOREIGN KEY (americano_id) REFERENCES torneos_americanos(id) ON DELETE CASCADE,
-  CONSTRAINT fk_americano_participantes_alumno FOREIGN KEY (alumno_id) REFERENCES alumnos(id) ON DELETE CASCADE
+  CONSTRAINT fk_americano_participantes_americano FOREIGN KEY (americano_id) REFERENCES torneos_americanos(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_americano_participantes_alumno FOREIGN KEY (alumno_id) REFERENCES alumnos(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- [CONFIRMADO] Exacta de backend/db/americanos_judex.sql.
+-- [INTEGRIDAD] Las cuatro FK a alumnos y la FK al torneo pasan a
+-- RESTRICT: esta tabla ES el resultado (puntos_a, puntos_b, estado =
+-- 'jugado') que el punto 1 pide proteger explícitamente. Se incluyen
+-- también equipo_a_alumno_2_id y equipo_b_alumno_2_id (antes SET NULL):
+-- el "segundo jugador" de una pareja identifica a alguien que jugó un
+-- partido real tanto como el primero, así que merece la misma
+-- protección; no hay motivo para poder borrar a un alumno solo porque
+-- apareciera en el hueco opcional.
 CREATE TABLE americano_partidos (
   id                      INT UNSIGNED NOT NULL AUTO_INCREMENT,
   americano_id            INT UNSIGNED NOT NULL,
@@ -578,16 +750,20 @@ CREATE TABLE americano_partidos (
   updated_at              TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY idx_americano_partidos_americano (americano_id, ronda, orden),
-  CONSTRAINT fk_americano_partidos_americano FOREIGN KEY (americano_id) REFERENCES torneos_americanos(id) ON DELETE CASCADE,
-  CONSTRAINT fk_americano_partidos_a1 FOREIGN KEY (equipo_a_alumno_1_id) REFERENCES alumnos(id) ON DELETE CASCADE,
-  CONSTRAINT fk_americano_partidos_a2 FOREIGN KEY (equipo_a_alumno_2_id) REFERENCES alumnos(id) ON DELETE SET NULL,
-  CONSTRAINT fk_americano_partidos_b1 FOREIGN KEY (equipo_b_alumno_1_id) REFERENCES alumnos(id) ON DELETE CASCADE,
-  CONSTRAINT fk_americano_partidos_b2 FOREIGN KEY (equipo_b_alumno_2_id) REFERENCES alumnos(id) ON DELETE SET NULL
+  CONSTRAINT fk_americano_partidos_americano FOREIGN KEY (americano_id) REFERENCES torneos_americanos(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_americano_partidos_a1 FOREIGN KEY (equipo_a_alumno_1_id) REFERENCES alumnos(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_americano_partidos_a2 FOREIGN KEY (equipo_a_alumno_2_id) REFERENCES alumnos(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_americano_partidos_b1 FOREIGN KEY (equipo_b_alumno_1_id) REFERENCES alumnos(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_americano_partidos_b2 FOREIGN KEY (equipo_b_alumno_2_id) REFERENCES alumnos(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- [CONFIRMADO] Exacta de backend/sql/2026-06-03_americano_gestion.sql.
 -- [INCOMPATIBILIDAD] id y americano_id pasan de INT (con signo) a INT
 -- UNSIGNED para coincidir con torneos_americanos.id (ver cabecera, punto 2).
+-- [INTEGRIDAD] Las tres FK pasan a RESTRICT (jugador2_alumno_id también,
+-- antes SET NULL), mismo criterio que americano_partidos: una pareja es
+-- estructura de resultado de torneo, y el segundo jugador merece la
+-- misma protección que el primero.
 CREATE TABLE americano_parejas (
   id                  INT UNSIGNED NOT NULL AUTO_INCREMENT,
   americano_id        INT UNSIGNED NOT NULL,
@@ -603,14 +779,22 @@ CREATE TABLE americano_parejas (
   KEY idx_americano_parejas_americano (americano_id),
   KEY idx_americano_parejas_jugador1 (jugador1_alumno_id),
   KEY idx_americano_parejas_jugador2 (jugador2_alumno_id),
-  CONSTRAINT fk_americano_parejas_americano FOREIGN KEY (americano_id) REFERENCES torneos_americanos(id) ON DELETE CASCADE,
-  CONSTRAINT fk_americano_parejas_jugador1 FOREIGN KEY (jugador1_alumno_id) REFERENCES alumnos(id) ON DELETE CASCADE,
-  CONSTRAINT fk_americano_parejas_jugador2 FOREIGN KEY (jugador2_alumno_id) REFERENCES alumnos(id) ON DELETE SET NULL
+  CONSTRAINT fk_americano_parejas_americano FOREIGN KEY (americano_id) REFERENCES torneos_americanos(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_americano_parejas_jugador1 FOREIGN KEY (jugador1_alumno_id) REFERENCES alumnos(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_americano_parejas_jugador2 FOREIGN KEY (jugador2_alumno_id) REFERENCES alumnos(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- [CONFIRMADO] Exacta de backend/sql/2026-06-03_americano_gestion.sql.
 -- [INCOMPATIBILIDAD] id y americano_id pasan de INT (con signo) a INT
 -- UNSIGNED, igual que americano_parejas (ver cabecera, punto 2).
+-- [INTEGRIDAD] fk_americano_incidencias_americano pasa a RESTRICT: una
+-- incidencia (lesión, ausencia, problema de horario/pista) es parte del
+-- registro histórico del torneo. partido_id, pareja_id y creado_por se
+-- mantienen en SET NULL: no protegen un "resultado" en sí, sino una
+-- referencia puntual a un partido/pareja/autor concretos que sí se
+-- pueden seguir borrando de forma individual (DELETE
+-- /americanos/:id/partidos/:partidoId y /parejas/:parejaId siguen
+-- funcionando exactamente igual, ver resumen de endpoints al final).
 CREATE TABLE americano_incidencias (
   id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
   americano_id   INT UNSIGNED NOT NULL,
@@ -626,7 +810,7 @@ CREATE TABLE americano_incidencias (
   PRIMARY KEY (id),
   KEY idx_americano_incidencias_americano (americano_id),
   KEY idx_americano_incidencias_estado (estado),
-  CONSTRAINT fk_americano_incidencias_americano FOREIGN KEY (americano_id) REFERENCES torneos_americanos(id) ON DELETE CASCADE,
+  CONSTRAINT fk_americano_incidencias_americano FOREIGN KEY (americano_id) REFERENCES torneos_americanos(id) ON DELETE RESTRICT,
   CONSTRAINT fk_americano_incidencias_partido FOREIGN KEY (partido_id) REFERENCES americano_partidos(id) ON DELETE SET NULL,
   CONSTRAINT fk_americano_incidencias_pareja FOREIGN KEY (pareja_id) REFERENCES americano_parejas(id) ON DELETE SET NULL,
   CONSTRAINT fk_americano_incidencias_creado_por FOREIGN KEY (creado_por) REFERENCES usuarios(id) ON DELETE SET NULL
@@ -672,6 +856,11 @@ CREATE TABLE galeria_fotos (
 -- (2026-05-24) y notificationService.js (que SIEMPRE inserta 1 en esta
 -- columna) coinciden en que el comportamiento real es "activado por
 -- defecto". Ver cabecera, punto 5.
+-- [INTEGRIDAD] Revisada (punto 3) y sin cambios: fk_notification_preferences_user
+-- se mantiene en CASCADE. Son las preferencias de aviso del propio
+-- usuario, no un dato del club — no hay nada que proteger al borrar la
+-- cuenta; al contrario, dejarlas huérfanas con SET NULL no tendría
+-- sentido porque esta fila no significa nada sin su usuario_id.
 CREATE TABLE notification_preferences (
   id                   INT UNSIGNED NOT NULL AUTO_INCREMENT,
   usuario_id           INT UNSIGNED NOT NULL,
@@ -695,6 +884,14 @@ CREATE TABLE notification_preferences (
 -- (referencia_tipo, referencia_id, read_at, sent_at, error_message,
 -- provider_message_id, payload, created_by_user_id), todas usadas de
 -- forma activa en services/notificationService.js.
+-- [INTEGRIDAD] Revisada (punto 3) y sin cambios: fk_notifications_user se
+-- mantiene en CASCADE — es la bandeja personal de avisos de ese usuario,
+-- no un registro compartido del club (eso lo son reservas, inscripciones
+-- y asistencias, ya protegidos arriba); al borrar la cuenta, borrar su
+-- propia bandeja es lo esperado. fk_notifications_created_by (quién
+-- redactó el aviso) ya estaba en SET NULL y se mantiene: un aviso que
+-- recibieron otros usuarios no debe desaparecer porque se borre la
+-- cuenta de quien lo escribió.
 CREATE TABLE notifications (
   id                    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   usuario_id            INT UNSIGNED NOT NULL,
@@ -744,6 +941,9 @@ CREATE TABLE notification_templates (
 
 -- [CONFIRMADO] Exacta de backend/sql/2026-06-03_whatsapp_inbox.sql (id
 -- sube a INT UNSIGNED por consistencia, igual que en galeria_fotos).
+-- [INTEGRIDAD] Revisada (punto 3) y sin cambios: fk_whatsapp_conversations_atendido_por
+-- ya estaba en SET NULL (reasignar/borrar al profesor que atendió no debe
+-- borrar la conversación) y se mantiene.
 CREATE TABLE whatsapp_conversations (
   id                          INT UNSIGNED NOT NULL AUTO_INCREMENT,
   wa_id                       VARCHAR(40) NOT NULL,
@@ -765,6 +965,11 @@ CREATE TABLE whatsapp_conversations (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- [CONFIRMADO] Exacta de backend/sql/2026-06-03_whatsapp_inbox.sql.
+-- [INTEGRIDAD] Revisada (punto 3) y sin cambios: fk_whatsapp_messages_conversation
+-- se mantiene en CASCADE. No hay hoy ningún endpoint que borre una
+-- conversación, pero si en el futuro se atiende una solicitud legítima
+-- de "borra toda mi conversación de WhatsApp" (punto 6), CASCADE es
+-- precisamente lo que permite completarla sin dejar mensajes huérfanos.
 CREATE TABLE whatsapp_messages (
   id              INT UNSIGNED NOT NULL AUTO_INCREMENT,
   conversation_id INT UNSIGNED NOT NULL,
@@ -786,6 +991,11 @@ CREATE TABLE whatsapp_messages (
 -- [INCOMPATIBILIDAD] El fichero original dejaba la FK a alumnos comentada
 -- ("tras confirmar que el tipo de alumno_id coincide con alumnos.id").
 -- Con alumnos.id fijado aquí en INT UNSIGNED, se añade esa FK.
+-- [INTEGRIDAD] Revisada (punto 3) y sin cambios: fk_whatsapp_conversacion_alumno_alumno
+-- se mantiene en SET NULL (esta fila solo recuerda "de qué alumno se
+-- habla ahora mismo"; borrarlo no debe borrar la conversación ni sus
+-- mensajes) y fk_whatsapp_conversacion_alumno_conversation se mantiene en
+-- CASCADE, mismo motivo que whatsapp_messages.
 CREATE TABLE whatsapp_conversacion_alumno (
   conversation_id       INT UNSIGNED NOT NULL,
   alumno_id             INT UNSIGNED NULL,
@@ -819,10 +1029,50 @@ CREATE TABLE meteo_xiao (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- =====================================================================
+-- IMPACTO EN OPERACIONES DELETE DEL BACKEND (punto 5)
+-- ------------------------------------------------------------------
+-- Revisados uno a uno todos los DELETE/ query existentes en
+-- backend/routes y backend/services. Ningún endpoint que funciona hoy se
+-- rompe con estos cambios:
+--
+-- - gestion.js DELETE /grupos/:id y DELETE /grupos/:id/alumnos/:alumnoId,
+--   y replaceCurrentGroupAssignment: todos comprueban primero si la
+--   tabla tiene columna "activo" y, si la tiene (siempre, en este
+--   esquema), hacen baja lógica (UPDATE activo = 0) en vez de DELETE. La
+--   rama de borrado físico (DELETE FROM grupos / DELETE FROM
+--   grupo_alumnos) queda como código muerto contra este esquema. No
+--   requiere cambios, pero si alguna vez se alcanzara esa rama —p. ej.
+--   tras quitar la columna activo a mano—, antes fallaba en silencio
+--   arrastrando sesiones y asistencias por CASCADE; ahora MySQL la
+--   rechaza con error 1451 (fila referenciada) en vez de borrar historial.
+-- - torneos.js DELETE /americanos/:id/partidos/:partidoId,
+--   /parejas/:parejaId y /participantes/:alumnoId: borran la fila hija
+--   por su propia clave (partidoId/parejaId/alumnoId dentro del torneo),
+--   no el torneo ni el alumno. RESTRICT solo bloquea borrar el PADRE
+--   (torneos_americanos o alumnos) mientras existan hijos; nunca bloquea
+--   borrar la fila hija en sí. Los tres endpoints siguen funcionando
+--   exactamente igual.
+-- - gestionControl.js y clases.js: ninguna ruta borra físicamente
+--   sesiones_clase, asistencia_clase, recuperaciones_clase ni
+--   avisos_clase; todo son INSERT/UPDATE. Sin impacto.
+-- - reservas.js, galeria.js, notificaciones.js, whatsapp.js: ninguno
+--   hace DELETE físico de sus tablas principales (todo son bajas por
+--   "estado"/"activo"). Sin impacto.
+-- - No existe hoy ningún endpoint "borrar torneo" ni "borrar usuario": el
+--   nuevo RESTRICT en torneo_inscripciones/americano_* y el nuevo SET
+--   NULL en reservas_pista/torneo_inscripciones/participantes son, por
+--   ahora, una red de seguridad para el día que se construyan esos
+--   endpoints (p. ej. una solicitud de baja de cuenta), no una
+--   corrección de algo que hoy se usara y se rompiera.
+-- =====================================================================
+--
 -- FIN. Próximos pasos sugeridos (no ejecutados aquí):
 --   1) Revisar cada [DECISIÓN] contra lo que de verdad quieras para v2.
---   2) Si aceptas el esquema, créalo en un contenedor de prueba primero
---      ("docker run" con un volumen descartable) y haz pasar la suite de
---      backend/tests contra él antes de tocar nada real.
---   3) Solo entonces plantear migrar/crear la base definitiva.
+--   2) Recrear este esquema (ya con los cambios de integridad) en un
+--      contenedor de prueba descartable y volver a pasar backend/tests,
+--      igual que se hizo con la primera versión de las 31 tablas.
+--   3) Si en el futuro se implementa un endpoint de baja/anonimización de
+--      cuenta, apóyate en los SET NULL añadidos aquí: un DELETE FROM
+--      usuarios ya no debería topar con ningún error de FK.
+--   4) Solo entonces plantear migrar/crear la base definitiva.
 -- =====================================================================
