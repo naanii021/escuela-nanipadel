@@ -108,7 +108,7 @@ globalThis.__recoveryTestDb = {
 
 registerHooks({
   load(url, context, nextLoad) {
-    if (url.endsWith("/backend/db/connection.js")) {
+    if (url.endsWith("/db/connection.js")) {
       return { format: "module", shortCircuit: true, source: "export const db = globalThis.__recoveryTestDb;" };
     }
     return nextLoad(url, context);

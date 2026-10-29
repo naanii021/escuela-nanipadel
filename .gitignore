@@ -28,3 +28,4 @@ frontend/.env
 frontend/.env.production
 backend/node_modules/
 frontend/node_modules/
+/docker/mysql/.env

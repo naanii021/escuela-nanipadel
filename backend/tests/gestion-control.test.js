@@ -96,7 +96,7 @@ globalThis.__controlTestDb = {
 
 registerHooks({
   load(url, context, nextLoad) {
-    if (url.endsWith("/backend/db/connection.js")) {
+    if (url.endsWith("/db/connection.js")) {
       return { format: "module", shortCircuit: true, source: "export const db = globalThis.__controlTestDb;" };
     }
     return nextLoad(url, context);

@@ -1,0 +1,24 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: nanipadel-mysql
+    restart: unless-stopped
+
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: escuela_nani_padel_v2
+      MYSQL_USER: nanipadel
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+    networks:
+      - nanipadel-internal
+
+volumes:
+  mysql_data:
+
+networks:
+  nanipadel-internal:
+    name: nanipadel-internal
