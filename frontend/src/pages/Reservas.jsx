@@ -430,7 +430,7 @@ function Reservas() {
       <div className="toolbar">
         <div className="datePills">
           <button className={`pillBtn${selectedDateISO === todayISO ? " active" : ""}`} onClick={() => setSelectedDateISO(todayISO)}>Hoy</button>
-          <button className={`pillBtn${selectedDateISO === tomorrowISO ? " active" : ""}`} onClick={() => setSelectedDateISO(tomorrowISO)}>Manana</button>
+          <button className={`pillBtn${selectedDateISO === tomorrowISO ? " active" : ""}`} onClick={() => setSelectedDateISO(tomorrowISO)}>Mañana</button>
           <button className={`pillBtn${selectedDateISO === weekendISO ? " active" : ""}`} onClick={() => setSelectedDateISO(weekendISO)}>Este finde</button>
           <label className="datePicker">
             <span className="datePickerIcon" aria-hidden="true">□</span>

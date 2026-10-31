@@ -1,0 +1,1078 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@600;700&display=swap");
+
+/*
+ * NaniPadel 2026
+ * Capa visual común. Mantiene los componentes y la lógica existentes,
+ * pero unifica navegación, superficies, tipografía y estados.
+ */
+
+:root {
+  --color-primary: #17372a;
+  --color-primary-soft: #214b39;
+  --color-secondary: #2f7d54;
+  --color-secondary-dark: #246543;
+  --color-secondary-light: #e5f4ea;
+  --color-secondary-soft: rgba(47, 125, 84, 0.1);
+  --color-background: #f4f7f3;
+  --color-card: #ffffff;
+  --color-border: #dce5de;
+  --color-muted: #5e6c63;
+  --color-text: #18231d;
+  --color-danger: #b83a45;
+  --color-success: #247448;
+  --color-warning: #a76512;
+
+  --bg: var(--color-background);
+  --surface: var(--color-card);
+  --text: var(--color-text);
+  --muted: var(--color-muted);
+  --brand: var(--color-secondary);
+  --brand-600: var(--color-secondary-dark);
+  --border: var(--color-border);
+
+  --font-display: "Sora", "Manrope", system-ui, sans-serif;
+  --font-body: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --radius: 12px;
+  --radius-lg: 16px;
+  --shadow: none;
+  --shadow-hover: none;
+  --container: 1240px;
+  --focus-ring: rgba(47, 125, 84, 0.28);
+  --lime: #b8ee58;
+  --lime-soft: #eff9dc;
+  --ink-inverse: #f7fbf8;
+}
+
+html {
+  color-scheme: light;
+  scroll-behavior: smooth;
+  scrollbar-color: #9ab3a2 var(--color-background);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+::selection {
+  background: var(--lime);
+  color: #142119;
+}
+
+:where(button, input, select, textarea, a):focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+h1,
+h2,
+h3,
+.heroTitle,
+.reservasTitle,
+.torneosTitle,
+.galeria h1,
+.tienda h1,
+.estadoHeroMain h1,
+.staffHero h1 {
+  color: inherit;
+  font-family: var(--font-display);
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  text-transform: none;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+.container {
+  width: min(var(--container), calc(100% - 3rem));
+}
+
+.main {
+  padding: 2rem 0 3.5rem;
+}
+
+.card,
+.clasesHero,
+.filtersBar,
+.claseCard,
+.quickCard,
+.platformIntro,
+.platformItem,
+.newsCard,
+.torneosControlBar,
+.torneoCard,
+.torneosGallerySection,
+.galeriaControls,
+.galleryCard,
+.featuredCard,
+.tiendaHeroPanel,
+.tiendaFeatured,
+.tiendaControls,
+.shopCard,
+.estadoNowCard,
+.estadoPanel,
+.estadoForecastCard,
+.estadoModuleCard,
+.estadoPhotoCard,
+.loginCard,
+.staffToolbar,
+.staffFilters,
+.groupList,
+.groupDetail,
+.studentsPanel,
+.studentMiniCard,
+.studentRow,
+.toolbar,
+.reservaCard,
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+}
+
+.card:hover,
+.claseCard:hover,
+.platformItem:hover,
+.quickItem:hover,
+.newsCard:hover,
+.torneoCard:hover,
+.galleryCard:hover,
+.shopCard:hover,
+.studentMiniCard:hover,
+.studentRow:hover,
+.reservaCard.disponible:hover {
+  border-color: #a9bdb0;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn,
+.loginBtn,
+.heroCtaBtn,
+.cardLoginCta,
+.btnPrimary,
+.btnGhost,
+.staffPrimaryBtn,
+.staffSecondaryBtn,
+.staffDangerBtn,
+.reserveBtn,
+.btnTorneo,
+.newsReadBtn,
+.newsMoreBtn {
+  min-height: 42px;
+  border-radius: 10px;
+  box-shadow: none;
+  font-weight: 700;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.btn-primary,
+.loginBtn,
+.heroCtaBtn,
+.cardLoginCta,
+.btnPrimary,
+.staffPrimaryBtn,
+.modalActions button[type="submit"],
+.addStudentBar button,
+.reserveBtn.btnDisponible,
+.btnTorneo,
+.newsReadBtn,
+.newsMoreBtn,
+.tiendaFilter.isActive,
+.galleryFilterBtn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: none;
+  color: var(--ink-inverse);
+}
+
+.btn-primary:hover,
+.loginBtn:hover,
+.heroCtaBtn:hover,
+.cardLoginCta:hover,
+.btnPrimary:hover:not(:disabled),
+.staffPrimaryBtn:hover,
+.modalActions button[type="submit"]:hover,
+.addStudentBar button:hover,
+.reserveBtn.btnDisponible:hover,
+.btnTorneo:hover:not(:disabled),
+.newsReadBtn:hover,
+.newsMoreBtn:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-soft);
+  box-shadow: none;
+  filter: none;
+  transform: translateY(-1px);
+}
+
+.btn-ghost,
+.btnGhost,
+.staffSecondaryBtn {
+  background: #ffffff;
+  border-color: #cbd8cf;
+  color: var(--color-text);
+}
+
+.btn-ghost:hover,
+.btnGhost:hover,
+.staffSecondaryBtn:hover {
+  background: #edf3ef;
+  border-color: #a9bdb0;
+}
+
+/* Cabecera */
+.headerWrap,
+.headerWrap.scrolled {
+  background: rgba(255, 255, 255, 0.97);
+  border-bottom: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.header {
+  min-height: 70px;
+  padding: 0.65rem 0;
+}
+
+.badge {
+  width: 42px;
+  height: 42px;
+  border: 1px solid #cbd8cf;
+  border-radius: 10px;
+  background: var(--color-primary);
+  box-shadow: none;
+}
+
+.brand:hover .badge {
+  box-shadow: none;
+  transform: none;
+}
+
+.brandText strong {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.brandText span {
+  color: var(--color-muted);
+  font-size: 0.7rem;
+}
+
+.brand:hover .brandText strong {
+  color: var(--color-secondary-dark);
+}
+
+.nav {
+  flex-wrap: nowrap;
+  gap: 0.1rem;
+}
+
+.nav a {
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  color: #526158;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.nav a::after {
+  display: none;
+}
+
+.nav a:hover {
+  background: #edf3ef;
+  color: var(--color-text);
+}
+
+.nav a.active {
+  background: var(--lime-soft);
+  box-shadow: none;
+  color: #255b3c;
+  font-weight: 700;
+}
+
+.loginBtnShimmer {
+  display: none;
+}
+
+.notificationBellBtn,
+.mobileMenuBtn {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: none;
+  color: var(--color-text);
+}
+
+.notificationBellBtn:hover,
+.notificationBellBtn:focus-visible,
+.mobileMenuBtn:hover,
+.mobileMenuBtn:focus-visible {
+  background: #edf3ef;
+  border-color: #a9bdb0;
+  transform: none;
+}
+
+.mobileMenuBtn.isOpen {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.navUserInfo {
+  background: #edf3ef;
+  border-color: transparent;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.navUserInfo:hover,
+.navUserInfo.active {
+  background: #e2ece5;
+  border-color: transparent;
+  transform: none;
+}
+
+.navAvatar {
+  background: var(--lime);
+  border: 0;
+  box-shadow: none;
+  color: #17372a;
+}
+
+.navUser {
+  color: var(--color-text);
+}
+
+.logoutBtn {
+  min-height: 40px;
+  border: 1px solid #e5c5c9;
+  border-radius: 10px;
+  background: #fff;
+  color: #9d303a;
+}
+
+.notificationPanel {
+  border-color: var(--border);
+  border-radius: 14px;
+  box-shadow: 0 18px 50px rgba(23, 55, 42, 0.14);
+}
+
+.notificationItem.unread,
+.notificationItem-importante,
+.notificationItem-urgente {
+  box-shadow: none;
+}
+
+.notificationItem.unread {
+  background: var(--lime-soft);
+}
+
+/* Portada */
+.home {
+  gap: 3rem;
+  padding-top: 0.25rem;
+}
+
+.heroCard,
+.staffHero,
+.reservasHeader,
+.clasesHero,
+.misClasesSection,
+.torneosHero,
+.galeriaHeroCopy,
+.tiendaHeroCopy,
+.estadoHeroMain,
+.platformLeadCard {
+  background: var(--color-primary);
+  border: 0;
+  border-radius: 18px;
+  box-shadow: none;
+}
+
+.heroCard {
+  min-height: 590px;
+  padding: clamp(1.5rem, 3vw, 3rem);
+}
+
+.heroCard::before {
+  background: none;
+}
+
+.heroGrid {
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+  gap: clamp(2rem, 5vw, 5rem);
+}
+
+.pill,
+.reservasEyebrow,
+.staffEyebrow {
+  display: none;
+}
+
+.heroLeft {
+  align-content: center;
+  gap: 1.35rem;
+  padding-right: 0;
+}
+
+.heroLeft h1 {
+  max-width: 11ch;
+  color: var(--ink-inverse);
+  font-size: clamp(2.65rem, 5.2vw, 4.85rem);
+  letter-spacing: -0.05em;
+  line-height: 0.98;
+  text-transform: none;
+}
+
+.heroLeft p {
+  max-width: 58ch;
+  color: #d9e6dc;
+  font-size: clamp(1rem, 1.3vw, 1.12rem);
+  line-height: 1.65;
+}
+
+.heroLeft strong {
+  color: var(--lime);
+}
+
+.heroLeft .btn-primary {
+  background: var(--lime);
+  border-color: var(--lime);
+  box-shadow: none;
+  color: #17372a;
+}
+
+.heroLeft .btn-primary:hover {
+  background: #c7f47b;
+  box-shadow: none;
+}
+
+.heroLeft .btn-ghost,
+.heroLeft .btn-whatsapp {
+  background: transparent;
+  border-color: #587465;
+  color: #f7fbf8;
+}
+
+.heroProof span,
+.heroStatusItem,
+.weatherBox,
+.weatherMini > div {
+  border-color: #395a49;
+  background: #204333;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.weatherBoxClickable:hover {
+  border-color: #6f917e;
+  background: #204333;
+  transform: none;
+}
+
+.weatherEyebrow,
+.weatherBadge,
+.weatherPageLink {
+  color: #c9ef83;
+}
+
+.weatherBadge,
+.weatherStatusCard span,
+.heroStatusItem span,
+.quickLabel,
+.newsCategory,
+.newsDate {
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.weatherIcon {
+  display: none;
+}
+
+.weatherTemp {
+  background: none;
+  color: #ffffff;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
+}
+
+.heroProof span {
+  border-radius: 8px;
+}
+
+.heroStatusItem {
+  border-radius: 12px;
+}
+
+.weatherBox {
+  border-radius: 16px;
+}
+
+.platformIntro,
+.quickCard,
+.newsSection {
+  box-shadow: none;
+}
+
+.projectStory {
+  border-color: var(--border);
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.projectStoryItem {
+  border-color: var(--border);
+  border-radius: 12px;
+  background: #f8faf8;
+}
+
+.sectionEyebrow {
+  display: none;
+}
+
+.quickItem {
+  box-shadow: none;
+}
+
+.platformItem,
+.quickItem,
+.newsCard,
+.newsFeatured {
+  border-radius: 14px;
+}
+
+.platformIcon {
+  background: var(--lime-soft);
+  color: var(--color-primary);
+}
+
+/* Panel de administración */
+.staffPanel {
+  --staff-surface: #ffffff;
+  --staff-surface-2: #f5f8f5;
+  --staff-surface-3: #edf3ef;
+  --staff-border: #dce5de;
+  --staff-border-strong: #bdccc2;
+  --staff-text: #18231d;
+  --staff-text-soft: #3f5046;
+  --staff-muted: #637269;
+  --staff-green: var(--color-secondary);
+  --staff-green-strong: var(--color-secondary-dark);
+  --staff-green-soft: var(--lime-soft);
+  --staff-danger: #b83a45;
+  --staff-danger-soft: #faecee;
+  --staff-shadow: none;
+
+  gap: 1.25rem;
+  color: var(--staff-text);
+}
+
+.staffHero {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.5fr);
+  gap: 2rem;
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  background: #ffffff;
+  border: 1px solid var(--border);
+  color: var(--color-text);
+}
+
+.staffHeroText h1 {
+  max-width: 15ch;
+  margin-bottom: 1rem;
+  color: var(--color-text);
+  font-size: clamp(1.8rem, 3vw, 2.55rem);
+}
+
+.staffHeroText p {
+  max-width: 48ch;
+  color: var(--color-muted);
+}
+
+.schoolContextBadge {
+  width: fit-content;
+  border: 0;
+  border-radius: 8px;
+  background: var(--lime-soft);
+  color: #285f40;
+}
+
+.staffSummary {
+  overflow: hidden;
+  align-self: stretch;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #f8faf8;
+}
+
+.staffSummary .metricCard {
+  min-height: 126px;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.staffSummary .metricCard:first-child {
+  border-left: 0;
+}
+
+.staffSummary .metricCard span {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.staffSummary .metricCard strong {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.adminOverview,
+.adminQuickPanel,
+.adminPendingPanel,
+.adminModulesPanel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.adminOverviewHead h2,
+.adminSectionHead h2,
+.panelSectionTitle h2 {
+  letter-spacing: -0.025em;
+  text-transform: none;
+}
+
+.adminTodayBadge {
+  background: var(--lime-soft);
+  color: #285f40;
+}
+
+.adminTodayGrid article,
+.adminQuickCard,
+.adminModuleCard {
+  border-color: var(--border);
+  border-radius: 12px;
+  background: #f8faf8;
+  box-shadow: none;
+}
+
+.adminTodayGrid article:hover,
+.adminQuickCard:hover,
+.adminModuleCard:hover {
+  border-color: #a9bdb0;
+  background: #f1f6f2;
+  box-shadow: none;
+  transform: none;
+}
+
+.staffSectionNav,
+.staffToolbar,
+.staffFilters {
+  border-color: var(--border);
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.staffSectionNav button,
+.staffTabs button,
+.quickFilterChip {
+  border-radius: 8px;
+}
+
+.staffSectionNav button.active,
+.staffTabs button.active,
+.quickFilterChip.active {
+  background: var(--lime-soft);
+  border-color: transparent;
+  color: #285f40;
+  box-shadow: none;
+}
+
+/* Reservas */
+.reservas {
+  --res-bg: var(--color-background);
+  --res-surface: #ffffff;
+  --res-border: #dce5de;
+  --res-text: #18231d;
+  --res-muted: #5e6c63;
+  --green-glow: transparent;
+  --green-border: #9bc3a8;
+  --green-strong: #2f7d54;
+  --green-dark: #246543;
+  --green-light: #4f966d;
+  --red-glow: transparent;
+  --red-border: #e5c5c9;
+  --red-strong: #b83a45;
+
+  min-height: auto;
+  padding-bottom: 2rem;
+  background: transparent;
+  color: var(--res-text);
+  overflow: visible;
+}
+
+.reservas::before,
+.reservas::after {
+  display: none;
+}
+
+.reservasHeader,
+.toolbar,
+.dayTitle,
+.courtsColumns,
+.loadingSlots {
+  width: 100%;
+  max-width: none;
+}
+
+.reservasHeader {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  align-items: center;
+  gap: 2rem;
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  background: #ffffff;
+  border: 1px solid var(--border);
+  color: var(--color-text);
+}
+
+.reservasTitle {
+  background: none;
+  color: var(--color-text);
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  -webkit-text-fill-color: currentColor;
+  text-transform: none;
+}
+
+.reservasTitle span,
+.reservasTitle strong {
+  color: inherit;
+}
+
+.reservasIntro {
+  color: var(--color-muted);
+}
+
+.summary {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #f8faf8;
+  gap: 0;
+}
+
+.summaryItem,
+.summaryWhatsapp {
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.summaryItem:first-child {
+  border-left: 0;
+}
+
+.summaryItem:hover {
+  transform: none;
+}
+
+.summaryItem span {
+  color: var(--color-muted);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.summaryItem strong {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  text-shadow: none;
+}
+
+.summaryWhatsapp {
+  color: #285f40;
+}
+
+.toolbar {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.dayTitle > div:first-child {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.quickDateBtn,
+.toolbar select,
+.toolbar input,
+.staffToolbar input,
+.staffFilters select,
+.staffModal input,
+.staffModal select,
+.staffModal textarea {
+  border-color: #cbd8cf;
+  border-radius: 9px;
+  background: #ffffff;
+}
+
+.quickDateBtn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.courtHeader {
+  border: 0;
+  border-radius: 12px;
+  background: var(--color-primary);
+  box-shadow: none;
+}
+
+.courtCount {
+  background: #284b3b;
+  border-color: #426452;
+  color: #dce9df;
+}
+
+.reservaCard {
+  box-shadow: none;
+}
+
+.reservaCard.disponible {
+  border-top-color: var(--color-secondary);
+}
+
+.statusBadge.badgeDisponible,
+.timeTag,
+.chip {
+  border-radius: 6px;
+}
+
+/* Pie, navegación móvil y asistente */
+.footer {
+  margin-top: 0;
+  background: var(--color-primary);
+  color: #c9d8ce;
+}
+
+.footerInner {
+  border-top: 0;
+}
+
+.footer .muted {
+  color: #c9d8ce;
+}
+
+.footerInner a {
+  color: var(--lime);
+}
+
+.mobileBottomNav {
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.mobileNavItem.active {
+  color: var(--color-secondary-dark);
+}
+
+.clubAssistantToggle {
+  background: var(--color-primary);
+  border-color: #496756;
+  box-shadow: 0 10px 30px rgba(23, 55, 42, 0.18);
+}
+
+@media (max-width: 1120px) {
+  .headerRight {
+    position: fixed;
+    inset: 70px 0 auto;
+    display: none;
+    max-height: calc(100vh - 70px);
+    overflow-y: auto;
+    padding: 1rem 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: #ffffff;
+  }
+
+  .headerRight.isOpen {
+    display: grid;
+  }
+
+  .mobileMenuBtn {
+    display: flex;
+  }
+
+  .nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .nav a {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .headerActions {
+    width: 100%;
+    margin: 0.5rem 0 0;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 900px) {
+  .container {
+    width: min(var(--container), calc(100% - 2rem));
+  }
+
+  .heroCard {
+    min-height: auto;
+  }
+
+  .heroGrid,
+  .staffHero,
+  .reservasHeader {
+    grid-template-columns: 1fr;
+  }
+
+  .heroGrid {
+    gap: 2rem;
+  }
+
+  .staffSummary .metricCard {
+    min-height: 100px;
+  }
+}
+
+@media (max-width: 620px) {
+  .container {
+    width: min(var(--container), calc(100% - 2rem));
+  }
+
+  .main {
+    padding-top: 0.75rem;
+  }
+
+  .brandText span {
+    display: none;
+  }
+
+  .nav {
+    grid-template-columns: 1fr;
+  }
+
+  .headerActions {
+    flex-wrap: wrap;
+  }
+
+  .navUserInfo {
+    flex: 1;
+  }
+
+  .heroCard,
+  .staffHero,
+  .reservasHeader {
+    border-radius: 14px;
+    padding: 1.25rem;
+  }
+
+  .heroLeft h1 {
+    font-size: clamp(2.35rem, 12vw, 3.25rem);
+  }
+
+  .heroStatusStrip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .heroStatusItem {
+    padding: 0.75rem 0.55rem;
+  }
+
+  .heroStatusItem span {
+    font-size: 0.68rem;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .heroProof {
+    display: none;
+  }
+
+  .staffSummary,
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .staffSummary .metricCard,
+  .summaryItem,
+  .summaryWhatsapp {
+    min-height: 92px;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .staffSummary .metricCard:nth-child(-n + 2),
+  .summary > :nth-child(-n + 2) {
+    border-top: 0;
+  }
+
+  .staffSummary .metricCard:nth-child(even),
+  .summary > :nth-child(even) {
+    border-left: 1px solid var(--border);
+  }
+
+  .toolbar {
+    border-radius: 14px;
+  }
+
+  .clubAssistantToggle {
+    bottom: calc(5.25rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

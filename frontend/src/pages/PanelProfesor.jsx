@@ -81,6 +81,39 @@ const emptyGroupForm = {
   activo: 1,
 };
 
+const getGroupCapacityState = (group) => {
+  const cupo = Number(group?.cupo || 0);
+  const alumnos = group?.alumnos || [];
+  const day1 = group?.dia1
+    ? alumnos.filter((alumno) => Number(alumno.asiste_dia1 ?? 1) === 1).length
+    : 0;
+  const day2 = group?.dia2
+    ? alumnos.filter((alumno) => Number(alumno.asiste_dia2 ?? 1) === 1).length
+    : 0;
+  const dailyCounts = [];
+
+  if (group?.dia1) dailyCounts.push(day1);
+  if (group?.dia2) dailyCounts.push(day2);
+
+  return {
+    cupo,
+    day1,
+    day2,
+    hasSpace: !cupo || dailyCounts.some((count) => count < cupo),
+    isFull: cupo > 0 && dailyCounts.length > 0 && dailyCounts.every((count) => count >= cupo),
+    blocksAllDays: cupo > 0 && dailyCounts.some((count) => count >= cupo),
+  };
+};
+
+const formatGroupCapacity = (group) => {
+  const capacity = getGroupCapacityState(group);
+  if (!capacity.cupo) return `${group?.alumnos?.length || 0}/-`;
+  if (group?.dia1 && group?.dia2) {
+    return `${capacity.day1}/${capacity.cupo} · ${capacity.day2}/${capacity.cupo}`;
+  }
+  return `${capacity.day1}/${capacity.cupo}`;
+};
+
 const emptyStudentForm = {
   nombre: "",
   apellidos: "",
@@ -395,14 +428,13 @@ export default function PanelProfesor() {
       const matchNivel = !nivel || item.nivel === nivel;
       const matchProfesor = !profesor || String(item.profesor_id) === String(profesor) || item.profesor === profesor;
       const matchGrupo = !grupo || String(item.id) === String(grupo);
-      const ocupacion = item.alumnos?.length || 0;
-      const cupo = Number(item.cupo || 0);
+      const capacity = getGroupCapacityState(item);
       const matchQuick =
         groupQuickFilter === "todos" ||
         item.nivel === groupQuickFilter ||
         (groupQuickFilter === "avanzado" && item.nivel === "avanzado_plus") ||
-        (groupQuickFilter === "con-huecos" && Number(item.activo ?? 1) === 1 && (!cupo || ocupacion < cupo)) ||
-        (groupQuickFilter === "completos" && cupo > 0 && ocupacion >= cupo) ||
+        (groupQuickFilter === "con-huecos" && Number(item.activo ?? 1) === 1 && capacity.hasSpace) ||
+        (groupQuickFilter === "completos" && capacity.isFull) ||
         (groupQuickFilter === "inactivos" && Number(item.activo ?? 1) === 0);
 
       return matchText && matchNivel && matchProfesor && matchGrupo && matchQuick;
@@ -422,8 +454,8 @@ export default function PanelProfesor() {
 
   const panelMetrics = useMemo(() => {
     const gruposConHuecos = grupos.filter((item) => {
-      const cupo = Number(item.cupo || 0);
-      return Number(item.activo ?? 1) === 1 && (!cupo || (item.alumnos?.length || 0) < cupo);
+      const capacity = getGroupCapacityState(item);
+      return Number(item.activo ?? 1) === 1 && capacity.hasSpace;
     }).length;
     const alumnosSinAcceso = alumnos.filter((item) => !item.usuario_id).length;
 
@@ -759,6 +791,15 @@ export default function PanelProfesor() {
 
   const addStudentToGroup = async () => {
     if (!isAdmin || !selectedGroup || !studentToAdd) return;
+
+    const capacity = getGroupCapacityState(selectedGroup);
+    if (capacity.blocksAllDays) {
+      setError(
+        "No se puede añadir para todos los días: al menos una clase ya está completa. " +
+        "Edita la ficha del alumno si solo asistirá al día que tiene plaza."
+      );
+      return;
+    }
 
     try {
       setSaving(true);
@@ -1135,7 +1176,7 @@ export default function PanelProfesor() {
                   <button key={item.id} className={String(selectedGroup?.id) === String(item.id) ? "groupListItem active" : "groupListItem"} data-level={item.nivel || "default"} onClick={() => setSelectedGroupId(item.id)}>
                     <span className="groupListTop">
                       <strong>{item.nombre}</strong>
-                      <small>{item.alumnos?.length || 0}/{item.cupo || "-"}</small>
+                      <small>{formatGroupCapacity(item)}</small>
                     </span>
                     <span className="groupListMeta">
                       <span className={nivelClass(item.nivel)}>{nivelLabel(item.nivel)}</span>
@@ -1183,7 +1224,7 @@ export default function PanelProfesor() {
                   <div><span>Pista</span><strong>{getCourtName(selectedGroup.pista_habitual)}</strong></div>
                   <div><span>Deporte</span><strong>{descriptorLabel(selectedGroup.deporte)}</strong></div>
                   <div><span>Categoría</span><strong>{descriptorLabel(selectedGroup.categoria)}</strong></div>
-                  <div><span>Cupo</span><strong>{selectedGroup.cupo || "-"}</strong></div>
+                  <div><span>Cupo por día</span><strong>{formatGroupCapacity(selectedGroup)}</strong></div>
                   <div><span>Estado</span><strong>{Number(selectedGroup.activo ?? 1) === 1 ? "Activo" : "Inactivo"}</strong></div>
                 </div>
 

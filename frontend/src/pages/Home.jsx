@@ -201,8 +201,8 @@ function Home() {
             </div>
 
             <h1 id="home-title">
-              <span className="homeDesktopTitle">Tu escuela de pádel, organizada en una sola app.</span>
-              <span className="homeMobileTitle">Tu escuela de pádel en una sola app</span>
+              <span className="homeDesktopTitle">Todo tu pádel, en una app.</span>
+              <span className="homeMobileTitle">Todo tu pádel, en una app.</span>
             </h1>
 
             <p>
@@ -274,8 +274,7 @@ function Home() {
             >
               <div className="weatherTop">
                 <div>
-                  <span className="weatherEyebrow">Tiempo en pista</span>
-                  <h2>Antes de venir a jugar</h2>
+                  <h2>Tiempo y estado de pista</h2>
                 </div>
                 <span className="weatherBadge">Ahora</span>
               </div>

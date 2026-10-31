@@ -23,7 +23,7 @@ const app = express();
 
 // Puerto del backend
 const PORT = process.env.PORT || 4000;
-
+const HOST = process.env.HOST || "127.0.0.1";
 // Necesario para rutas de uploads y frontend estático en módulos ES
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -500,6 +500,6 @@ app.get("/api/whatsapp/test", async (req, res) => {
 // ======================================================
 
 // Arrancamos el backend escuchando en todas las interfaces
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, HOST, () => {
   console.log(`✅ Backend activo en http://localhost:${PORT}`);
 });

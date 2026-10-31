@@ -190,7 +190,7 @@ async function replaceCurrentGroupAssignment(connection, alumnoId, gestionContex
 
   if (assignment.grupoId) {
     const [groups] = await connection.query(
-      `SELECT id, dia1, dia2
+      `SELECT id, dia1, dia2, cupo
        FROM grupos
        WHERE id = ? AND curso_id = ? AND sede_id = ? AND activo = 1
        LIMIT 1
@@ -229,6 +229,40 @@ async function replaceCurrentGroupAssignment(connection, alumnoId, gestionContex
 
   if (!asisteDia1 && !asisteDia2) {
     throw requestError(400, "Selecciona al menos un dia de asistencia para el grupo");
+  }
+
+  const cupo = Number(group.cupo || 0);
+  if (cupo > 0) {
+    const day1Select = columns.has("asiste_dia1")
+      ? "COALESCE(asiste_dia1, 1) AS asiste_dia1"
+      : "1 AS asiste_dia1";
+    const day2Select = columns.has("asiste_dia2")
+      ? "COALESCE(asiste_dia2, 1) AS asiste_dia2"
+      : "1 AS asiste_dia2";
+    const activeWhere = columns.has("activo") ? "AND activo = 1" : "";
+    const [attendanceRows] = await connection.query(
+      `SELECT alumno_id, ${day1Select}, ${day2Select}
+       FROM grupo_alumnos
+       WHERE grupo_id = ? ${activeWhere}
+       FOR UPDATE`,
+      [group.id]
+    );
+    const day1Count = attendanceRows.reduce(
+      (total, row) => total + booleanFlag(row.asiste_dia1, 1),
+      0
+    );
+    const day2Count = attendanceRows.reduce(
+      (total, row) => total + booleanFlag(row.asiste_dia2, 1),
+      0
+    );
+    const fullDays = [];
+
+    if (asisteDia1 && day1Count >= cupo) fullDays.push(group.dia1);
+    if (asisteDia2 && day2Count >= cupo) fullDays.push(group.dia2);
+
+    if (fullDays.length) {
+      throw requestError(409, `No hay plazas disponibles para ${fullDays.join(" y ")}`);
+    }
   }
 
   const [existing] = await connection.query(
@@ -390,7 +424,7 @@ router.get("/resumen", async (req, res) => {
           ORDER BY g.hora_inicio SEPARATOR ' | '
         ) AS horarios,
         GROUP_CONCAT(DISTINCT g.pista_habitual ORDER BY g.pista_habitual SEPARATOR ', ') AS pistas,
-        GROUP_CONCAT(DISTINCT CONCAT(p.nombre, ' ', p.apellidos) ORDER BY p.nombre SEPARATOR ', ') AS profesores
+        GROUP_CONCAT(DISTINCT CONCAT_WS(' ', p.nombre, p.apellidos) ORDER BY p.nombre SEPARATOR ', ') AS profesores
        FROM alumnos a
        JOIN alumno_curso ac
          ON ac.alumno_id = a.id
@@ -428,7 +462,7 @@ router.get("/resumen", async (req, res) => {
         g.deporte,
         g.categoria,
         g.profesor_id,
-        CONCAT(p.nombre, ' ', p.apellidos) AS profesor,
+        CONCAT_WS(' ', p.nombre, p.apellidos) AS profesor,
         a.id AS alumno_id,
         a.nombre AS alumno_nombre,
         a.apellidos AS alumno_apellidos,
@@ -457,7 +491,7 @@ router.get("/resumen", async (req, res) => {
 
     const grupos = parseGroupRows(groupRows);
     const [profesores] = await query(
-      `SELECT id, nombre, apellidos, CONCAT(nombre, ' ', apellidos) AS nombre_completo
+      `SELECT id, nombre, apellidos, CONCAT_WS(' ', nombre, apellidos) AS nombre_completo
        FROM profesores
        ORDER BY nombre, apellidos`
     );
