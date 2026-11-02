@@ -1,23 +1,28 @@
 import { useEffect, useRef } from "react";
+import { isRainy } from "../services/weatherService";
 import "./weatherCourt3d.css";
 
-const RAIN_CODES = new Set([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99]);
+const STARS = Array.from({ length: 18 }, (_, index) => ({
+  left: (index * 53) % 100,
+  top: (index * 29) % 46,
+  delay: (index % 6) * 0.45,
+}));
 
 function prefersReducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
-export default function WeatherCourt3D({ weather }) {
+// `night` y `rain` fuerzan la escena (vista previa); sin ellos se usa el tiempo real.
+export default function WeatherCourt3D({ weather, night, rain }) {
   const stageRef = useRef(null);
+  const areaRef = useRef(null);
   const courtRef = useRef(null);
   const ballRef = useRef(null);
   const shadowRef = useRef(null);
   const rainRef = useRef(null);
 
-  const isNight = Number(weather?.isDay) === 0;
-  const isRaining =
-    RAIN_CODES.has(Number(weather?.weatherCode)) ||
-    Number(weather?.precipitationProbability || 0) >= 50;
+  const isNight = night ?? Number(weather?.isDay) === 0;
+  const isRaining = rain ?? isRainy(weather || {});
 
   useEffect(() => {
     const ball = ballRef.current;
@@ -27,11 +32,11 @@ export default function WeatherCourt3D({ weather }) {
     let frameId;
     let direction = 1;
     let shot = {
-      from: { x: 76, y: 286 },
-      to: { x: 108, y: 62 },
+      from: { x: 150, y: 520 },
+      to: { x: 190, y: 130 },
       startedAt: performance.now(),
       duration: 1150,
-      height: 76,
+      height: 80,
     };
 
     const nextShot = (from, now) => {
@@ -39,12 +44,12 @@ export default function WeatherCourt3D({ weather }) {
       shot = {
         from,
         to: {
-          x: 28 + Math.random() * 104,
-          y: direction > 0 ? 48 + Math.random() * 86 : 188 + Math.random() * 94,
+          x: 40 + Math.random() * 220,
+          y: direction > 0 ? 60 + Math.random() * 200 : 340 + Math.random() * 200,
         },
         startedAt: now,
         duration: 950 + Math.random() * 360,
-        height: 58 + Math.random() * 42,
+        height: 60 + Math.random() * 50,
       };
     };
 
@@ -57,8 +62,8 @@ export default function WeatherCourt3D({ weather }) {
 
       const x = shot.from.x + (shot.to.x - shot.from.x) * progress;
       const y = shot.from.y + (shot.to.y - shot.from.y) * progress;
-      const z = 4 * shot.height * progress * (1 - progress) + 5;
-      const scale = Math.max(0.48, 1 - z / 210);
+      const z = 4 * shot.height * progress * (1 - progress) + 6;
+      const scale = Math.max(0.45, 1 - z / 260);
 
       ball.style.transform = `translate3d(${x}px, ${y}px, ${z}px)`;
       shadow.style.transform = `translate3d(${x + z * 0.18}px, ${y + z * 0.1}px, 2px) scale(${scale})`;
@@ -68,6 +73,21 @@ export default function WeatherCourt3D({ weather }) {
 
     frameId = window.requestAnimationFrame(animate);
     return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
+  useEffect(() => {
+    const area = areaRef.current;
+    const court = courtRef.current;
+    if (!area || !court) return undefined;
+
+    const fit = () => {
+      const scale = Math.min(area.clientHeight / 830, area.clientWidth / 600);
+      court.style.setProperty("--court-scale", scale.toFixed(3));
+    };
+    const observer = new ResizeObserver(fit);
+    observer.observe(area);
+    fit();
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -125,51 +145,71 @@ export default function WeatherCourt3D({ weather }) {
     return () => {
       observer.disconnect();
       window.cancelAnimationFrame(frameId);
+      context.clearRect(0, 0, canvas.width, canvas.height);
     };
   }, [isNight, isRaining]);
 
-  const handlePointerMove = (event) => {
-    if (!courtRef.current || prefersReducedMotion() || !window.matchMedia("(pointer: fine)").matches) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const horizontal = event.clientX / rect.width - rect.left / rect.width - 0.5;
-    const vertical = event.clientY / rect.height - rect.top / rect.height - 0.5;
-    courtRef.current.style.setProperty("--court-rx", `${58 - vertical * 7}deg`);
-    courtRef.current.style.setProperty("--court-rz", `${-27 + horizontal * 10}deg`);
-  };
+  // El ratón inclina la pista aunque el texto de la portada quede por encima.
+  useEffect(() => {
+    const court = courtRef.current;
+    if (!court || prefersReducedMotion() || !window.matchMedia("(pointer: fine)").matches) return undefined;
 
-  const resetPointer = () => {
-    courtRef.current?.style.removeProperty("--court-rx");
-    courtRef.current?.style.removeProperty("--court-rz");
-  };
+    const handleMove = (event) => {
+      const horizontal = event.clientX / window.innerWidth - 0.5;
+      const vertical = event.clientY / window.innerHeight - 0.5;
+      court.style.setProperty("--court-rx", `${58 - vertical * 8}deg`);
+      court.style.setProperty("--court-rz", `${-28 + horizontal * 14}deg`);
+    };
+    window.addEventListener("pointermove", handleMove);
+    return () => window.removeEventListener("pointermove", handleMove);
+  }, []);
 
   return (
     <div
       className={`weatherCourt3d${isNight ? " isNight" : ""}${isRaining ? " isRaining" : ""}`}
       ref={stageRef}
-      onPointerMove={handlePointerMove}
-      onPointerLeave={resetPointer}
       aria-hidden="true"
     >
       <div className="weatherCourt3dSky" />
-      <div className="weatherCourt3dCourt" ref={courtRef}>
-        <div className="weatherCourt3dSlab" />
-        <div className="weatherCourt3dTurf">
-          <span className="weatherCourtLine weatherCourtLineCenter" />
-          <span className="weatherCourtLine weatherCourtLineTop" />
-          <span className="weatherCourtLine weatherCourtLineBottom" />
-          <span className="weatherCourtWet" />
+      <div className="weatherSun" />
+      <div className="weatherMoon" />
+      <div className="weatherStars">
+        {STARS.map((star, index) => (
+          <i key={index} style={{ left: `${star.left}%`, top: `${star.top}%`, animationDelay: `${star.delay}s` }} />
+        ))}
+      </div>
+      <div className="weatherCloud cloudOne" />
+      <div className="weatherCloud cloudTwo" />
+      <div className="weatherCloud cloudThree" />
+      <div className="weatherCourt3dArea" ref={areaRef}>
+        <div className="weatherCourt3dCourt" ref={courtRef}>
+          <div className="weatherCourt3dGround" />
+          <div className="weatherCourt3dTurf">
+            <svg viewBox="0 0 10 20" preserveAspectRatio="none" fill="none" stroke="#fff" strokeWidth=".07">
+              <rect x=".035" y=".035" width="9.93" height="19.93" />
+              <line x1="0" y1="3.05" x2="10" y2="3.05" />
+              <line x1="0" y1="16.95" x2="10" y2="16.95" />
+              <line x1="5" y1="3.05" x2="5" y2="16.95" />
+            </svg>
+            <span className="weatherCourtDark" />
+            <span className="weatherCourtWet" />
+          </div>
+          <div className="weatherCourtWall weatherCourtWallTop" />
+          <div className="weatherCourtWall weatherCourtWallBottom" />
+          <div className="weatherCourtWall weatherCourtWallSide weatherCourtWallLeft" />
+          <div className="weatherCourtWall weatherCourtWallSide weatherCourtWallRight" />
+          <div className="weatherCourtNet" />
+          {["lightOne", "lightTwo", "lightThree", "lightFour"].map((name) => (
+            <div className={`weatherCourtLight ${name}`} key={name}>
+              <i />
+            </div>
+          ))}
+          {["lightOne", "lightTwo", "lightThree", "lightFour"].map((name) => (
+            <span className={`weatherCourtBeam beam-${name}`} key={name} />
+          ))}
+          <span className="weatherCourtBall" ref={ballRef} />
+          <span className="weatherCourtBallShadow" ref={shadowRef} />
         </div>
-        <div className="weatherCourtWall weatherCourtWallTop" />
-        <div className="weatherCourtWall weatherCourtWallBottom" />
-        <div className="weatherCourtWall weatherCourtWallLeft" />
-        <div className="weatherCourtWall weatherCourtWallRight" />
-        <div className="weatherCourtNet" />
-        <div className="weatherCourtLight lightOne"><i /></div>
-        <div className="weatherCourtLight lightTwo"><i /></div>
-        <div className="weatherCourtLight lightThree"><i /></div>
-        <div className="weatherCourtLight lightFour"><i /></div>
-        <span className="weatherCourtBall" ref={ballRef} />
-        <span className="weatherCourtBallShadow" ref={shadowRef} />
       </div>
       <canvas className="weatherCourtRain" ref={rainRef} />
     </div>
