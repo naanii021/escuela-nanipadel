@@ -1,0 +1,594 @@
+/* Portada: el cielo es el fondo; veredicto, acciones y pista 3D van sobre él. */
+
+.inicio {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ok: hsl(145 60% 40%);
+  --no: hsl(6 78% 52%);
+  display: grid;
+  gap: 2.6rem;
+  margin-top: -2.2rem;
+}
+
+@keyframes inicioRise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes inicioPing {
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+/* ---------- Hero a sangre ---------- */
+
+.inicioHero {
+  --ink: #0b1220;
+  --ink-soft: rgba(11, 18, 32, 0.78);
+  --glass: rgba(255, 255, 255, 0.66);
+  --glass-line: rgba(255, 255, 255, 0.6);
+  --court-area-w: 56%;
+  position: relative;
+  isolation: isolate;
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+  min-height: clamp(640px, calc(100vh - 70px), 820px);
+  overflow: hidden;
+  color: var(--ink);
+  transition: color 900ms ease;
+}
+
+.inicioHero.isNight {
+  --ink: #f2f5ff;
+  --ink-soft: rgba(242, 245, 255, 0.8);
+  --glass: rgba(15, 25, 55, 0.72);
+  --glass-line: rgba(255, 255, 255, 0.14);
+  --ok: hsl(145 60% 58%);
+  --no: hsl(8 85% 68%);
+}
+
+/* El cielo muere en el fondo de la página, sin canto duro. */
+.inicioHero::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 3;
+  height: 110px;
+  background: linear-gradient(to bottom, transparent, var(--color-background));
+  pointer-events: none;
+}
+
+.inicioHero > .weatherCourt3d {
+  z-index: 0;
+}
+
+.inicioInner {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 2vw;
+  width: min(var(--container, 1180px), calc(100% - 3rem));
+  min-height: inherit;
+  margin: 0 auto;
+  padding: 3rem 0 6rem;
+  pointer-events: none;
+}
+
+.inicioInner > * {
+  pointer-events: auto;
+}
+
+.inicioInfo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  min-width: 0;
+  max-width: 34rem;
+}
+
+.inicioInfo > * {
+  animation: inicioRise 520ms var(--ease-out) backwards;
+}
+
+.inicioInfo > :nth-child(2) { animation-delay: 60ms; }
+.inicioInfo > :nth-child(3) { animation-delay: 120ms; }
+.inicioInfo > :nth-child(4) { animation-delay: 180ms; }
+.inicioInfo > :nth-child(5) { animation-delay: 240ms; }
+.inicioInfo > :nth-child(6) { animation-delay: 300ms; }
+
+.inicioEyebrow {
+  justify-self: start;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: var(--glass);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inicioVerdict {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 6vw, 4.8rem);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 0.98;
+  color: inherit;
+}
+
+.inicioVerdictDot {
+  position: relative;
+  flex: none;
+  width: 0.26em;
+  height: 0.26em;
+  margin-top: 0.2em;
+  border-radius: 50%;
+  background: rgba(127, 127, 127, 0.5);
+  transition: background-color 400ms ease;
+}
+
+.inicioVerdictDot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: inicioPing 2.2s ease-out infinite;
+}
+
+.inicioVerdict.isPlayable .inicioVerdictDot { background: var(--ok); }
+.inicioVerdict.isBlocked .inicioVerdictDot { background: var(--no); }
+
+.inicioReason {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.inicioRetry {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 1.1rem;
+  border: 2px solid currentColor;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inicioStats {
+  display: flex;
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.inicioStats div {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--glass-line);
+  border-radius: 14px;
+  background: var(--glass);
+}
+
+.inicioStats dt {
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.inicioStats dd {
+  margin: 0.1rem 0 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Acciones ---------- */
+
+.inicioActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.inicioAction {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1.4rem;
+  border: 2px solid currentColor;
+  border-radius: 14px;
+  color: inherit;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 160ms ease-out, background-color 160ms ease-out, color 160ms ease-out;
+}
+
+.inicioAction.isPrimary {
+  flex: 1 1 100%;
+  border-color: transparent;
+  background: var(--ink);
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.inicioHero.isNight .inicioAction.isPrimary {
+  background: #c6f432;
+  color: #0b1220;
+}
+
+.inicioAction:not(.isPrimary) {
+  flex: 1 1 0;
+}
+
+.inicioAction:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .inicioAction:hover {
+    transform: translateY(-2px);
+  }
+
+  .inicioAction:not(.isPrimary):hover {
+    background: var(--glass);
+  }
+}
+
+/* ---------- Próximas horas ---------- */
+
+.inicioHoursHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inicioHoursHead button {
+  min-height: 36px;
+  padding: 0 0.2rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.inicioHoursList {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0 0 0.3rem;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: none;
+}
+
+.inicioHoursList::-webkit-scrollbar {
+  display: none;
+}
+
+.inicioHoursList li {
+  display: grid;
+  flex: 1 0 3.6rem;
+  justify-items: center;
+  gap: 0.2rem;
+  padding: 0.55rem 0.3rem;
+  border: 1px solid var(--glass-line);
+  border-radius: 12px;
+  background: var(--glass);
+  animation: inicioRise 420ms var(--ease-out) backwards;
+  animation-delay: calc(360ms + var(--i) * 40ms);
+}
+
+.inicioHoursList span {
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.inicioHoursList i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.inicioHoursList .isPlayable i { background: var(--ok); }
+.inicioHoursList .isBlocked i { background: var(--no); }
+
+.inicioHoursList strong {
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.inicioHoursList small {
+  color: var(--ink-soft);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+/* ---------- Widget de condiciones (cristal) ---------- */
+
+.inicioWeather {
+  justify-self: end;
+  align-self: start;
+  display: grid;
+  gap: 0.8rem;
+  width: min(15rem, 100%);
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--glass-line);
+  border-radius: 20px;
+  background: var(--glass);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+  animation: inicioRise 640ms var(--ease-out) 120ms backwards;
+}
+
+.inicioWeatherNow {
+  display: grid;
+}
+
+.inicioWeatherNow strong {
+  font-size: 3.3rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.inicioWeatherNow span {
+  margin-top: 0.25rem;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.inicioTabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 3px;
+  border-radius: 12px;
+  background: rgba(127, 127, 127, 0.16);
+}
+
+.inicioTabs::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / 3);
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14);
+  transform: translateX(calc(var(--i) * 100%));
+  transition: transform 280ms var(--ease-out);
+}
+
+.inicioTabs button {
+  position: relative;
+  min-height: 36px;
+  padding: 0 0.7rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: color 200ms ease-out;
+}
+
+.inicioTabs button[aria-pressed="true"] {
+  color: #0b1220;
+}
+
+/* Vista previa: solo cambia la escena, no el veredicto. */
+.inicioPreview {
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.4rem 0.35rem 0.9rem;
+  border: 1px solid var(--glass-line);
+  border-radius: 999px;
+  background: var(--glass);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.inicioPreview .inicioTabs {
+  background: transparent;
+}
+
+/* ---------- Noticias ---------- */
+
+.inicioNews {
+  display: grid;
+  gap: 1rem;
+}
+
+.inicioNewsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.inicioNewsCard {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-card);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+}
+
+.inicioNewsCard:active {
+  transform: scale(0.985);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .inicioNewsCard:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+  }
+}
+
+.inicioNewsCard img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+
+.inicioNewsCard div {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem 1.1rem;
+}
+
+.inicioNewsCard span {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.inicioNewsCard h3 {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.3;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 980px) {
+  .inicio {
+    margin-top: -1.4rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .inicioHero {
+    --court-area-w: 100%;
+    --court-area-h: 300px;
+  }
+
+  .inicioInner {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 0.8rem;
+    padding: 296px 0 5rem;
+  }
+
+  /* Chip sobre la esquina de la pista, para que los botones suban en pantalla. */
+  .inicioWeather {
+    position: absolute;
+    top: 0.8rem;
+    left: 0;
+    width: auto;
+    margin: 0;
+    padding: 0.55rem 0.9rem;
+    border-radius: 16px;
+  }
+
+  .inicioWeatherNow strong {
+    font-size: 2rem;
+  }
+
+  .inicioWeatherNow span {
+    margin-top: 0.1rem;
+    font-size: 0.78rem;
+  }
+
+  .inicioInfo {
+    max-width: none;
+  }
+
+  .inicioNewsGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inicioNewsCard {
+    grid-template-columns: 38% 1fr;
+  }
+
+  .inicioNewsCard img {
+    height: 100%;
+    aspect-ratio: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .inicioVerdict {
+    font-size: 2.3rem;
+  }
+
+  .inicioInfo {
+    gap: 0.7rem;
+  }
+
+  .inicioReason {
+    font-size: 0.95rem;
+  }
+
+  .inicioStats div {
+    padding: 0.45rem 0.65rem;
+  }
+
+  .inicioStats dd {
+    font-size: 1rem;
+  }
+
+  .inicioAction:not(.isPrimary) {
+    flex-basis: calc(50% - 0.3rem);
+  }
+
+  .inicio {
+    margin-top: -0.55rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inicioInfo > *,
+  .inicioWeather,
+  .inicioHoursList li {
+    animation: none;
+  }
+
+  .inicioVerdictDot::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  .inicioTabs::before,
+  .inicioAction,
+  .inicioNewsCard {
+    transition: none;
+  }
+}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { apiDelete, apiGet, apiPost, apiPut } from "../services/api";
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "../services/api";
 import { getToken, getUser, logout } from "../services/auth";
 import "./panelProfesor.css";
 
@@ -50,19 +50,21 @@ const WEEK_DAYS = [
   { key: "V", label: "Viernes" },
   { key: "S", label: "Sábado" },
 ];
+const PRIMARY_COURTS = ["Pista 1", "Pista 2"];
 const ATTENDANCE_STATUS = [
   { key: "presente", label: "Presente", tone: "positive" },
   { key: "falta", label: "Falta", tone: "negative" },
   { key: "justificada", label: "Falta justificada", tone: "warning" },
-  { key: "recuperar", label: "Pendiente recuperar", tone: "warning" },
 ];
 const CLASS_STATUS = [
   { key: "programada", label: "Programada", tone: "neutral" },
   { key: "dada", label: "Clase dada", tone: "positive" },
-  { key: "lluvia", label: "Cancelada por lluvia", tone: "negative" },
-  { key: "profesor", label: "Cancelada por profesor", tone: "negative" },
-  { key: "festivo", label: "Cancelada por festivo", tone: "warning" },
-  { key: "recuperar", label: "Pendiente de recuperar", tone: "warning" },
+];
+const RECOVERY_STATUS = [
+  { key: "pendiente", label: "Pendiente" },
+  { key: "asignada", label: "Asignada" },
+  { key: "recuperada", label: "Recuperada" },
+  { key: "cancelada", label: "Cancelada" },
 ];
 
 const emptyGroupForm = {
@@ -79,6 +81,39 @@ const emptyGroupForm = {
   activo: 1,
 };
 
+const getGroupCapacityState = (group) => {
+  const cupo = Number(group?.cupo || 0);
+  const alumnos = group?.alumnos || [];
+  const day1 = group?.dia1
+    ? alumnos.filter((alumno) => Number(alumno.asiste_dia1 ?? 1) === 1).length
+    : 0;
+  const day2 = group?.dia2
+    ? alumnos.filter((alumno) => Number(alumno.asiste_dia2 ?? 1) === 1).length
+    : 0;
+  const dailyCounts = [];
+
+  if (group?.dia1) dailyCounts.push(day1);
+  if (group?.dia2) dailyCounts.push(day2);
+
+  return {
+    cupo,
+    day1,
+    day2,
+    hasSpace: !cupo || dailyCounts.some((count) => count < cupo),
+    isFull: cupo > 0 && dailyCounts.length > 0 && dailyCounts.every((count) => count >= cupo),
+    blocksAllDays: cupo > 0 && dailyCounts.some((count) => count >= cupo),
+  };
+};
+
+const formatGroupCapacity = (group) => {
+  const capacity = getGroupCapacityState(group);
+  if (!capacity.cupo) return `${group?.alumnos?.length || 0}/-`;
+  if (group?.dia1 && group?.dia2) {
+    return `${capacity.day1}/${capacity.cupo} · ${capacity.day2}/${capacity.cupo}`;
+  }
+  return `${capacity.day1}/${capacity.cupo}`;
+};
+
 const emptyStudentForm = {
   nombre: "",
   apellidos: "",
@@ -88,7 +123,10 @@ const emptyStudentForm = {
   email: "",
   activo: 1,
   observaciones: "",
+  matricula_activa: 1,
   grupo_id: "",
+  asiste_dia1: 1,
+  asiste_dia2: 0,
 };
 
 const emptyAccessForm = {
@@ -104,6 +142,10 @@ const IcSearch = () => (
 );
 
 const todayCode = () => ["D", "L", "M", "X", "J", "V", "S"][new Date().getDay()];
+const todayDate = () => {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
 
 function canAccess(user) {
   return STAFF_ROLES.includes(String(user?.rol || "").toLowerCase());
@@ -156,6 +198,38 @@ function getGroupDays(group) {
   return [group?.dia1, group?.dia2].filter(Boolean);
 }
 
+function getCourtName(value) {
+  const raw = String(value || "").trim();
+  const normalized = raw.toLowerCase();
+
+  if (normalized === "1" || /pista\s*(n(?:o|umero)?\s*)?1\b/.test(normalized)) return "Pista 1";
+  if (normalized === "2" || /pista\s*(n(?:o|umero)?\s*)?2\b/.test(normalized)) return "Pista 2";
+  return raw || "Sin pista asignada";
+}
+
+function descriptorLabel(value, fallback = "-") {
+  const text = String(value || "").trim().replaceAll("_", " ").replaceAll("-", " ");
+  return text ? `${text.charAt(0).toUpperCase()}${text.slice(1)}` : fallback;
+}
+
+function attendanceFlag(value, fallback) {
+  return value === undefined || value === null || value === "" ? fallback : Number(value) === 1;
+}
+
+function getStudentsForDay(group, day) {
+  return (group?.alumnos || []).filter((student) =>
+    (group.dia1 === day && attendanceFlag(student.asiste_dia1, true)) ||
+    (group.dia2 === day && attendanceFlag(student.asiste_dia2, true))
+  );
+}
+
+function getStudentDays(group, student) {
+  return formatDias(
+    attendanceFlag(student?.asiste_dia1, true) ? group?.dia1 : null,
+    attendanceFlag(student?.asiste_dia2, true) ? group?.dia2 : null
+  );
+}
+
 function toGroupForm(group) {
   return {
     codigo: group.codigo || "",
@@ -183,6 +257,8 @@ export default function PanelProfesor() {
   const [activeView, setActiveView] = useState("grupos");
   const [alumnos, setAlumnos] = useState([]);
   const [grupos, setGrupos] = useState([]);
+  const [curso, setCurso] = useState(null);
+  const [sede, setSede] = useState(null);
   const [catalogos, setCatalogos] = useState({ profesores: [], pistas: [], alumnos: [] });
   const [stats, setStats] = useState({ totalAlumnos: 0, totalGrupos: 0, gruposActivos: 0 });
   const [scope, setScope] = useState("profesor");
@@ -192,6 +268,7 @@ export default function PanelProfesor() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [telegramLink, setTelegramLink] = useState(null);
 
   const [search, setSearch] = useState("");
   const [nivel, setNivel] = useState("");
@@ -212,9 +289,24 @@ export default function PanelProfesor() {
   const [accessForm, setAccessForm] = useState(emptyAccessForm);
   const [studentToAdd, setStudentToAdd] = useState("");
   const [controlGroupId, setControlGroupId] = useState("");
-  const [controlDate, setControlDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [controlGroups, setControlGroups] = useState([]);
+  const [controlGroupsLoading, setControlGroupsLoading] = useState(false);
+  const [controlDate, setControlDate] = useState(todayDate);
   const [classStatus, setClassStatus] = useState("programada");
   const [attendanceDraft, setAttendanceDraft] = useState({});
+  const [controlSession, setControlSession] = useState(null);
+  const [controlStudents, setControlStudents] = useState([]);
+  const [controlProfessorId, setControlProfessorId] = useState("");
+  const [controlObservations, setControlObservations] = useState("");
+  const [controlLoading, setControlLoading] = useState(false);
+  const [controlSaving, setControlSaving] = useState(false);
+  const [controlError, setControlError] = useState("");
+  const [recoveries, setRecoveries] = useState([]);
+  const [recoverySessions, setRecoverySessions] = useState([]);
+  const [recoveryDrafts, setRecoveryDrafts] = useState({});
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [recoverySavingId, setRecoverySavingId] = useState(null);
+  const [recoveryError, setRecoveryError] = useState("");
   const [trackingGroupId, setTrackingGroupId] = useState("");
 
   const loadPanel = useCallback(async () => {
@@ -225,6 +317,8 @@ export default function PanelProfesor() {
 
       setAlumnos(data.alumnos || []);
       setGrupos(data.grupos || []);
+      setCurso(data.curso || null);
+      setSede(data.sede || null);
       setCatalogos(data.catalogos || { profesores: [], pistas: [], alumnos: [] });
       setStats(data.stats || { totalAlumnos: 0, totalGrupos: 0, gruposActivos: 0 });
       setScope(data.scope || "profesor");
@@ -257,6 +351,29 @@ export default function PanelProfesor() {
 
     loadPanel();
   }, [loadPanel, navigate, token, userRole]);
+
+  const loadRecoveries = useCallback(async () => {
+    try {
+      setRecoveryLoading(true);
+      setRecoveryError("");
+      const data = await apiGet("/api/gestion/control/recuperaciones");
+      setRecoveries(data.recuperaciones || []);
+      setRecoverySessions(data.sesiones || []);
+      setRecoveryDrafts(Object.fromEntries((data.recuperaciones || []).map((item) => [item.id, {
+        estado: item.estado,
+        fecha_recuperacion: item.fecha_recuperacion || "",
+        sesion_recuperacion_id: item.sesion_recuperacion_id || "",
+      }])));
+    } catch (e) {
+      setRecoveryError(e.message || "No se pudieron cargar las recuperaciones.");
+    } finally {
+      setRecoveryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeSection === "recuperaciones") loadRecoveries();
+  }, [activeSection, loadRecoveries]);
 
   const profesores = useMemo(() => {
     const source = catalogos.profesores?.length
@@ -294,8 +411,8 @@ export default function PanelProfesor() {
         studentQuickFilter === "todos" ||
         (studentQuickFilter === "sin-acceso" && !alumno.usuario_id) ||
         (studentQuickFilter === "con-acceso" && alumno.usuario_id) ||
-        (studentQuickFilter === "activos" && Number(alumno.activo ?? 1) === 1) ||
-        (studentQuickFilter === "inactivos" && Number(alumno.activo ?? 1) === 0) ||
+        (studentQuickFilter === "activos" && Number(alumno.matricula_activa ?? 1) === 1) ||
+        (studentQuickFilter === "inactivos" && Number(alumno.matricula_activa ?? 1) === 0) ||
         (studentQuickFilter.startsWith("nivel:") && alumno.nivel === studentQuickFilter.replace("nivel:", ""));
 
       return matchText && matchNivel && matchProfesor && matchGrupo && matchQuick;
@@ -307,18 +424,17 @@ export default function PanelProfesor() {
 
     return grupos.filter((item) => {
       const alumnosText = (item.alumnos || []).map((alumno) => `${alumno.nombre} ${alumno.apellidos}`).join(" ");
-      const matchText = !text || normalize(`${item.nombre} ${item.codigo} ${item.profesor} ${item.pista_habitual} ${alumnosText}`).includes(text);
+      const matchText = !text || normalize(`${item.nombre} ${item.codigo} ${item.profesor} ${item.pista_habitual} ${item.deporte} ${item.categoria} ${alumnosText}`).includes(text);
       const matchNivel = !nivel || item.nivel === nivel;
       const matchProfesor = !profesor || String(item.profesor_id) === String(profesor) || item.profesor === profesor;
       const matchGrupo = !grupo || String(item.id) === String(grupo);
-      const ocupacion = item.alumnos?.length || 0;
-      const cupo = Number(item.cupo || 0);
+      const capacity = getGroupCapacityState(item);
       const matchQuick =
         groupQuickFilter === "todos" ||
         item.nivel === groupQuickFilter ||
         (groupQuickFilter === "avanzado" && item.nivel === "avanzado_plus") ||
-        (groupQuickFilter === "con-huecos" && Number(item.activo ?? 1) === 1 && (!cupo || ocupacion < cupo)) ||
-        (groupQuickFilter === "completos" && cupo > 0 && ocupacion >= cupo) ||
+        (groupQuickFilter === "con-huecos" && Number(item.activo ?? 1) === 1 && capacity.hasSpace) ||
+        (groupQuickFilter === "completos" && capacity.isFull) ||
         (groupQuickFilter === "inactivos" && Number(item.activo ?? 1) === 0);
 
       return matchText && matchNivel && matchProfesor && matchGrupo && matchQuick;
@@ -338,8 +454,8 @@ export default function PanelProfesor() {
 
   const panelMetrics = useMemo(() => {
     const gruposConHuecos = grupos.filter((item) => {
-      const cupo = Number(item.cupo || 0);
-      return Number(item.activo ?? 1) === 1 && (!cupo || (item.alumnos?.length || 0) < cupo);
+      const capacity = getGroupCapacityState(item);
+      return Number(item.activo ?? 1) === 1 && capacity.hasSpace;
     }).length;
     const alumnosSinAcceso = alumnos.filter((item) => !item.usuario_id).length;
 
@@ -422,21 +538,34 @@ export default function PanelProfesor() {
   ], [isAdmin, panelMetrics.totalAlumnos, panelMetrics.totalGrupos]);
 
   const weeklySchedule = useMemo(() => {
-    const base = Object.fromEntries(WEEK_DAYS.map((day) => [day.key, []]));
+    const createWeek = () => Object.fromEntries(WEEK_DAYS.map((day) => [day.key, []]));
+    const courts = new Map(PRIMARY_COURTS.map((court) => [court, createWeek()]));
 
     grupos
       .filter((item) => Number(item.activo ?? 1) === 1)
       .forEach((group) => {
+        const courtName = getCourtName(group.pista_habitual);
+        if (!courts.has(courtName)) courts.set(courtName, createWeek());
+
         getGroupDays(group).forEach((day) => {
-          if (base[day]) base[day].push(group);
+          const courtWeek = courts.get(courtName);
+          if (courtWeek[day]) {
+            courtWeek[day].push({
+              group,
+              students: getStudentsForDay(group, day),
+            });
+          }
         });
       });
 
-    Object.values(base).forEach((dayGroups) => {
-      dayGroups.sort((a, b) => String(a.hora_inicio || "").localeCompare(String(b.hora_inicio || "")));
+    courts.forEach((courtWeek) => {
+      Object.values(courtWeek).forEach((dayGroups) => {
+        dayGroups.sort((a, b) => String(a.group.hora_inicio || "").localeCompare(String(b.group.hora_inicio || "")));
+      });
     });
 
-    return base;
+    return Array.from(courts, ([name, days]) => ({ name, days }))
+      .filter(({ name, days }) => PRIMARY_COURTS.includes(name) || Object.values(days).some((items) => items.length));
   }, [grupos]);
 
   const selectedGroup = useMemo(
@@ -444,10 +573,59 @@ export default function PanelProfesor() {
     [filteredGrupos, selectedGroupId]
   );
 
+  useEffect(() => {
+    if (activeSection !== "control") return;
+    let cancelled = false;
+    setControlGroupsLoading(true);
+    setControlGroups([]);
+    setControlError("");
+    apiGet("/api/gestion/control/grupos")
+      .then((data) => { if (!cancelled) setControlGroups(data.grupos || []); })
+      .catch((e) => { if (!cancelled) setControlError(e.message || "No se pudieron cargar los grupos."); })
+      .finally(() => { if (!cancelled) setControlGroupsLoading(false); });
+    return () => { cancelled = true; };
+  }, [activeSection]);
+
   const controlGroup = useMemo(
-    () => grupos.find((item) => String(item.id) === String(controlGroupId)) || grupos[0] || null,
-    [controlGroupId, grupos]
+    () => controlGroups.find((item) => String(item.id) === String(controlGroupId)) || controlGroups[0] || null,
+    [controlGroupId, controlGroups]
   );
+
+  const controlDay = useMemo(() => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(controlDate)) return null;
+    return ["D", "L", "M", "X", "J", "V", "S"][new Date(`${controlDate}T00:00:00Z`).getUTCDay()];
+  }, [controlDate]);
+  const controlHasClass = Boolean(controlGroup && controlDay && getGroupDays(controlGroup).includes(controlDay));
+
+  useEffect(() => {
+    if (activeSection !== "control") return;
+    if (!controlGroup?.id || !controlDate) {
+      setControlSession(null);
+      setControlStudents([]);
+      setAttendanceDraft({});
+      return;
+    }
+    let cancelled = false;
+    setControlLoading(true);
+    setControlError("");
+    setControlSession(null);
+    setControlStudents([]);
+    setAttendanceDraft({});
+    apiGet(`/api/gestion/control/grupos/${controlGroup.id}/sesiones?fecha=${encodeURIComponent(controlDate)}`)
+      .then((data) => {
+        if (cancelled) return;
+        const session = data.sesiones?.[0] || null;
+        setControlSession(session);
+        setControlStudents(data.alumnos || []);
+        setAttendanceDraft(Object.fromEntries((data.asistencias || []).map((item) => [item.alumno_id, item.estado])));
+        setClassStatus(session?.estado || "programada");
+        setControlProfessorId(session?.profesor_id ?? data.profesor_actual_id ?? "");
+        setControlObservations(session?.observaciones || "");
+      })
+      .catch((e) => { if (!cancelled) setControlError(e.message || "No se pudo cargar la sesión."); })
+      .finally(() => { if (!cancelled) setControlLoading(false); });
+    return () => { cancelled = true; };
+  }, [activeSection, controlGroup, controlDate]);
 
   const trackingGroup = useMemo(
     () => grupos.find((item) => String(item.id) === String(trackingGroupId)) || selectedGroup || grupos[0] || null,
@@ -467,6 +645,16 @@ export default function PanelProfesor() {
     return grupos.find((item) => String(item.id) === String(firstGroupId)) || null;
   }, [grupos, studentProfile]);
 
+  const studentProfileMembership = useMemo(
+    () => studentProfileGroup?.alumnos?.find((item) => String(item.id) === String(studentProfile?.id)) || null,
+    [studentProfile, studentProfileGroup]
+  );
+
+  const studentFormGroup = useMemo(
+    () => grupos.find((item) => String(item.id) === String(studentForm.grupo_id)) || null,
+    [grupos, studentForm.grupo_id]
+  );
+
   const hasFilters = search || nivel || profesor || grupo || groupQuickFilter !== "todos" || studentQuickFilter !== "todos";
 
   const clearFilters = () => {
@@ -481,6 +669,70 @@ export default function PanelProfesor() {
   const showNotice = (message) => {
     setNotice(message);
     window.setTimeout(() => setNotice(""), 2600);
+  };
+
+  const createTelegramLink = async () => {
+    try {
+      setSaving(true);
+      setError("");
+      const data = await apiPost("/api/gestion/control/telegram/link-code", {});
+      setTelegramLink(data);
+    } catch (e) {
+      setError(e.message || "No se pudo generar el código de Telegram.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveRecovery = async (recoveryId) => {
+    const draft = recoveryDrafts[recoveryId];
+    if (!draft) return;
+    try {
+      setRecoverySavingId(recoveryId);
+      setRecoveryError("");
+      await apiPatch(`/api/gestion/control/recuperaciones/${recoveryId}`, {
+        estado: draft.estado,
+        fecha_recuperacion: draft.fecha_recuperacion || null,
+        sesion_recuperacion_id: draft.sesion_recuperacion_id || null,
+      });
+      await loadRecoveries();
+      showNotice("Recuperación actualizada.");
+    } catch (e) {
+      setRecoveryError(e.message || "No se pudo guardar la recuperación.");
+    } finally {
+      setRecoverySavingId(null);
+    }
+  };
+
+  const saveControlSession = async () => {
+    if (!controlGroup || !controlHasClass || controlLoading || controlSaving) return;
+    const body = {
+      fecha: controlDate,
+      ...(isAdmin || controlProfessorId ? { profesor_id: controlProfessorId || null } : {}),
+      estado: classStatus,
+      observaciones: controlObservations,
+      asistencias: controlStudents.map((alumno) => ({
+        alumno_id: alumno.id,
+        estado: attendanceDraft[alumno.id] || "presente",
+      })),
+    };
+    try {
+      setControlSaving(true);
+      setControlError("");
+      const path = `/api/gestion/control/grupos/${controlGroup.id}/sesiones`;
+      const data = controlSession
+        ? await apiPut(`${path}/${controlSession.id}/asistencia`, body)
+        : await apiPost(path, body);
+      setControlSession(data.sesion);
+      setControlProfessorId(data.sesion?.profesor_id ?? "");
+      setControlStudents(data.alumnos || []);
+      setAttendanceDraft(Object.fromEntries((data.asistencias || []).map((item) => [item.alumno_id, item.estado])));
+      showNotice("Sesión y asistencia guardadas.");
+    } catch (e) {
+      setControlError(e.message || "No se pudo guardar la asistencia.");
+    } finally {
+      setControlSaving(false);
+    }
   };
 
   const openNewGroup = () => {
@@ -540,6 +792,15 @@ export default function PanelProfesor() {
   const addStudentToGroup = async () => {
     if (!isAdmin || !selectedGroup || !studentToAdd) return;
 
+    const capacity = getGroupCapacityState(selectedGroup);
+    if (capacity.blocksAllDays) {
+      setError(
+        "No se puede añadir para todos los días: al menos una clase ya está completa. " +
+        "Edita la ficha del alumno si solo asistirá al día que tiene plaza."
+      );
+      return;
+    }
+
     try {
       setSaving(true);
       await apiPost(`/api/gestion/grupos/${selectedGroup.id}/alumnos`, { alumno_id: studentToAdd });
@@ -571,6 +832,10 @@ export default function PanelProfesor() {
   };
 
   const openEditStudent = (student) => {
+    const groupId = String(student.grupo_ids || "").split(",").filter(Boolean)[0] || "";
+    const assignedGroup = grupos.find((item) => String(item.id) === String(groupId));
+    const groupStudent = assignedGroup?.alumnos?.find((item) => String(item.id) === String(student.id));
+
     setCreatingStudent(false);
     setSelectedStudent(student);
     setStudentForm({
@@ -581,37 +846,63 @@ export default function PanelProfesor() {
       telefono: student.telefono || "",
       email: student.email || "",
       activo: Number(student.activo ?? 1),
+      observaciones: student.observaciones || "",
+      matricula_activa: Number(student.matricula_activa ?? 1),
+      grupo_id: groupId,
+      asiste_dia1: Number(groupStudent?.asiste_dia1 ?? (assignedGroup?.dia1 ? 1 : 0)),
+      asiste_dia2: Number(groupStudent?.asiste_dia2 ?? (assignedGroup?.dia2 ? 1 : 0)),
     });
     setStudentFormOpen(true);
   };
 
   const openNewStudent = () => {
+    const initialGroup = activeView === "grupos" ? selectedGroup : null;
     setCreatingStudent(true);
     setSelectedStudent(null);
     setStudentForm({
       ...emptyStudentForm,
-      grupo_id: selectedGroup?.id || "",
+      grupo_id: initialGroup?.id || "",
+      asiste_dia1: initialGroup?.dia1 ? 1 : 0,
+      asiste_dia2: initialGroup?.dia2 ? 1 : 0,
     });
     setStudentFormOpen(true);
+  };
+
+  const updateStudentEnrollment = (active) => {
+    setStudentForm((current) => ({
+      ...current,
+      matricula_activa: active,
+      ...(active ? {} : { grupo_id: "", asiste_dia1: 0, asiste_dia2: 0 }),
+    }));
+  };
+
+  const updateStudentGroup = (groupId) => {
+    const targetGroup = grupos.find((item) => String(item.id) === String(groupId));
+    setStudentForm((current) => ({
+      ...current,
+      grupo_id: groupId,
+      asiste_dia1: targetGroup?.dia1 ? 1 : 0,
+      asiste_dia2: targetGroup?.dia2 ? 1 : 0,
+    }));
   };
 
   const saveStudent = async (event) => {
     event.preventDefault();
     if (!isAdmin) return;
 
+    if (studentForm.grupo_id && !Number(studentForm.asiste_dia1) && !Number(studentForm.asiste_dia2)) {
+      setError("Selecciona al menos un día de asistencia para el grupo.");
+      return;
+    }
+
     try {
       setSaving(true);
       if (creatingStudent) {
-        const data = await apiPost("/api/gestion/alumnos", studentForm);
-
-        if (studentForm.grupo_id && data.id) {
-          await apiPost(`/api/gestion/grupos/${studentForm.grupo_id}/alumnos`, { alumno_id: data.id });
-        }
-
+        await apiPost("/api/gestion/alumnos", studentForm);
         showNotice(studentForm.grupo_id ? "Alumno creado y asignado al grupo." : "Alumno creado.");
       } else if (selectedStudent) {
         await apiPut(`/api/gestion/alumnos/${selectedStudent.id}`, studentForm);
-        showNotice("Alumno guardado.");
+        showNotice("Alumno, matrícula y grupo guardados.");
       }
 
       setStudentFormOpen(false);
@@ -659,6 +950,11 @@ export default function PanelProfesor() {
         <div className="staffHeroText">
           <span className="staffEyebrow">Panel de escuela</span>
           <h1>{isAdmin ? "Panel de administración" : "Panel de profesor"}</h1>
+          <div className="schoolContextBadge" aria-label="Curso y sede activos">
+            <strong>Curso {curso?.nombre || "2026/27"}</strong>
+            <span>·</span>
+            <strong>{sede?.nombre || "Seminario Diocesano"}</strong>
+          </div>
           <p>
             {scope === "admin"
               ? "Gestiona clases, alumnos, reservas y avisos del club."
@@ -667,7 +963,7 @@ export default function PanelProfesor() {
         </div>
 
         <div className="staffSummary">
-          <div className="metricCard"><span>Grupos totales</span><strong>{loading ? "-" : panelMetrics.totalGrupos}</strong></div>
+          <div className="metricCard"><span>Grupos del curso</span><strong>{loading ? "-" : panelMetrics.totalGrupos}</strong></div>
           <div className="metricCard"><span>Alumnos totales</span><strong>{loading ? "-" : panelMetrics.totalAlumnos}</strong></div>
           <div className="metricCard"><span>Grupos con huecos</span><strong>{loading ? "-" : panelMetrics.gruposConHuecos}</strong></div>
           <div className="metricCard"><span>Sin acceso</span><strong>{loading ? "-" : panelMetrics.alumnosSinAcceso}</strong></div>
@@ -675,6 +971,24 @@ export default function PanelProfesor() {
       </header>
 
       {notice && <div className="staffNotice">{notice}</div>}
+      {!isAdmin && (
+        <div className="telegramLinkPanel">
+          <div>
+            <strong>Telegram para profesores</strong>
+            <span>Vincula este usuario con un chat privado mediante un código de un solo uso.</span>
+          </div>
+          {telegramLink ? (
+            <div className="telegramLinkCode">
+              <code>{telegramLink.command}</code>
+              {telegramLink.link && <a className="staffPrimaryBtn" href={telegramLink.link} target="_blank" rel="noreferrer">Abrir Telegram</a>}
+              <button className="staffSecondaryBtn" type="button" onClick={createTelegramLink} disabled={saving}>Generar otro código</button>
+              <small>Caduca en {telegramLink.expires_in_minutes} minutos.</small>
+            </div>
+          ) : (
+            <button className="staffSecondaryBtn" type="button" onClick={createTelegramLink} disabled={saving}>Generar código de Telegram</button>
+          )}
+        </div>
+      )}
 
       <section className="adminOverview" aria-label="Resumen de hoy">
         <div className="adminOverviewHead">
@@ -862,13 +1176,15 @@ export default function PanelProfesor() {
                   <button key={item.id} className={String(selectedGroup?.id) === String(item.id) ? "groupListItem active" : "groupListItem"} data-level={item.nivel || "default"} onClick={() => setSelectedGroupId(item.id)}>
                     <span className="groupListTop">
                       <strong>{item.nombre}</strong>
-                      <small>{item.alumnos?.length || 0}/{item.cupo || "-"}</small>
+                      <small>{formatGroupCapacity(item)}</small>
                     </span>
                     <span className="groupListMeta">
                       <span className={nivelClass(item.nivel)}>{nivelLabel(item.nivel)}</span>
                       <span>{formatDias(item.dia1, item.dia2)}</span>
                       <span>{formatHora(item.hora_inicio, item.duracion_min)}</span>
-                      <span>{item.pista_habitual || "Sin pista"}</span>
+                      <span>{getCourtName(item.pista_habitual)}</span>
+                      <span>{descriptorLabel(item.deporte)}</span>
+                      <span>{descriptorLabel(item.categoria)}</span>
                     </span>
                   </button>
                 ))}
@@ -902,11 +1218,13 @@ export default function PanelProfesor() {
                 </div>
 
                 <div className="groupMetaGrid">
-                  <div><span>Profesor</span><strong>{selectedGroup.profesor || "No disponible"}</strong></div>
+                  <div><span>Profesor</span><strong>{selectedGroup.profesor || "Sin profesor asignado"}</strong></div>
                   <div><span>Días</span><strong>{formatDias(selectedGroup.dia1, selectedGroup.dia2)}</strong></div>
                   <div><span>Horario</span><strong>{formatHora(selectedGroup.hora_inicio, selectedGroup.duracion_min)}</strong></div>
-                  <div><span>Pista</span><strong>{selectedGroup.pista_habitual || "-"}</strong></div>
-                  <div><span>Cupo</span><strong>{selectedGroup.cupo || "-"}</strong></div>
+                  <div><span>Pista</span><strong>{getCourtName(selectedGroup.pista_habitual)}</strong></div>
+                  <div><span>Deporte</span><strong>{descriptorLabel(selectedGroup.deporte)}</strong></div>
+                  <div><span>Categoría</span><strong>{descriptorLabel(selectedGroup.categoria)}</strong></div>
+                  <div><span>Cupo por día</span><strong>{formatGroupCapacity(selectedGroup)}</strong></div>
                   <div><span>Estado</span><strong>{Number(selectedGroup.activo ?? 1) === 1 ? "Activo" : "Inactivo"}</strong></div>
                 </div>
 
@@ -934,6 +1252,7 @@ export default function PanelProfesor() {
                       <div>
                         <h3>{alumno.nombre} {alumno.apellidos}</h3>
                         <p>{nivelLabel(alumno.nivel || selectedGroup.nivel)}</p>
+                        <small className="studentAttendanceDays">Asiste: {getStudentDays(selectedGroup, alumno)}</small>
                         {(alumno.telefono || alumno.email) && <small>{alumno.telefono || alumno.email}</small>}
                       </div>
                       {isAdmin && <button className="miniDangerBtn" onClick={() => removeStudentFromGroup(alumno)}>Quitar</button>}
@@ -996,46 +1315,70 @@ export default function PanelProfesor() {
             <div>
               <span className="staffEyebrow">Agenda semanal</span>
               <h2>Horario semanal</h2>
-              <p>Organiza la semana con los grupos activos de la escuela.</p>
+              <p>Curso {curso?.nombre || "2026/27"} · {sede?.nombre || "Seminario Diocesano"} · grupos organizados por pista.</p>
             </div>
             <span className="opsCounter">{grupos.filter((item) => Number(item.activo ?? 1) === 1).length} grupos activos</span>
           </div>
 
-          <div className="weeklyGrid">
-            {WEEK_DAYS.map((day) => (
-              <article className="weekDayColumn" key={day.key}>
-                <div className="weekDayHeader">
-                  <strong>{day.label}</strong>
-                  <span>{weeklySchedule[day.key]?.length || 0}</span>
-                </div>
+          <div className="weeklyCourts">
+            {weeklySchedule.map((court) => {
+              const courtGroupCount = new Set(
+                Object.values(court.days).flat().map(({ group }) => group.id)
+              ).size;
 
-                <div className="dayClassStack">
-                  {(weeklySchedule[day.key] || []).map((group) => (
-                    <button
-                      type="button"
-                      className="scheduleClassCard"
-                      data-level={group.nivel || "default"}
-                      key={`${day.key}-${group.id}`}
-                      onClick={() => {
-                        setSelectedGroupId(group.id);
-                        setControlGroupId(group.id);
-                        setActiveSection("control");
-                      }}
-                    >
-                      <span className="scheduleTime">{String(group.hora_inicio || "").slice(0, 5) || "-"}</span>
-                      <strong>{group.nombre}</strong>
-                      <span className={nivelClass(group.nivel)}>{nivelLabel(group.nivel)}</span>
-                      <small>{group.profesor || "Profesor sin asignar"}</small>
-                      <small>{group.pista_habitual || "Sin pista"} · {group.alumnos?.length || 0}/{group.cupo || "-"}</small>
-                    </button>
-                  ))}
+              return (
+                <section className="courtSchedule" key={court.name}>
+                  <div className="courtScheduleHeader">
+                    <div>
+                      <span>Pista</span>
+                      <h3>{court.name}</h3>
+                    </div>
+                    <strong>{courtGroupCount} grupo{courtGroupCount === 1 ? "" : "s"}</strong>
+                  </div>
 
-                  {(!weeklySchedule[day.key] || weeklySchedule[day.key].length === 0) && (
-                    <div className="emptyDay">Sin clases</div>
-                  )}
-                </div>
-              </article>
-            ))}
+                  <div className="weeklyGrid">
+                    {WEEK_DAYS.map((day) => (
+                      <article className="weekDayColumn" key={`${court.name}-${day.key}`}>
+                        <div className="weekDayHeader">
+                          <strong>{day.label}</strong>
+                          <span>{court.days[day.key]?.length || 0}</span>
+                        </div>
+
+                        <div className="dayClassStack">
+                          {(court.days[day.key] || []).map(({ group, students }) => (
+                            <button
+                              type="button"
+                              className="scheduleClassCard"
+                              data-level={group.nivel || "default"}
+                              key={`${court.name}-${day.key}-${group.id}`}
+                              onClick={() => {
+                                setSelectedGroupId(group.id);
+                                setActiveView("grupos");
+                                setActiveSection("gestion");
+                              }}
+                            >
+                              <span className="scheduleTime">{String(group.hora_inicio || "").slice(0, 5) || "-"}</span>
+                              <strong>{group.nombre}</strong>
+                              <span className={nivelClass(group.nivel)}>{nivelLabel(group.nivel)}</span>
+                              <small>{descriptorLabel(group.deporte)} · {descriptorLabel(group.categoria)}</small>
+                              <small>{group.profesor || "Profesor sin asignar"}</small>
+                              <div className="scheduleStudents">
+                                <span>{students.length} alumno{students.length === 1 ? "" : "s"} este día</span>
+                                <small>{students.length ? students.map((student) => student.nombre).join(", ") : "Sin alumnos asignados a este día"}</small>
+                              </div>
+                            </button>
+                          ))}
+
+                          {(!court.days[day.key] || court.days[day.key].length === 0) && (
+                            <div className="emptyDay">Sin clases</div>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
           </div>
         </section>
       )}
@@ -1048,7 +1391,7 @@ export default function PanelProfesor() {
               <h2>Control de clases</h2>
               <p>Pasa lista y revisa el estado de la clase desde una vista clara.</p>
             </div>
-            <span className="opsCounter">{controlGroup?.alumnos?.length || 0} alumnos</span>
+            <span className="opsCounter">{controlStudents.length} alumnos</span>
           </div>
 
           <div className="controlLayout">
@@ -1056,7 +1399,7 @@ export default function PanelProfesor() {
               <label>
                 Grupo
                 <select value={controlGroup?.id || ""} onChange={(e) => setControlGroupId(e.target.value)}>
-                  {gruposOptions.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+                  {controlGroups.map((item) => <option key={item.id} value={item.id}>{item.nombre || item.codigo || `Grupo ${item.id}`}</option>)}
                 </select>
               </label>
               <label>
@@ -1069,9 +1412,21 @@ export default function PanelProfesor() {
                   <span className={nivelClass(controlGroup.nivel)}>{nivelLabel(controlGroup.nivel)}</span>
                   <h3>{controlGroup.nombre}</h3>
                   <p>{formatDias(controlGroup.dia1, controlGroup.dia2)} · {formatHora(controlGroup.hora_inicio, controlGroup.duracion_min)}</p>
-                  <p>{controlGroup.profesor || "Profesor sin asignar"} · {controlGroup.pista_habitual || "Sin pista"}</p>
+                  <p>Profesor habitual: {controlGroup.profesor || "sin asignar"} · {controlGroup.pista_habitual || "Sin pista"}</p>
                 </div>
               )}
+
+              <label>
+                Profesor de esta sesión
+                <select value={controlProfessorId} onChange={(e) => setControlProfessorId(e.target.value)}>
+                  <option value="">{isAdmin ? "Sin profesor asignado" : "Usar mi profesor"}</option>
+                  {profesores.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </label>
+              <label>
+                Observaciones
+                <textarea value={controlObservations} onChange={(e) => setControlObservations(e.target.value)} rows={3} />
+              </label>
 
               <div className="statusChips" aria-label="Estado de clase">
                 {CLASS_STATUS.map((status) => (
@@ -1091,11 +1446,17 @@ export default function PanelProfesor() {
             <main className="attendancePanel">
               <div className="panelSectionTitle">
                 <h2>Asistencia</h2>
-                <span>Pendiente de guardar</span>
+                <span>{controlSession ? "Sesión guardada" : "Sesión sin guardar"}</span>
               </div>
 
+              {controlLoading && <div className="staffEmpty">Cargando asistencia...</div>}
+              {controlGroupsLoading && <div className="staffEmpty">Cargando grupos...</div>}
+              {controlError && <div className="preparedNotice" role="alert">{controlError}</div>}
+              {!controlGroupsLoading && !controlError && !controlGroup && <div className="staffEmpty">No hay grupos activos para este curso y sede.</div>}
+              {!controlLoading && controlGroup && !controlHasClass && <div className="staffEmpty">Este grupo no tiene clase el día elegido.</div>}
+
               <div className="attendanceList">
-                {(controlGroup?.alumnos || []).map((alumno) => {
+                {!controlLoading && controlStudents.map((alumno) => {
                   const current = attendanceDraft[alumno.id] || "presente";
                   return (
                     <article className="attendanceRow" key={alumno.id}>
@@ -1121,8 +1482,10 @@ export default function PanelProfesor() {
                 })}
               </div>
 
-              {(!controlGroup?.alumnos || controlGroup.alumnos.length === 0) && <div className="staffEmpty">Este grupo todavía no tiene alumnos para pasar lista.</div>}
-              <div className="preparedNotice">La asistencia se podrá guardar cuando actives el registro de sesiones.</div>
+              {!controlLoading && controlHasClass && controlStudents.length === 0 && <div className="staffEmpty">No hay alumnos asignados para este día.</div>}
+              <button className="staffPrimaryBtn" type="button" onClick={saveControlSession} disabled={!controlHasClass || controlGroupsLoading || controlLoading || controlSaving || !controlGroup || !!controlError}>
+                {controlSaving ? "Guardando..." : controlSession ? "Actualizar sesión y asistencia" : "Guardar sesión y asistencia"}
+              </button>
             </main>
           </div>
         </section>
@@ -1134,30 +1497,67 @@ export default function PanelProfesor() {
             <div>
               <span className="staffEyebrow">Clases pendientes</span>
               <h2>Recuperaciones</h2>
-              <p>Revisa clases canceladas, faltas justificadas y sesiones pendientes.</p>
+              <p>Consulta y asigna las recuperaciones del curso actual.</p>
             </div>
+            <span className="opsCounter">{recoveries.length} recuperaciones</span>
           </div>
 
-          <div className="recoveryGrid">
-            <article className="recoveryCard">
-              <span className="statusDot warning" />
-              <div>
-                <strong>Sin recuperaciones registradas</strong>
-                <p>Cuando registres una clase pendiente, aparecerá aquí con alumno, fecha, motivo y estado.</p>
-              </div>
-              <button className="staffSecondaryBtn" type="button" disabled>Marcar como recuperada</button>
-            </article>
-            <article className="recoveryPlan">
-              <h3>Datos de cada recuperación</h3>
-              <div className="trackingTags">
-                <span>Alumno o grupo</span>
-                <span>Fecha perdida</span>
-                <span>Motivo</span>
-                <span>Estado</span>
-                <span>Recuperada</span>
-              </div>
-            </article>
-          </div>
+          {recoveryLoading && <div className="staffEmpty">Cargando recuperaciones...</div>}
+          {recoveryError && <div className="preparedNotice" role="alert">{recoveryError}</div>}
+          {!recoveryLoading && !recoveryError && recoveries.length === 0 && <div className="staffEmpty">No hay recuperaciones registradas en este curso.</div>}
+          {!recoveryLoading && recoveries.length > 0 && (
+            <div className="recoveryList">
+              {recoveries.map((item) => {
+                const draft = recoveryDrafts[item.id] || {};
+                const options = recoverySessions.filter((session) =>
+                  session.fecha === draft.fecha_recuperacion && Number(session.id) !== Number(item.sesion_origen_id)
+                );
+                return (
+                  <article className="recoveryCard recoveryEntry" key={item.id}>
+                    <div>
+                      <strong>{item.alumno_nombre} {item.alumno_apellidos}</strong>
+                      <p>Grupo de origen: {item.grupo_origen} · Fecha original: {item.fecha_original}</p>
+                      <p>Motivo: {item.motivo === "falta_justificada" ? "Falta justificada" : descriptorLabel(item.motivo)}</p>
+                      <p>Estado: {RECOVERY_STATUS.find((status) => status.key === item.estado)?.label || item.estado}
+                        {item.fecha_recuperacion ? ` · Fecha asignada: ${item.fecha_recuperacion}` : ""}
+                        {item.sesion_recuperacion_id ? ` · Sesión #${item.sesion_recuperacion_id}` : ""}
+                      </p>
+                    </div>
+                    <div className="recoveryControls">
+                      <label>Estado
+                        <select value={draft.estado || "pendiente"} onChange={(e) => setRecoveryDrafts((current) => ({
+                          ...current, [item.id]: { ...current[item.id], estado: e.target.value },
+                        }))}>
+                          {RECOVERY_STATUS.map((status) => <option key={status.key} value={status.key}>{status.label}</option>)}
+                        </select>
+                      </label>
+                      <label>Fecha de recuperación
+                        <input type="date" value={draft.fecha_recuperacion || ""} onChange={(e) => setRecoveryDrafts((current) => ({
+                          ...current, [item.id]: {
+                            ...current[item.id], fecha_recuperacion: e.target.value, sesion_recuperacion_id: "",
+                            estado: e.target.value && current[item.id]?.estado === "pendiente" ? "asignada" : current[item.id]?.estado,
+                          },
+                        }))} />
+                      </label>
+                      <label>Sesión existente
+                        <select value={draft.sesion_recuperacion_id || ""} disabled={!draft.fecha_recuperacion} onChange={(e) => setRecoveryDrafts((current) => ({
+                          ...current, [item.id]: { ...current[item.id], sesion_recuperacion_id: e.target.value },
+                        }))}>
+                          <option value="">Sin sesión asignada</option>
+                          {options.map((session) => <option key={session.id} value={session.id}>
+                            {session.grupo_nombre} · {String(session.hora_inicio || "").slice(0, 5)} · #{session.id}
+                          </option>)}
+                        </select>
+                      </label>
+                      <button className="staffPrimaryBtn" type="button" onClick={() => saveRecovery(item.id)} disabled={recoverySavingId === item.id}>
+                        {recoverySavingId === item.id ? "Guardando..." : "Guardar recuperación"}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </section>
       )}
 
@@ -1229,9 +1629,10 @@ export default function PanelProfesor() {
               <div><span>Email</span><strong>{studentProfile.email || "No disponible"}</strong></div>
               <div><span>Nivel de juego</span><strong>{gameLevelLabel(studentProfile.nivel_juego)}</strong></div>
               <div><span>Acceso plataforma</span><strong>{studentProfile.usuario_id ? "Con acceso" : "Sin acceso"}</strong></div>
+              <div><span>Matrícula 2026/27</span><strong>{Number(studentProfile.matricula_activa ?? 1) === 1 ? "Activa" : "Inactiva"}</strong></div>
               <div><span>Grupo</span><strong>{studentProfile.grupos || "No disponible"}</strong></div>
               <div><span>Profesor</span><strong>{studentProfile.profesores || studentProfileGroup?.profesor || "No disponible"}</strong></div>
-              <div><span>Días</span><strong>{studentProfileGroup ? formatDias(studentProfileGroup.dia1, studentProfileGroup.dia2) : "No disponible"}</strong></div>
+              <div><span>Días</span><strong>{studentProfileGroup && studentProfileMembership ? getStudentDays(studentProfileGroup, studentProfileMembership) : "No disponible"}</strong></div>
               <div><span>Horario</span><strong>{studentProfile.horarios || (studentProfileGroup ? formatHora(studentProfileGroup.hora_inicio, studentProfileGroup.duracion_min) : "No disponible")}</strong></div>
               <div><span>Pista</span><strong>{studentProfile.pistas || studentProfileGroup?.pista_habitual || "No disponible"}</strong></div>
             </div>
@@ -1294,6 +1695,11 @@ export default function PanelProfesor() {
         <div className="staffModalBackdrop">
           <form className="staffModal" onSubmit={saveStudent}>
             <div className="modalHeader"><h2>{creatingStudent ? "Crear alumno" : "Editar alumno"}</h2><button type="button" onClick={() => setStudentFormOpen(false)}>Cerrar</button></div>
+            <div className="studentEnrollmentIntro">
+              <span>Matrícula</span>
+              <strong>Curso {curso?.nombre || "2026/27"} · {sede?.nombre || "Seminario Diocesano"}</strong>
+              <small>El grupo es opcional y no necesita tener un profesor asignado.</small>
+            </div>
             <div className="formGrid">
               <label>Nombre<input value={studentForm.nombre || ""} onChange={(e) => setStudentForm({ ...studentForm, nombre: e.target.value })} required /></label>
               <label>Apellidos<input value={studentForm.apellidos || ""} onChange={(e) => setStudentForm({ ...studentForm, apellidos: e.target.value })} /></label>
@@ -1302,8 +1708,22 @@ export default function PanelProfesor() {
               <label>Teléfono<input value={studentForm.telefono || ""} onChange={(e) => setStudentForm({ ...studentForm, telefono: e.target.value })} /></label>
               <label>Email<input type="email" value={studentForm.email || ""} onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })} /></label>
               <label>Activo<select value={studentForm.activo ?? 1} onChange={(e) => setStudentForm({ ...studentForm, activo: Number(e.target.value) })}><option value={1}>Activo</option><option value={0}>Inactivo</option></select></label>
-              {creatingStudent && (
-                <label>Asignar a grupo<select value={studentForm.grupo_id || ""} onChange={(e) => setStudentForm({ ...studentForm, grupo_id: e.target.value })}><option value="">Sin grupo por ahora</option>{gruposOptions.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
+              <label>Matrícula<select value={studentForm.matricula_activa ?? 1} onChange={(e) => updateStudentEnrollment(Number(e.target.value))}><option value={1}>Activa</option><option value={0}>Inactiva</option></select></label>
+              <label>Asignar a grupo<select value={studentForm.grupo_id || ""} onChange={(e) => updateStudentGroup(e.target.value)} disabled={!Number(studentForm.matricula_activa)}><option value="">Sin grupo por ahora</option>{gruposOptions.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
+              {studentFormGroup && Number(studentForm.matricula_activa) === 1 && (
+                <fieldset className="formFieldWide studentDaysField">
+                  <legend>Días de asistencia en {studentFormGroup.nombre}</legend>
+                  <label>
+                    <input type="checkbox" checked={Number(studentForm.asiste_dia1) === 1} onChange={(e) => setStudentForm({ ...studentForm, asiste_dia1: e.target.checked ? 1 : 0 })} />
+                    <span>{formatDias(studentFormGroup.dia1)}</span>
+                  </label>
+                  {studentFormGroup.dia2 && (
+                    <label>
+                      <input type="checkbox" checked={Number(studentForm.asiste_dia2) === 1} onChange={(e) => setStudentForm({ ...studentForm, asiste_dia2: e.target.checked ? 1 : 0 })} />
+                      <span>{formatDias(studentFormGroup.dia2)}</span>
+                    </label>
+                  )}
+                </fieldset>
               )}
               <label className="formFieldWide">Observaciones<input value={studentForm.observaciones || ""} onChange={(e) => setStudentForm({ ...studentForm, observaciones: e.target.value })} placeholder="Notas internas opcionales" /></label>
             </div>

@@ -1,0 +1,102 @@
+/* Correcciones de legibilidad. Se carga la última (index.js) porque premium.css y redesign.css
+   cambiaron los fondos a claro/oscuro sin ajustar el color del texto de algunos componentes. */
+
+/* Barra inferior del móvil: fondo claro, así que las letras deben ser oscuras. */
+.mobileBottomNav {
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.16);
+}
+
+.mobileNavItem {
+  color: var(--color-muted);
+}
+
+.mobileNavItem.isActive {
+  background: var(--color-secondary-soft);
+  color: var(--color-secondary-dark);
+}
+
+/* El pie no queda tapado por la barra inferior. */
+@media (max-width: 768px) {
+  .footer {
+    padding-bottom: calc(5.6rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Torneos: cabecera verde oscuro con texto oscuro. */
+.torneosHero .torneosEyebrow {
+  color: #bbf7d0;
+}
+
+.torneosHero .torneosTitle {
+  color: #ffffff;
+}
+
+.torneosHero .intro {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.torneosHero span:not(.torneosEyebrow) {
+  color: rgba(255, 255, 255, 0.74);
+}
+
+/* Galería: el distintivo verde sobre verde oscuro apenas se lee. */
+.galeriaHeroCopy .galeriaEyebrow {
+  color: #bbf7d0;
+}
+
+.galeriaHeroCopy span {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+/* Reservas: la flecha entre horas era blanca sobre blanco. */
+.timeDash {
+  color: var(--color-muted);
+}
+
+/* Tienda: mismo distintivo verde sobre verde oscuro. */
+.tiendaHeroCopy .tiendaEyebrow {
+  color: #bbf7d0;
+}
+
+@media (max-width: 560px) {
+  /* Reservas: las tres cifras en una fila y sin cajas altas casi vacías. */
+  .reservasHeader .summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto;
+  }
+
+  .reservasHeader .summaryItem {
+    min-height: 0;
+    padding: 0.8rem 0.3rem;
+    text-align: center;
+  }
+
+  /* Reservas: Hoy / Mañana / Este finde en una fila y el calendario debajo, a todo el ancho. */
+  .datePills {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .datePills .pillBtn {
+    padding-inline: 0.4rem;
+  }
+
+  .datePills .datePicker {
+    grid-column: 1 / -1;
+  }
+
+  .datePicker input {
+    width: 100%;
+  }
+}
+
+/* iOS amplía la página al enfocar un campo con letra menor de 16 px. */
+@media (max-width: 768px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}

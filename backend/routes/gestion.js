@@ -2,16 +2,19 @@ import express from "express";
 import bcrypt from "bcrypt";
 import { db } from "../db/connection.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
+import gestionControlRouter from "./gestionControl.js";
 
 const router = express.Router();
 const query = (sql, params = []) => db.promise().query(sql, params);
 const STAFF_ROLES = ["admin", "profesor", "profe"];
+const GESTION_SEDE = "Seminario Diocesano";
 
 router.use(requireAuth);
 router.use(requireRoles(STAFF_ROLES));
+router.use("/control", gestionControlRouter);
 
-async function getTableColumns(tableName) {
-  const [rows] = await query(`SHOW COLUMNS FROM ${tableName}`);
+async function getTableColumns(tableName, executor = db.promise()) {
+  const [rows] = await executor.query(`SHOW COLUMNS FROM ${tableName}`);
   return new Set(rows.map((row) => row.Field));
 }
 
@@ -80,6 +83,227 @@ async function getProfesorIdForUser(user) {
   return rows[0]?.id || 0;
 }
 
+async function getGestionContext(executor = db.promise()) {
+  const [rows] = await executor.query(
+    `SELECT
+      c.id AS curso_id,
+      c.nombre AS curso_nombre,
+      s.id AS sede_id,
+      s.nombre AS sede_nombre
+     FROM cursos_escolares c
+     JOIN sedes s ON s.nombre = ?
+     WHERE c.activo = 1
+     ORDER BY c.id DESC
+     LIMIT 1`,
+    [GESTION_SEDE]
+  );
+
+  return rows[0] || null;
+}
+
+function requestError(status, message) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+
+function booleanFlag(value, fallback = 0) {
+  if (value === undefined || value === null || value === "") return fallback;
+  return Number(value) === 1 || value === true ? 1 : 0;
+}
+
+function enrollmentActiveSelect(columns, alias = "ac") {
+  if (columns.has("estado")) {
+    return `CASE WHEN ${alias}.estado = 'baja' THEN 0 ELSE 1 END`;
+  }
+  return columns.has("activo") ? `COALESCE(${alias}.activo, 1)` : "1";
+}
+
+async function upsertCurrentEnrollment(connection, alumnoId, gestionContext, active, columns, groupId) {
+  const [existing] = await connection.query(
+    `SELECT *
+     FROM alumno_curso
+     WHERE alumno_id = ? AND curso_id = ? AND sede_id = ?
+     LIMIT 1
+     FOR UPDATE`,
+    [alumnoId, gestionContext.curso_id, gestionContext.sede_id]
+  );
+
+  if (existing.length > 0) {
+    const enrollmentActive = active === undefined
+      ? (columns.has("estado") ? Number(existing[0].estado !== "baja") : booleanFlag(existing[0].activo, 1))
+      : active;
+    const updates = [];
+    const values = [];
+
+    if (active !== undefined && columns.has("activo")) {
+      updates.push("activo = ?");
+      values.push(active);
+    }
+    if (columns.has("estado") && (active !== undefined || groupId !== undefined)) {
+      const state = !enrollmentActive
+        ? "baja"
+        : groupId !== undefined
+          ? (groupId ? "grupo_asignado" : "pendiente_grupo")
+          : existing[0].estado === "baja" ? "pendiente_grupo" : existing[0].estado;
+      updates.push("estado = ?");
+      values.push(state);
+    }
+    if (columns.has("fecha_baja") && active !== undefined) {
+      updates.push(`fecha_baja = ${enrollmentActive ? "NULL" : "CURDATE()"}`);
+    }
+    if (updates.length) {
+      await connection.query(
+        `UPDATE alumno_curso SET ${updates.join(", ")} WHERE alumno_id = ? AND curso_id = ? AND sede_id = ?`,
+        [...values, alumnoId, gestionContext.curso_id, gestionContext.sede_id]
+      );
+    }
+    return enrollmentActive;
+  }
+
+  const enrollmentActive = active === undefined ? 1 : active;
+  const payload = {
+    alumno_id: alumnoId,
+    curso_id: gestionContext.curso_id,
+    sede_id: gestionContext.sede_id,
+    activo: enrollmentActive,
+    estado: enrollmentActive ? (groupId ? "grupo_asignado" : "pendiente_grupo") : "baja",
+  };
+  const { fields, values } = pickWritableFields(
+    payload,
+    ["alumno_id", "curso_id", "sede_id", "activo", "estado"],
+    columns
+  );
+
+  if (!enrollmentActive && columns.has("fecha_baja")) fields.push("fecha_baja");
+
+  await connection.query(
+    `INSERT INTO alumno_curso (${fields.join(", ")}) VALUES (${fields.map((field) => field === "fecha_baja" ? "CURDATE()" : "?").join(", ")})`,
+    values
+  );
+
+  return enrollmentActive;
+}
+
+async function replaceCurrentGroupAssignment(connection, alumnoId, gestionContext, assignment, columns) {
+  let group = null;
+
+  if (assignment.grupoId) {
+    const [groups] = await connection.query(
+      `SELECT id, dia1, dia2, cupo
+       FROM grupos
+       WHERE id = ? AND curso_id = ? AND sede_id = ? AND activo = 1
+       LIMIT 1
+       FOR UPDATE`,
+      [assignment.grupoId, gestionContext.curso_id, gestionContext.sede_id]
+    );
+
+    group = groups[0];
+    if (!group) {
+      throw requestError(400, "El grupo seleccionado no pertenece al curso y sede activos");
+    }
+  }
+
+  if (columns.has("activo")) {
+    await connection.query(
+      `UPDATE grupo_alumnos ga
+       JOIN grupos g ON g.id = ga.grupo_id
+       SET ga.activo = 0
+       WHERE ga.alumno_id = ? AND g.curso_id = ? AND g.sede_id = ?`,
+      [alumnoId, gestionContext.curso_id, gestionContext.sede_id]
+    );
+  } else {
+    await connection.query(
+      `DELETE ga
+       FROM grupo_alumnos ga
+       JOIN grupos g ON g.id = ga.grupo_id
+       WHERE ga.alumno_id = ? AND g.curso_id = ? AND g.sede_id = ?`,
+      [alumnoId, gestionContext.curso_id, gestionContext.sede_id]
+    );
+  }
+
+  if (!group) return null;
+
+  const asisteDia1 = group.dia1 ? booleanFlag(assignment.asisteDia1, 1) : 0;
+  const asisteDia2 = group.dia2 ? booleanFlag(assignment.asisteDia2, 1) : 0;
+
+  if (!asisteDia1 && !asisteDia2) {
+    throw requestError(400, "Selecciona al menos un dia de asistencia para el grupo");
+  }
+
+  const cupo = Number(group.cupo || 0);
+  if (cupo > 0) {
+    const day1Select = columns.has("asiste_dia1")
+      ? "COALESCE(asiste_dia1, 1) AS asiste_dia1"
+      : "1 AS asiste_dia1";
+    const day2Select = columns.has("asiste_dia2")
+      ? "COALESCE(asiste_dia2, 1) AS asiste_dia2"
+      : "1 AS asiste_dia2";
+    const activeWhere = columns.has("activo") ? "AND activo = 1" : "";
+    const [attendanceRows] = await connection.query(
+      `SELECT alumno_id, ${day1Select}, ${day2Select}
+       FROM grupo_alumnos
+       WHERE grupo_id = ? ${activeWhere}
+       FOR UPDATE`,
+      [group.id]
+    );
+    const day1Count = attendanceRows.reduce(
+      (total, row) => total + booleanFlag(row.asiste_dia1, 1),
+      0
+    );
+    const day2Count = attendanceRows.reduce(
+      (total, row) => total + booleanFlag(row.asiste_dia2, 1),
+      0
+    );
+    const fullDays = [];
+
+    if (asisteDia1 && day1Count >= cupo) fullDays.push(group.dia1);
+    if (asisteDia2 && day2Count >= cupo) fullDays.push(group.dia2);
+
+    if (fullDays.length) {
+      throw requestError(409, `No hay plazas disponibles para ${fullDays.join(" y ")}`);
+    }
+  }
+
+  const [existing] = await connection.query(
+    "SELECT * FROM grupo_alumnos WHERE grupo_id = ? AND alumno_id = ? LIMIT 1 FOR UPDATE",
+    [group.id, alumnoId]
+  );
+  const payload = {
+    grupo_id: group.id,
+    alumno_id: alumnoId,
+    activo: 1,
+    asiste_dia1: asisteDia1,
+    asiste_dia2: asisteDia2,
+  };
+
+  if (existing.length > 0) {
+    const { fields, values } = pickWritableFields(
+      payload,
+      ["activo", "asiste_dia1", "asiste_dia2"],
+      columns
+    );
+    if (fields.length) {
+      await connection.query(
+        `UPDATE grupo_alumnos SET ${fields.map((field) => `${field} = ?`).join(", ")} WHERE grupo_id = ? AND alumno_id = ?`,
+        [...values, group.id, alumnoId]
+      );
+    }
+  } else {
+    const { fields, values } = pickWritableFields(
+      payload,
+      ["grupo_id", "alumno_id", "activo", "asiste_dia1", "asiste_dia2"],
+      columns
+    );
+    await connection.query(
+      `INSERT INTO grupo_alumnos (${fields.join(", ")}) VALUES (${fields.map(() => "?").join(", ")})`,
+      values
+    );
+  }
+
+  return { grupoId: group.id, asisteDia1, asisteDia2 };
+}
+
 function parseGroupRows(rows) {
   const groups = new Map();
 
@@ -97,6 +321,10 @@ function parseGroupRows(rows) {
         pista_habitual: row.pista_habitual,
         cupo: row.cupo,
         activo: row.activo,
+        curso_id: row.curso_id,
+        sede_id: row.sede_id,
+        deporte: row.deporte,
+        categoria: row.categoria,
         profesor_id: row.profesor_id,
         profesor: row.profesor,
         alumnos: [],
@@ -112,6 +340,8 @@ function parseGroupRows(rows) {
         nivel_juego: row.alumno_nivel_juego,
         email: row.alumno_email,
         telefono: row.alumno_telefono,
+        asiste_dia1: row.asiste_dia1,
+        asiste_dia2: row.asiste_dia2,
       });
     }
   });
@@ -123,22 +353,41 @@ router.get("/resumen", async (req, res) => {
   try {
     const profesorId = await getProfesorIdForUser(req.user);
     const isAdmin = String(req.user.rol).toLowerCase() === "admin";
+    const gestionContext = await getGestionContext();
+
+    if (!gestionContext) {
+      return res.status(404).json({
+        ok: false,
+        message: `No hay un curso activo para la sede ${GESTION_SEDE}`,
+      });
+    }
+
+    const { curso_id: cursoId, sede_id: sedeId } = gestionContext;
     const alumnoColumns = await getTableColumns("alumnos");
+    const alumnoCursoColumns = await getTableColumns("alumno_curso");
     const alumnoEmailSelect = alumnoColumns.has("email") ? "a.email" : "NULL AS email";
     const alumnoTelefonoSelect = alumnoColumns.has("telefono") ? "a.telefono" : "NULL AS telefono";
     const alumnoActivoSelect = alumnoColumns.has("activo") ? "a.activo" : "1 AS activo";
     const alumnoUsuarioSelect = alumnoColumns.has("usuario_id") ? "a.usuario_id" : "NULL AS usuario_id";
     const alumnoNivelJuegoSelect = alumnoColumns.has("nivel_juego") ? "a.nivel_juego" : "NULL AS nivel_juego";
+    const alumnoObservacionesSelect = alumnoColumns.has("observaciones") ? "a.observaciones" : "NULL AS observaciones";
+    const matriculaActivaSelect = `${enrollmentActiveSelect(alumnoCursoColumns)} AS matricula_activa`;
     const alumnoGroupByEmail = alumnoColumns.has("email") ? ", a.email" : "";
     const alumnoGroupByTelefono = alumnoColumns.has("telefono") ? ", a.telefono" : "";
     const alumnoGroupByActivo = alumnoColumns.has("activo") ? ", a.activo" : "";
     const alumnoGroupByUsuario = alumnoColumns.has("usuario_id") ? ", a.usuario_id" : "";
     const alumnoGroupByNivelJuego = alumnoColumns.has("nivel_juego") ? ", a.nivel_juego" : "";
+    const alumnoGroupByObservaciones = alumnoColumns.has("observaciones") ? ", a.observaciones" : "";
+    const alumnoGroupByMatriculaActiva = alumnoCursoColumns.has("estado")
+      ? ", ac.estado"
+      : alumnoCursoColumns.has("activo") ? ", ac.activo" : "";
 
     if (!isAdmin && !profesorId) {
       return res.json({
         ok: true,
         scope: "profesor",
+        curso: { id: cursoId, nombre: gestionContext.curso_nombre },
+        sede: { id: sedeId, nombre: gestionContext.sede_nombre },
         alumnos: [],
         grupos: [],
         stats: { totalAlumnos: 0, totalGrupos: 0, gruposActivos: 0 },
@@ -161,23 +410,42 @@ router.get("/resumen", async (req, res) => {
         ${alumnoActivoSelect},
         ${alumnoUsuarioSelect},
         ${alumnoNivelJuegoSelect},
+        ${alumnoObservacionesSelect},
+        ${matriculaActivaSelect},
         GROUP_CONCAT(DISTINCT g.id ORDER BY g.hora_inicio SEPARATOR ',') AS grupo_ids,
         GROUP_CONCAT(DISTINCT g.nombre ORDER BY g.hora_inicio SEPARATOR ' | ') AS grupos,
-        GROUP_CONCAT(DISTINCT CONCAT_WS(' ', g.dia1, g.dia2, g.hora_inicio) ORDER BY g.hora_inicio SEPARATOR ' | ') AS horarios,
+        GROUP_CONCAT(
+          DISTINCT CONCAT_WS(
+            ' ',
+            IF(COALESCE(ga.asiste_dia1, 1) = 1, g.dia1, NULL),
+            IF(COALESCE(ga.asiste_dia2, IF(g.dia2 IS NULL, 0, 1)) = 1, g.dia2, NULL),
+            g.hora_inicio
+          )
+          ORDER BY g.hora_inicio SEPARATOR ' | '
+        ) AS horarios,
         GROUP_CONCAT(DISTINCT g.pista_habitual ORDER BY g.pista_habitual SEPARATOR ', ') AS pistas,
-        GROUP_CONCAT(DISTINCT CONCAT(p.nombre, ' ', p.apellidos) ORDER BY p.nombre SEPARATOR ', ') AS profesores
+        GROUP_CONCAT(DISTINCT CONCAT_WS(' ', p.nombre, p.apellidos) ORDER BY p.nombre SEPARATOR ', ') AS profesores
        FROM alumnos a
+       JOIN alumno_curso ac
+         ON ac.alumno_id = a.id
+        AND ac.curso_id = ?
+        AND ac.sede_id = ?
        ${alumnoJoinType} grupo_alumnos ga ON ga.alumno_id = a.id AND ga.activo = 1
-       ${alumnoJoinType} grupos g ON g.id = ga.grupo_id AND g.activo = 1 ${scopeWhere}
+       ${alumnoJoinType} grupos g
+         ON g.id = ga.grupo_id
+        AND g.activo = 1
+        AND g.curso_id = ac.curso_id
+        AND g.sede_id = ac.sede_id
+        ${scopeWhere}
        LEFT JOIN profesores p ON p.id = g.profesor_id
        WHERE ${alumnoColumns.has("activo") ? "a.activo = 1" : "1 = 1"}
-       GROUP BY a.id, a.nombre, a.apellidos, a.nivel${alumnoGroupByEmail}${alumnoGroupByTelefono}${alumnoGroupByActivo}${alumnoGroupByUsuario}${alumnoGroupByNivelJuego}
+       GROUP BY a.id, a.nombre, a.apellidos, a.nivel${alumnoGroupByEmail}${alumnoGroupByTelefono}${alumnoGroupByActivo}${alumnoGroupByUsuario}${alumnoGroupByNivelJuego}${alumnoGroupByObservaciones}${alumnoGroupByMatriculaActiva}
        ORDER BY a.apellidos, a.nombre`,
-      scopeParams
+      [cursoId, sedeId, ...scopeParams]
     );
 
     const [groupRows] = await query(
-      `SELECT
+      `SELECT DISTINCT
         g.id,
         g.codigo,
         g.nombre,
@@ -189,27 +457,41 @@ router.get("/resumen", async (req, res) => {
         g.pista_habitual,
         g.cupo,
         g.activo,
-        p.id AS profesor_id,
-        CONCAT(p.nombre, ' ', p.apellidos) AS profesor,
+        g.curso_id,
+        g.sede_id,
+        g.deporte,
+        g.categoria,
+        g.profesor_id,
+        CONCAT_WS(' ', p.nombre, p.apellidos) AS profesor,
         a.id AS alumno_id,
         a.nombre AS alumno_nombre,
         a.apellidos AS alumno_apellidos,
         a.nivel AS alumno_nivel,
         ${alumnoColumns.has("nivel_juego") ? "a.nivel_juego" : "NULL"} AS alumno_nivel_juego,
         ${alumnoColumns.has("email") ? "a.email" : "NULL"} AS alumno_email,
-        ${alumnoColumns.has("telefono") ? "a.telefono" : "NULL"} AS alumno_telefono
+        ${alumnoColumns.has("telefono") ? "a.telefono" : "NULL"} AS alumno_telefono,
+        ga.asiste_dia1,
+        ga.asiste_dia2
        FROM grupos g
        LEFT JOIN profesores p ON p.id = g.profesor_id
        LEFT JOIN grupo_alumnos ga ON ga.grupo_id = g.id AND ga.activo = 1
-       LEFT JOIN alumnos a ON a.id = ga.alumno_id AND a.activo = 1
-       WHERE g.activo = 1 ${isAdmin ? "" : "AND g.profesor_id = ?"}
+       LEFT JOIN alumno_curso ac
+         ON ac.alumno_id = ga.alumno_id
+        AND ac.curso_id = g.curso_id
+        AND ac.sede_id = g.sede_id
+        ${alumnoCursoColumns.has("estado") ? "AND ac.estado <> 'baja'" : alumnoCursoColumns.has("activo") ? "AND ac.activo = 1" : ""}
+       LEFT JOIN alumnos a ON a.id = ac.alumno_id AND a.activo = 1
+       WHERE g.activo = 1
+         AND g.curso_id = ?
+         AND g.sede_id = ?
+         ${isAdmin ? "" : "AND g.profesor_id = ?"}
        ORDER BY g.hora_inicio, g.codigo, a.apellidos, a.nombre`,
-      scopeParams
+      [cursoId, sedeId, ...scopeParams]
     );
 
     const grupos = parseGroupRows(groupRows);
     const [profesores] = await query(
-      `SELECT id, nombre, apellidos, CONCAT(nombre, ' ', apellidos) AS nombre_completo
+      `SELECT id, nombre, apellidos, CONCAT_WS(' ', nombre, apellidos) AS nombre_completo
        FROM profesores
        ORDER BY nombre, apellidos`
     );
@@ -222,7 +504,7 @@ router.get("/resumen", async (req, res) => {
     );
 
     const [todosAlumnos] = await query(
-      `SELECT
+      `SELECT DISTINCT
         a.id,
         a.nombre,
         a.apellidos,
@@ -230,16 +512,25 @@ router.get("/resumen", async (req, res) => {
         ${buildSelect("a", alumnoColumns, "nivel_juego")},
         ${buildSelect("a", alumnoColumns, "email")},
         ${buildSelect("a", alumnoColumns, "telefono")},
+        ${buildSelect("a", alumnoColumns, "observaciones")},
         ${alumnoColumns.has("activo") ? "a.activo" : "1 AS activo"},
+        ${matriculaActivaSelect},
         ${buildSelect("a", alumnoColumns, "usuario_id")}
        FROM alumnos a
+       JOIN alumno_curso ac
+         ON ac.alumno_id = a.id
+        AND ac.curso_id = ?
+        AND ac.sede_id = ?
        WHERE ${alumnoColumns.has("activo") ? "a.activo = 1" : "1 = 1"}
-       ORDER BY a.apellidos, a.nombre`
+       ORDER BY a.apellidos, a.nombre`,
+      [cursoId, sedeId]
     );
 
     res.json({
       ok: true,
       scope: isAdmin ? "admin" : "profesor",
+      curso: { id: cursoId, nombre: gestionContext.curso_nombre },
+      sede: { id: sedeId, nombre: gestionContext.sede_nombre },
       alumnos,
       grupos,
       catalogos: {
@@ -322,7 +613,14 @@ router.get("/usuarios", async (req, res) => {
 router.post("/grupos", requireAdmin, async (req, res) => {
   try {
     const columns = await getTableColumns("grupos");
+    // curso_id y sede_id son obligatorios en grupos: el grupo nace en el curso activo.
+    const gestionContext = await getGestionContext();
+    if (!gestionContext) {
+      return res.status(409).json({ ok: false, message: `No hay un curso activo para la sede ${GESTION_SEDE}` });
+    }
     const payload = {
+      curso_id: gestionContext.curso_id,
+      sede_id: gestionContext.sede_id,
       codigo: req.body.codigo?.trim() || null,
       nombre: req.body.nombre?.trim(),
       nivel: req.body.nivel || null,
@@ -340,7 +638,7 @@ router.post("/grupos", requireAdmin, async (req, res) => {
       return res.status(400).json({ ok: false, message: "El nombre del grupo es obligatorio" });
     }
 
-    const allowed = ["codigo", "nombre", "nivel", "profesor_id", "dia1", "dia2", "hora_inicio", "duracion_min", "pista_habitual", "cupo", "activo"];
+    const allowed = ["curso_id", "sede_id", "codigo", "nombre", "nivel", "profesor_id", "dia1", "dia2", "hora_inicio", "duracion_min", "pista_habitual", "cupo", "activo"];
     const { fields, values } = pickWritableFields(payload, allowed, columns);
 
     const placeholders = fields.map(() => "?").join(", ");
@@ -397,6 +695,8 @@ router.delete("/grupos/:id", requireAdmin, async (req, res) => {
 });
 
 router.post("/grupos/:id/alumnos", requireAdmin, async (req, res) => {
+  let connection;
+
   try {
     const alumnoId = req.body.alumno_id;
 
@@ -404,32 +704,63 @@ router.post("/grupos/:id/alumnos", requireAdmin, async (req, res) => {
       return res.status(400).json({ ok: false, message: "Selecciona un alumno" });
     }
 
-    const [existing] = await query(
-      "SELECT * FROM grupo_alumnos WHERE grupo_id = ? AND alumno_id = ? LIMIT 1",
-      [req.params.id, alumnoId]
-    );
+    connection = await db.promise().getConnection();
+    await connection.beginTransaction();
 
-    if (existing.length > 0) {
-      if (Object.prototype.hasOwnProperty.call(existing[0], "activo")) {
-        await query("UPDATE grupo_alumnos SET activo = 1 WHERE grupo_id = ? AND alumno_id = ?", [req.params.id, alumnoId]);
-      }
-
-      return res.json({ ok: true, message: "Alumno ya vinculado al grupo" });
+    const gestionContext = await getGestionContext(connection);
+    if (!gestionContext) {
+      throw requestError(409, `No hay un curso activo para la sede ${GESTION_SEDE}`);
     }
 
-    const columns = await getTableColumns("grupo_alumnos");
-    const payload = { grupo_id: req.params.id, alumno_id: alumnoId, activo: 1 };
-    const { fields, values } = pickWritableFields(payload, ["grupo_id", "alumno_id", "activo"], columns);
-
-    await query(
-      `INSERT INTO grupo_alumnos (${fields.join(", ")}) VALUES (${fields.map(() => "?").join(", ")})`,
-      values
+    const alumnoCursoColumns = await getTableColumns("alumno_curso", connection);
+    const grupoAlumnoColumns = await getTableColumns("grupo_alumnos", connection);
+    const enrollmentActiveWhere = alumnoCursoColumns.has("estado")
+      ? "AND estado <> 'baja'"
+      : alumnoCursoColumns.has("activo") ? "AND activo = 1" : "";
+    const [enrollments] = await connection.query(
+      `SELECT alumno_id
+       FROM alumno_curso
+       WHERE alumno_id = ? AND curso_id = ? AND sede_id = ? ${enrollmentActiveWhere}
+       LIMIT 1
+       FOR UPDATE`,
+      [alumnoId, gestionContext.curso_id, gestionContext.sede_id]
     );
 
-    res.status(201).json({ ok: true, message: "Alumno anadido al grupo" });
+    if (!enrollments.length) {
+      throw requestError(400, "El alumno no tiene una matricula activa en el curso y sede actuales");
+    }
+
+    const assignment = await replaceCurrentGroupAssignment(
+      connection,
+      alumnoId,
+      gestionContext,
+      {
+        grupoId: req.params.id,
+        asisteDia1: req.body.asiste_dia1,
+        asisteDia2: req.body.asiste_dia2,
+      },
+      grupoAlumnoColumns
+    );
+
+    await upsertCurrentEnrollment(
+      connection, alumnoId, gestionContext, undefined, alumnoCursoColumns, assignment.grupoId
+    );
+
+    await connection.commit();
+
+    res.status(201).json({
+      ok: true,
+      grupo_id: assignment.grupoId,
+      asiste_dia1: assignment.asisteDia1,
+      asiste_dia2: assignment.asisteDia2,
+      message: "Alumno anadido al grupo",
+    });
   } catch (e) {
+    if (connection) await connection.rollback();
     console.error("Error POST /api/gestion/grupos/:id/alumnos:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(e.status || 500).json({ ok: false, message: e.message });
+  } finally {
+    connection?.release();
   }
 });
 
@@ -457,8 +788,20 @@ router.delete("/grupos/:id/alumnos/:alumnoId", requireAdmin, async (req, res) =>
 });
 
 router.post("/alumnos", requireAdmin, async (req, res) => {
+  let connection;
+
   try {
-    const columns = await getTableColumns("alumnos");
+    connection = await db.promise().getConnection();
+    await connection.beginTransaction();
+
+    const gestionContext = await getGestionContext(connection);
+    if (!gestionContext) {
+      throw requestError(409, `No hay un curso activo para la sede ${GESTION_SEDE}`);
+    }
+
+    const alumnoColumns = await getTableColumns("alumnos", connection);
+    const alumnoCursoColumns = await getTableColumns("alumno_curso", connection);
+    const grupoAlumnoColumns = await getTableColumns("grupo_alumnos", connection);
     const payload = {
       nombre: req.body.nombre?.trim(),
       apellidos: req.body.apellidos?.trim() || null,
@@ -472,61 +815,179 @@ router.post("/alumnos", requireAdmin, async (req, res) => {
     };
 
     if (!payload.nombre) {
-      return res.status(400).json({ ok: false, message: "El nombre del alumno es obligatorio" });
+      throw requestError(400, "El nombre del alumno es obligatorio");
     }
 
     const allowed = ["nombre", "apellidos", "nivel", "nivel_juego", "telefono", "email", "activo", "observaciones", "usuario_id"];
-    const { fields, values } = pickWritableFields(payload, allowed, columns);
+    const { fields, values } = pickWritableFields(payload, allowed, alumnoColumns);
 
-    const [result] = await query(
+    const [result] = await connection.query(
       `INSERT INTO alumnos (${fields.join(", ")}) VALUES (${fields.map(() => "?").join(", ")})`,
       values
     );
 
+    const matriculaActiva = booleanFlag(req.body.matricula_activa, 1);
+    if (!matriculaActiva && req.body.grupo_id) {
+      throw requestError(400, "Una matricula inactiva no puede tener un grupo asignado");
+    }
+
+    await upsertCurrentEnrollment(
+      connection,
+      result.insertId,
+      gestionContext,
+      matriculaActiva,
+      alumnoCursoColumns,
+      matriculaActiva ? req.body.grupo_id || null : null
+    );
+
+    const assignment = await replaceCurrentGroupAssignment(
+      connection,
+      result.insertId,
+      gestionContext,
+      {
+        grupoId: matriculaActiva ? req.body.grupo_id || null : null,
+        asisteDia1: req.body.asiste_dia1,
+        asisteDia2: req.body.asiste_dia2,
+      },
+      grupoAlumnoColumns
+    );
+
+    await connection.commit();
+
     res.status(201).json({
       ok: true,
       id: result.insertId,
+      curso_id: gestionContext.curso_id,
+      sede_id: gestionContext.sede_id,
+      grupo_id: assignment?.grupoId || null,
       message: "Alumno creado correctamente",
     });
   } catch (e) {
+    if (connection) await connection.rollback();
     console.error("Error POST /api/gestion/alumnos:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(e.status || 500).json({ ok: false, message: e.message });
+  } finally {
+    connection?.release();
   }
 });
 
 router.put("/alumnos/:id", requireAdmin, async (req, res) => {
-  try {
-    const columns = await getTableColumns("alumnos");
-    const allowed = ["nombre", "apellidos", "nivel", "nivel_juego", "telefono", "email", "activo"];
-    const { fields, values } = pickWritableFields(req.body, allowed, columns);
+  let connection;
 
-    if (!fields.length) {
-      return res.status(400).json({ ok: false, message: "No hay campos validos para actualizar" });
+  try {
+    connection = await db.promise().getConnection();
+    await connection.beginTransaction();
+
+    const gestionContext = await getGestionContext(connection);
+    if (!gestionContext) {
+      throw requestError(409, `No hay un curso activo para la sede ${GESTION_SEDE}`);
     }
 
-    await query(
-      `UPDATE alumnos SET ${fields.map((field) => `${field} = ?`).join(", ")} WHERE id = ?`,
-      [...values, req.params.id]
+    const alumnoColumns = await getTableColumns("alumnos", connection);
+    const alumnoCursoColumns = await getTableColumns("alumno_curso", connection);
+    const grupoAlumnoColumns = await getTableColumns("grupo_alumnos", connection);
+    const usuarioColumns = alumnoColumns.has("usuario_id")
+      ? await getTableColumns("usuarios", connection)
+      : new Set();
+    const hasOwn = (field) => Object.prototype.hasOwnProperty.call(req.body, field);
+    const personalPayload = {};
+
+    if (hasOwn("nombre")) personalPayload.nombre = req.body.nombre?.trim();
+    if (hasOwn("apellidos")) personalPayload.apellidos = req.body.apellidos?.trim() || null;
+    if (hasOwn("nivel")) personalPayload.nivel = req.body.nivel || null;
+    if (hasOwn("nivel_juego")) personalPayload.nivel_juego = req.body.nivel_juego === "" ? null : req.body.nivel_juego;
+    if (hasOwn("telefono")) personalPayload.telefono = req.body.telefono?.trim() || null;
+    if (hasOwn("email")) personalPayload.email = req.body.email?.trim() || null;
+    if (hasOwn("activo")) personalPayload.activo = req.body.activo;
+    if (hasOwn("observaciones")) personalPayload.observaciones = req.body.observaciones?.trim() || null;
+
+    if (hasOwn("nombre") && !personalPayload.nombre) {
+      throw requestError(400, "El nombre del alumno es obligatorio");
+    }
+
+    const allowed = ["nombre", "apellidos", "nivel", "nivel_juego", "telefono", "email", "activo", "observaciones"];
+    const { fields, values } = pickWritableFields(personalPayload, allowed, alumnoColumns);
+    const editsEnrollment = hasOwn("matricula_activa");
+    const editsAssignment = hasOwn("grupo_id") || hasOwn("asiste_dia1") || hasOwn("asiste_dia2");
+
+    if (!fields.length && !editsEnrollment && !editsAssignment) {
+      throw requestError(400, "No hay campos validos para actualizar");
+    }
+
+    if ((hasOwn("asiste_dia1") || hasOwn("asiste_dia2")) && !hasOwn("grupo_id")) {
+      throw requestError(400, "Indica el grupo para actualizar sus dias de asistencia");
+    }
+
+    const usuarioIdSelect = alumnoColumns.has("usuario_id") ? ", usuario_id" : "";
+    const [students] = await connection.query(
+      `SELECT id${usuarioIdSelect} FROM alumnos WHERE id = ? LIMIT 1 FOR UPDATE`,
+      [req.params.id]
     );
 
-    // Si el alumno ya tiene cuenta, sincronizamos tambien el nivel de juego del usuario.
-    if (columns.has("usuario_id") && fields.includes("nivel_juego")) {
-      const usuarioColumns = await getTableColumns("usuarios");
-      if (usuarioColumns.has("nivel_juego")) {
-        const [linked] = await query("SELECT usuario_id FROM alumnos WHERE id = ? LIMIT 1", [req.params.id]);
-        if (linked[0]?.usuario_id) {
-          await query("UPDATE usuarios SET nivel_juego = ? WHERE id = ?", [
-            req.body.nivel_juego === "" ? null : req.body.nivel_juego,
-            linked[0].usuario_id,
-          ]);
-        }
-      }
+    if (!students.length) {
+      throw requestError(404, "Alumno no encontrado");
     }
 
-    res.json({ ok: true, message: "Alumno actualizado correctamente" });
+    if (fields.length) {
+      await connection.query(
+        `UPDATE alumnos SET ${fields.map((field) => `${field} = ?`).join(", ")} WHERE id = ?`,
+        [...values, req.params.id]
+      );
+    }
+
+    const requestedEnrollmentActive = editsEnrollment
+      ? booleanFlag(req.body.matricula_activa, 1)
+      : undefined;
+    const enrollmentActive = await upsertCurrentEnrollment(
+      connection,
+      req.params.id,
+      gestionContext,
+      requestedEnrollmentActive,
+      alumnoCursoColumns,
+      editsAssignment ? req.body.grupo_id || null : undefined
+    );
+
+    let assignment = null;
+    if (editsAssignment || enrollmentActive === 0) {
+      if (enrollmentActive === 0 && req.body.grupo_id) {
+        throw requestError(400, "Una matricula inactiva no puede tener un grupo asignado");
+      }
+
+      assignment = await replaceCurrentGroupAssignment(
+        connection,
+        req.params.id,
+        gestionContext,
+        {
+          grupoId: enrollmentActive ? req.body.grupo_id || null : null,
+          asisteDia1: req.body.asiste_dia1,
+          asisteDia2: req.body.asiste_dia2,
+        },
+        grupoAlumnoColumns
+      );
+    }
+
+    if (fields.includes("nivel_juego") && usuarioColumns.has("nivel_juego") && students[0].usuario_id) {
+      await connection.query("UPDATE usuarios SET nivel_juego = ? WHERE id = ?", [
+        personalPayload.nivel_juego,
+        students[0].usuario_id,
+      ]);
+    }
+
+    await connection.commit();
+
+    res.json({
+      ok: true,
+      curso_id: gestionContext.curso_id,
+      sede_id: gestionContext.sede_id,
+      grupo_id: editsAssignment ? assignment?.grupoId || null : undefined,
+      message: "Alumno actualizado correctamente",
+    });
   } catch (e) {
+    if (connection) await connection.rollback();
     console.error("Error PUT /api/gestion/alumnos/:id:", e);
-    res.status(500).json({ ok: false, message: e.message });
+    res.status(e.status || 500).json({ ok: false, message: e.message });
+  } finally {
+    connection?.release();
   }
 });
 

@@ -1,109 +1,36 @@
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { getWeatherForClub } from "../services/weatherService";
+import { useCallback, useEffect, useState } from "react";
+import { getWeatherForClub, isRainy } from "../services/weatherService";
 import { apiGet } from "../services/api";
 import { isLogged } from "../services/auth";
-import { buildClubWhatsappUrl } from "../services/whatsappLinks";
-import HomeNewsCard from "../components/HomeNewsCard";
+import WeatherCourt3D from "../components/WeatherCourt3D";
 import "./home.css";
+import "./inicio.css";
 
 const CLUB_LAT = 39.483017;
 const CLUB_LON = -6.364445;
 
-const PLATFORM_ITEMS = [
-  {
-    icon: "Reserva",
-    title: "Reservas online",
-    description:
-      "Consulta huecos libres, elige pista y confirma tu reserva sin llamadas ni listas en papel.",
-  },
-  {
-    icon: "Partidas",
-    title: "Partidas abiertas",
-    description:
-      "Crea partidas con jugadores e invitados, controla plazas y avisa cuando el grupo se completa.",
-  },
-  {
-    icon: "Clases",
-    title: "Clases y grupos",
-    description:
-      "Organiza alumnos por niveles, horarios y grupos para que cada familia tenga la información clara.",
-  },
-  {
-    icon: "Avisos",
-    title: "Avisos del club",
-    description:
-      "Recibe comunicaciones importantes sobre reservas, clases, torneos y cambios de última hora.",
-  },
-  {
-    icon: "Torneos",
-    title: "Torneos y jornadas",
-    description:
-      "Consulta competiciones, fechas, plazas y actividades especiales organizadas por el club.",
-  },
-  {
-    icon: "Tienda",
-    title: "Tienda del club",
-    description:
-      "Encuentra material, servicios y productos útiles para entrenar y jugar mejor.",
-  },
+const ACTIONS = [
+  { label: "Reservar pista", to: "/reservas", primary: true },
+  { label: "Clases", to: "/clases" },
+  { label: "Torneos", to: "/torneos" },
 ];
 
-const QUICK_LINKS = [
-  {
-    icon: "Reserva",
-    title: "Reservar pista",
-    description: "Elige hora, pista y juega sin esperas.",
-    to: "/reservas",
-    accent: "green",
-  },
-  {
-    icon: "Clases",
-    title: "Clases por niveles",
-    description: "Consulta niveles y horarios de la escuela.",
-    to: "/clases",
-    accent: "blue",
-  },
-  {
-    icon: "Torneos",
-    title: "Torneos y liga",
-    description: "Mira torneos, plazas y fechas.",
-    to: "/torneos",
-    accent: "gold",
-  },
-  {
-    icon: "Tienda",
-    title: "Tienda del club",
-    description: "Material y servicios para alumnos.",
-    to: "/tienda",
-    accent: "slate",
-  },
+const SCENES = [
+  { id: "ahora", label: "Ahora" },
+  { id: "dia", label: "Día", night: false },
+  { id: "noche", label: "Noche", night: true },
 ];
 
-const PROJECT_POINTS = [
-  {
-    value: "Menos dudas",
-    label: "La información importante queda visible para todos.",
-  },
-  {
-    value: "Más rápido",
-    label: "Reservas, partidos y avisos sin depender de mensajes sueltos.",
-  },
-  {
-    value: "Para el día a día",
-    label: "Pensado para alumnos, familias, profesores y equipo del club.",
-  },
-];
 const NEWS_ITEMS = [
   {
     id: 1,
     category: "Liga",
     date: "26 abr 2026",
-    title: "La liga femenina suma otra buena jornada en casa",
+    title: "La liga femenina brilla en casa",
     summary:
       "El equipo compitió con buen ritmo y el ambiente del club se notó desde el primer partido.",
     image: `${process.env.PUBLIC_URL}/fotosLiga/ligafem.jpeg`,
-    featured: true,
   },
   {
     id: 2,
@@ -147,32 +74,33 @@ function formatDay(dateStr) {
   return date.toLocaleDateString("es-ES", { weekday: "short", day: "2-digit" });
 }
 
+function formatHour(isoTime) {
+  return new Date(isoTime).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+}
+
 function Home() {
   const loggedIn = isLogged();
   const [weather, setWeather] = useState(null);
-  const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState("");
   const [showWeatherModal, setShowWeatherModal] = useState(false);
+  const [sceneId, setSceneId] = useState("ahora");
   const [activeAlerts, setActiveAlerts] = useState([]);
   const [activeAlertsError, setActiveAlertsError] = useState("");
 
-  useEffect(() => {
-    const loadWeather = async () => {
-      try {
-        setWeatherLoading(true);
-        setWeatherError("");
-        const data = await getWeatherForClub(CLUB_LAT, CLUB_LON);
-        if (!data.ok) throw new Error("No hemos podido consultar el tiempo.");
-        setWeather(data);
-      } catch (err) {
-        setWeatherError(err.message || "No hemos podido consultar el tiempo.");
-      } finally {
-        setWeatherLoading(false);
-      }
-    };
-
-    loadWeather();
+  const loadWeather = useCallback(async () => {
+    try {
+      setWeatherError("");
+      const data = await getWeatherForClub(CLUB_LAT, CLUB_LON);
+      if (!data.ok) throw new Error("No hemos podido consultar el tiempo.");
+      setWeather(data);
+    } catch (err) {
+      setWeatherError(err.message || "No hemos podido consultar el tiempo.");
+    }
   }, []);
+
+  useEffect(() => {
+    loadWeather();
+  }, [loadWeather]);
 
   useEffect(() => {
     if (!loggedIn) return;
@@ -187,152 +115,133 @@ function Home() {
       });
   }, [loggedIn]);
 
-  const featuredNews = NEWS_ITEMS.find((item) => item.featured) || NEWS_ITEMS[0];
-  const secondaryNews = NEWS_ITEMS.filter((item) => item.id !== featuredNews.id);
+  const scene = SCENES.find((item) => item.id === sceneId) || SCENES[0];
+  const sceneIndex = SCENES.indexOf(scene);
+  const previewing = scene.id !== "ahora";
+  const night = scene.night ?? Number(weather?.isDay) === 0;
+  const rain = scene.rain ?? (weather ? isRainy(weather) : false);
+  const playable = weather ? weather.playability.playable : null;
+  const verdictClass = playable === null ? "isPending" : playable ? "isPlayable" : "isBlocked";
+  const today = new Date().toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
+  let headline = "Consultando el tiempo…";
+  if (weatherError) headline = "No hemos podido ver el tiempo";
+  else if (playable === true) headline = "Hoy se puede jugar";
+  else if (playable === false) headline = "Hoy mejor no jugar";
 
   return (
-    <main className="home" aria-labelledby="home-title">
-      <header className="hero">
-        <div className="heroCard heroGrid">
-          <div className="heroLeft">
-            <div className="pill">
-              <span className="dot" aria-hidden="true" />
-              Escuela NaniPadel
-            </div>
+    <main className="inicio" aria-labelledby="home-title">
+      <section className={`inicioHero${night ? " isNight" : ""}${rain ? " isRaining" : ""}`}>
+        <WeatherCourt3D weather={weather} night={night} rain={rain} />
 
-            <h1 id="home-title">
-              <span className="homeDesktopTitle">Tu escuela de pádel, organizada en una sola app.</span>
-              <span className="homeMobileTitle">Tu escuela de pádel en una sola app</span>
+        <div className="inicioInner">
+          <div className="inicioInfo">
+            <span className="inicioEyebrow">Escuela NaniPadel · {today}</span>
+
+            <h1 id="home-title" className={`inicioVerdict ${verdictClass}`}>
+              <span className="inicioVerdictDot" aria-hidden="true" />
+              {headline}
             </h1>
 
-            <p>
-              <span className="homeDesktopSubtitle">
-                NaniPadel centraliza reservas, partidas abiertas, clases, torneos y avisos del club
-                para que alumnos, familias y profesores tengan toda la información siempre a mano.
-              </span>
-              <span className="homeMobileSubtitle">Reserva, consulta clases y recibe avisos al momento.</span>
+            <p className="inicioReason" aria-live="polite">
+              {weatherError
+                ? "Puedes reservar igualmente y comprobarlo más tarde."
+                : weather
+                  ? `${weather.playability.reason}. ${weather.description}, ${Math.round(weather.temperature)}°C.`
+                  : "Un momento, estamos mirando cómo está la pista."}
             </p>
 
-            <div className="ctaRow">
-              <Link className="btn btn-primary" to="/reservas">
-                Reservar pista
-              </Link>
-              <Link className="btn btn-ghost" to="/clases">
-                Ver clases
-              </Link>
-              <Link className="btn btn-ghost" to="/torneos">
-                Ver torneos
-              </Link>
-              <a
-                className="btn btn-whatsapp"
-                href={buildClubWhatsappUrl("Hola, quiero información sobre clases de pádel")}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Hablar por WhatsApp
-              </a>
-              <Link className="btn btn-ghost" to={loggedIn ? "/avisos" : "/login"}>
-                {loggedIn ? "Mis avisos" : "Iniciar sesión"}
-              </Link>
-            </div>
+            {weatherError && (
+              <button type="button" className="inicioRetry" onClick={loadWeather}>
+                Reintentar
+              </button>
+            )}
 
-            <div className="heroProof" aria-label="Ventajas principales de NaniPadel">
-              <span>Reservas online</span>
-              <span>Partidas abiertas</span>
-              <span>Avisos del club</span>
-            </div>
-          </div>
-
-          <div className="heroRight">
-            <div className="heroStatusStrip" aria-label="Resumen rápido del club">
-              <div className="heroStatusItem">
-                <span>Reservas</span>
-                <strong>Online</strong>
-              </div>
-              <div className="heroStatusItem">
-                <span>Partidas</span>
-                <strong>Abiertas</strong>
-              </div>
-              <div className="heroStatusItem">
-                <span>Avisos</span>
-                <strong>Conectados</strong>
-              </div>
-            </div>
-
-            <div
-              className="weatherBox weatherBoxClickable"
-              onClick={() => weather && setShowWeatherModal(true)}
-              onKeyDown={(event) => {
-                if ((event.key === "Enter" || event.key === " ") && weather) {
-                  event.preventDefault();
-                  setShowWeatherModal(true);
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              aria-label="Abrir detalle del tiempo y estado de pista"
-            >
-              <div className="weatherTop">
+            {weather && (
+              <dl className="inicioStats">
                 <div>
-                  <span className="weatherEyebrow">Tiempo en pista</span>
-                  <h2>Antes de venir a jugar</h2>
+                  <dt>Lluvia</dt>
+                  <dd>{weather.precipitationProbability}%</dd>
                 </div>
-                <span className="weatherBadge">Ahora</span>
+                <div>
+                  <dt>Viento</dt>
+                  <dd>{Math.round(weather.windSpeed)} km/h</dd>
+                </div>
+                <div>
+                  <dt>Humedad</dt>
+                  <dd>{weather.humidity}%</dd>
+                </div>
+              </dl>
+            )}
+
+            <nav className="inicioActions" aria-label="Acciones principales">
+              {ACTIONS.map((action) => (
+                <Link
+                  key={action.to}
+                  to={action.to}
+                  className={`inicioAction${action.primary ? " isPrimary" : ""}`}
+                >
+                  {action.label}
+                </Link>
+              ))}
+            </nav>
+
+            {weather && weather.hourly.length > 0 && (
+              <div className="inicioHours">
+                <div className="inicioHoursHead">
+                  <span>Próximas horas</span>
+                  <button type="button" onClick={() => setShowWeatherModal(true)}>
+                    Previsión 7 días
+                  </button>
+                </div>
+                <ol className="inicioHoursList">
+                  {weather.hourly.slice(0, 8).map((hour, index) => (
+                    <li
+                      key={hour.time}
+                      className={hour.playable ? "isPlayable" : "isBlocked"}
+                      style={{ "--i": index }}
+                    >
+                      <span>{index === 0 ? "Ahora" : formatHour(hour.time)}</span>
+                      <i aria-hidden="true" />
+                      <strong>{Math.round(hour.temperature)}°</strong>
+                      <small>{hour.playable ? "Se juega" : "No"}</small>
+                    </li>
+                  ))}
+                </ol>
               </div>
-
-              {weatherLoading && <p className="weatherHint">Cargando tiempo...</p>}
-
-              {!weatherLoading && weatherError && (
-                <p className="weatherHint">{weatherError}</p>
-              )}
-
-              {!weatherLoading && !weatherError && weather && (
-                <>
-                  <div className="weatherMain">
-                    <div className="weatherIcon" aria-hidden="true">
-                      {weather.emoji}
-                    </div>
-                    <div>
-                      <p className="weatherTemp">{weather.temperature}ºC</p>
-                      <p className="weatherDesc">{weather.description}</p>
-                    </div>
-                  </div>
-
-                  <div className="weatherStatusRow">
-                    <div className="weatherStatusCard">
-                      <span>Estado pista</span>
-                      <strong>{weather.pista}</strong>
-                    </div>
-                    <div className="weatherStatusCard">
-                      <span>Sensación</span>
-                      <strong>{Math.round(weather.apparentTemperature)}ºC</strong>
-                    </div>
-                  </div>
-
-                  <div className="weatherChips">
-                    <span className="chip">Viento: {weather.windSpeed} km/h</span>
-                    <span className="chip">Lluvia: {weather.precipitationProbability}%</span>
-                    <span className={`chip ${weather.pista === "RIESGO" ? "chipRisk" : "chipOk"}`}>
-                      Pista: {weather.pista === "RIESGO" ? "Revisar antes" : "Buena para jugar"}
-                    </span>
-                  </div>
-
-                  <p className="weatherHint">
-                    Pulsa para ver la previsión y recomendaciones antes de reservar.
-                  </p>
-                  <Link
-                    className="weatherPageLink"
-                    to="/estado-pista"
-                    onClick={(event) => event.stopPropagation()}
+            )}
+            <div className="inicioPreview">
+              <span id="inicio-preview-label">Ver la pista de</span>
+              <div className="inicioTabs" role="group" aria-labelledby="inicio-preview-label" style={{ "--i": sceneIndex }}>
+                {SCENES.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-pressed={item.id === sceneId}
+                    onClick={() => setSceneId(item.id)}
                   >
-                    Ver estado completo
-                  </Link>
-                </>
-              )}
+                    {item.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
+
+          <aside className="inicioWeather" aria-label="Condiciones de la pista">
+            {weather && (
+              <div className="inicioWeatherNow">
+                <strong>{Math.round(weather.temperature)}°</strong>
+                <span>{previewing ? `Vista previa: ${scene.label.toLowerCase()}` : weather.description}</span>
+              </div>
+            )}
+          </aside>
+
         </div>
-      </header>
+      </section>
 
       {showWeatherModal && weather && (
         <div className="weatherModalBackdrop" onClick={() => setShowWeatherModal(false)}>
@@ -448,114 +357,29 @@ function Home() {
         </section>
       )}
 
-      <section className="projectStory" aria-labelledby="project-story-title">
-        <div className="projectStoryIntro">
-          <span className="sectionEyebrow">Club organizado</span>
-          <h2 id="project-story-title">Todo el club mejor organizado.</h2>
-          <p>
-            Evita mensajes perdidos, horarios duplicados y dudas de última hora. Cada jugador puede
-            consultar sus reservas, clases, avisos y torneos desde el mismo sitio.
-          </p>
-        </div>
-        <div className="projectStoryGrid">
-          {PROJECT_POINTS.map((item) => (
-            <article className="projectStoryItem" key={item.value}>
-              <strong>{item.value}</strong>
-              <span>{item.label}</span>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="features">
-        <div className="platformBlock">
-          <div className="platformIntro">
-            <span className="sectionEyebrow">Qué puedes hacer</span>
-            <h2>Todo lo importante de la escuela en un mismo sitio</h2>
-            <p>
-              Reserva pista, crea partidas abiertas, sigue tus clases, consulta avisos y mantente al
-              dia de torneos, jornadas y servicios del club.
-            </p>
-            <div className="platformLeadCard">
-              <strong>Hecha para alumnos, familias y el equipo de la escuela.</strong>
-              <span>
-                Menos dudas, menos mensajes sueltos y más información clara para entrenar y jugar.
-              </span>
-            </div>
-          </div>
-
-          <div className="platformGrid">
-            {PLATFORM_ITEMS.map((item) => (
-              <article className="platformItem" key={item.title}>
-                <span className="platformIcon">{item.icon}</span>
-                <div>
-                  <strong>{item.title}</strong>
-                  <p>{item.description}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="quick">
-        <div className="quickCard">
-          <div className="sectionHeader sectionHeaderInline">
-            <div>
-              <span className="sectionEyebrow">Empieza aquí</span>
-              <h2>Lo que más se usa en el club</h2>
-            </div>
-            <p>
-              Atajos para reservar, consultar clases, ver torneos y entrar en la tienda del club.
-            </p>
-          </div>
-
-          <div className="quickGrid">
-            {QUICK_LINKS.map((item) => (
-              <Link className={`quickItem quickItem-${item.accent}`} to={item.to} key={item.title}>
-                <span className="qiIcon">{item.icon}</span>
-                <span className="qiTitle">{item.title}</span>
-                <span className="qiDesc">{item.description}</span>
-                <span className="qiAction">Entrar</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="newsSection">
+      <section className="inicioNews" aria-labelledby="inicio-news-title">
         <div className="sectionHeader sectionHeaderInline">
           <div>
             <span className="sectionEyebrow">Club en marcha</span>
-            <h2>Noticias del club</h2>
+            <h2 id="inicio-news-title">Noticias del club</h2>
           </div>
           <Link className="newsMoreBtn" to="/galeria">
             Ver todas
           </Link>
         </div>
 
-        <div className="newsLayout">
-          <article className="newsFeatured">
-            <img src={featuredNews.image} alt={featuredNews.title} className="newsFeaturedImage" />
-            <div className="newsFeaturedOverlay" />
-            <div className="newsFeaturedContent">
-              <div className="newsMeta">
-                <span className="newsCategory">{featuredNews.category}</span>
-                <span className="newsDate">{featuredNews.date}</span>
+        <div className="inicioNewsGrid">
+          {NEWS_ITEMS.slice(0, 3).map((item, index) => (
+            <Link className="inicioNewsCard" to="/galeria" key={item.id} style={{ "--i": index }}>
+              <img src={item.image} alt="" loading="lazy" />
+              <div>
+                <span>
+                  {item.category} · {item.date}
+                </span>
+                <h3>{item.title}</h3>
               </div>
-              <h3>{featuredNews.title}</h3>
-              <p>{featuredNews.summary}</p>
-              <Link className="newsReadBtn" to="/galeria">
-                Seguir actividad del club
-              </Link>
-            </div>
-          </article>
-
-          <div className="newsList">
-            {secondaryNews.map((item) => (
-              <HomeNewsCard key={item.id} item={item} />
-            ))}
-          </div>
+            </Link>
+          ))}
         </div>
       </section>
     </main>

@@ -23,7 +23,7 @@ const app = express();
 
 // Puerto del backend
 const PORT = process.env.PORT || 4000;
-
+const HOST = process.env.HOST || "127.0.0.1";
 // Necesario para rutas de uploads y frontend estático en módulos ES
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,14 +36,18 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:3000",
   "http://localhost:4000",
   "https://escuela-nanipadel.vercel.app",
+  // Web servida desde el miniPC: el navegador envía Origin también en los POST del mismo dominio.
+  "http://nanipadel.duckdns.org",
+  "https://nanipadel.duckdns.org",
 ];
 
+// FRONTEND_URL admite varios orígenes separados por comas.
 const configuredOrigins = [
   ...DEFAULT_ALLOWED_ORIGINS,
-  process.env.FRONTEND_URL,
+  ...String(process.env.FRONTEND_URL || "").split(","),
 ]
-  .filter(Boolean)
-  .map((origin) => origin.replace(/\/$/, ""));
+  .map((origin) => origin.trim().replace(/\/$/, ""))
+  .filter(Boolean);
 
 const allowedOrigins = new Set(configuredOrigins);
 
@@ -500,6 +504,6 @@ app.get("/api/whatsapp/test", async (req, res) => {
 // ======================================================
 
 // Arrancamos el backend escuchando en todas las interfaces
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, HOST, () => {
   console.log(`✅ Backend activo en http://localhost:${PORT}`);
 });

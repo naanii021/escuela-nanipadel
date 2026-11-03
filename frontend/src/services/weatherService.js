@@ -3,8 +3,9 @@ export async function getWeatherForClub(lat, lon) {
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
     `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,wind_speed_10m,surface_pressure,pressure_msl,weather_code,is_day,uv_index` +
+    `&hourly=temperature_2m,precipitation_probability,wind_speed_10m,weather_code,is_day` +
     `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max` +
-    `&forecast_days=7&wind_speed_unit=kmh&timezone=auto`;
+    `&forecast_days=7&forecast_hours=12&wind_speed_unit=kmh&timezone=auto`;
 
   const res = await fetch(url, { method: "GET" });
   const json = await res.json();
@@ -29,9 +30,8 @@ export async function getWeatherForClub(lat, lon) {
   const mapped = mapWeatherCodeToText(weatherCode);
 
   // Estado de pista
-  const pistaRiesgo =
-    (typeof precipitationProbability === "number" && precipitationProbability >= 50) ||
-    (typeof windSpeed === "number" && windSpeed >= 30);
+  const playability = getPlayability({ weatherCode, precipitationProbability, windSpeed });
+  const pistaRiesgo = !playability.playable;
 
   // Recomendación de juego
   const recomendacion = getRecomendacion({
@@ -61,6 +61,23 @@ export async function getWeatherForClub(lat, lon) {
     }
   }
 
+  // Próximas horas (la API devuelve desde la hora actual)
+  const hourly = [];
+  const hours = json.hourly || {};
+  if (hours.time) {
+    for (let i = 0; i < hours.time.length; i++) {
+      const hour = {
+        time: hours.time[i],
+        temperature: hours.temperature_2m[i],
+        precipitationProbability: hours.precipitation_probability[i],
+        windSpeed: hours.wind_speed_10m[i],
+        weatherCode: hours.weather_code[i],
+        isDay: hours.is_day[i],
+      };
+      hourly.push({ ...hour, playable: getPlayability(hour).playable });
+    }
+  }
+
   return {
     ok: true,
     updatedAt: new Date().toISOString(),
@@ -78,8 +95,28 @@ export async function getWeatherForClub(lat, lon) {
     emoji: mapped.emoji,
     pista: pistaRiesgo ? "RIESGO" : "Puedes jugar",
     recomendacion,
+    playability,
     forecast,
+    hourly,
   };
+}
+
+const RAIN_CODES = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99];
+
+// ¿Llueve (o es muy probable)? Lo comparten el veredicto y la pista 3D.
+export function isRainy({ weatherCode, precipitationProbability }) {
+  return RAIN_CODES.includes(Number(weatherCode)) || Number(precipitationProbability || 0) >= 50;
+}
+
+// Veredicto simple para el alumno: ¿se puede jugar ahora?
+export function getPlayability({ weatherCode, precipitationProbability, windSpeed }) {
+  if (isRainy({ weatherCode, precipitationProbability })) {
+    return { playable: false, reason: "Lluvia: la pista estará mojada" };
+  }
+  if (Number(windSpeed) >= 30) {
+    return { playable: false, reason: "Viento fuerte" };
+  }
+  return { playable: true, reason: "Pista seca y sin viento fuerte" };
 }
 
 // Recomendación de juego basada en condiciones
