@@ -613,7 +613,14 @@ router.get("/usuarios", async (req, res) => {
 router.post("/grupos", requireAdmin, async (req, res) => {
   try {
     const columns = await getTableColumns("grupos");
+    // curso_id y sede_id son obligatorios en grupos: el grupo nace en el curso activo.
+    const gestionContext = await getGestionContext();
+    if (!gestionContext) {
+      return res.status(409).json({ ok: false, message: `No hay un curso activo para la sede ${GESTION_SEDE}` });
+    }
     const payload = {
+      curso_id: gestionContext.curso_id,
+      sede_id: gestionContext.sede_id,
       codigo: req.body.codigo?.trim() || null,
       nombre: req.body.nombre?.trim(),
       nivel: req.body.nivel || null,
@@ -631,7 +638,7 @@ router.post("/grupos", requireAdmin, async (req, res) => {
       return res.status(400).json({ ok: false, message: "El nombre del grupo es obligatorio" });
     }
 
-    const allowed = ["codigo", "nombre", "nivel", "profesor_id", "dia1", "dia2", "hora_inicio", "duracion_min", "pista_habitual", "cupo", "activo"];
+    const allowed = ["curso_id", "sede_id", "codigo", "nombre", "nivel", "profesor_id", "dia1", "dia2", "hora_inicio", "duracion_min", "pista_habitual", "cupo", "activo"];
     const { fields, values } = pickWritableFields(payload, allowed, columns);
 
     const placeholders = fields.map(() => "?").join(", ");

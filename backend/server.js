@@ -36,14 +36,18 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:3000",
   "http://localhost:4000",
   "https://escuela-nanipadel.vercel.app",
+  // Web servida desde el miniPC: el navegador envía Origin también en los POST del mismo dominio.
+  "http://nanipadel.duckdns.org",
+  "https://nanipadel.duckdns.org",
 ];
 
+// FRONTEND_URL admite varios orígenes separados por comas.
 const configuredOrigins = [
   ...DEFAULT_ALLOWED_ORIGINS,
-  process.env.FRONTEND_URL,
+  ...String(process.env.FRONTEND_URL || "").split(","),
 ]
-  .filter(Boolean)
-  .map((origin) => origin.replace(/\/$/, ""));
+  .map((origin) => origin.trim().replace(/\/$/, ""))
+  .filter(Boolean);
 
 const allowedOrigins = new Set(configuredOrigins);
 
