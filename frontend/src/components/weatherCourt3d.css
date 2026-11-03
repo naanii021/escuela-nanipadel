@@ -193,9 +193,16 @@
   inset: -34px;
   border-radius: 6px;
   background: #3a4657;
-  box-shadow: 0 40px 60px rgba(0, 0, 0, 0.35);
   transform: translateZ(-2px);
   transition: background-color 900ms ease;
+}
+
+.weatherCourt3dGround::before {
+  content: "";
+  position: absolute;
+  inset: -70px;
+  z-index: -1;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.38) 52%, transparent);
 }
 
 .weatherCourt3d.isNight .weatherCourt3dGround { background: #232c3f; }
@@ -454,4 +461,10 @@
 @media (max-width: 900px) {
   .weatherSun { right: 9%; }
   .weatherMoon { right: 10%; }
+}
+
+.weatherCourt3d.isOffscreen *,
+.weatherCourt3d.isOffscreen *::before,
+.weatherCourt3d.isOffscreen *::after {
+  animation-play-state: paused !important;
 }

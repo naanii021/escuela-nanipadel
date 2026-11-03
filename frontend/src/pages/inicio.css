@@ -28,7 +28,7 @@
 .inicioHero {
   --ink: #0b1220;
   --ink-soft: rgba(11, 18, 32, 0.78);
-  --glass: rgba(255, 255, 255, 0.55);
+  --glass: rgba(255, 255, 255, 0.66);
   --glass-line: rgba(255, 255, 255, 0.6);
   --court-area-w: 56%;
   position: relative;
@@ -44,7 +44,7 @@
 .inicioHero.isNight {
   --ink: #f2f5ff;
   --ink-soft: rgba(242, 245, 255, 0.8);
-  --glass: rgba(15, 25, 55, 0.55);
+  --glass: rgba(15, 25, 55, 0.72);
   --glass-line: rgba(255, 255, 255, 0.14);
   --ok: hsl(145 60% 58%);
   --no: hsl(8 85% 68%);
@@ -106,7 +106,6 @@
   padding: 0.35rem 0.8rem;
   border-radius: 999px;
   background: var(--glass);
-  backdrop-filter: blur(8px);
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -183,7 +182,6 @@
   border: 1px solid var(--glass-line);
   border-radius: 14px;
   background: var(--glass);
-  backdrop-filter: blur(10px);
 }
 
 .inicioStats dt {
@@ -304,7 +302,6 @@
   border: 1px solid var(--glass-line);
   border-radius: 12px;
   background: var(--glass);
-  backdrop-filter: blur(10px);
   animation: inicioRise 420ms var(--ease-out) backwards;
   animation-delay: calc(360ms + var(--i) * 40ms);
 }
@@ -348,7 +345,6 @@
   border: 1px solid var(--glass-line);
   border-radius: 20px;
   background: var(--glass);
-  backdrop-filter: blur(14px);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
   animation: inicioRise 640ms var(--ease-out) 120ms backwards;
 }
@@ -422,7 +418,6 @@
   border: 1px solid var(--glass-line);
   border-radius: 999px;
   background: var(--glass);
-  backdrop-filter: blur(10px);
   font-size: 0.75rem;
   font-weight: 800;
 }
@@ -501,26 +496,34 @@
 @media (max-width: 900px) {
   .inicioHero {
     --court-area-w: 100%;
-    --court-area-h: 360px;
+    --court-area-h: 300px;
   }
 
   .inicioInner {
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
     gap: 0.8rem;
-    padding: 330px 0 5rem;
+    padding: 296px 0 5rem;
   }
 
-  /* Justo debajo de la pista. */
+  /* Chip sobre la esquina de la pista, para que los botones suban en pantalla. */
   .inicioWeather {
-    order: -1;
-    justify-self: stretch;
+    position: absolute;
+    top: 0.8rem;
+    left: 0;
     width: auto;
-    margin-top: 0.8rem;
+    margin: 0;
+    padding: 0.55rem 0.9rem;
+    border-radius: 16px;
   }
 
   .inicioWeatherNow strong {
-    font-size: 2.6rem;
+    font-size: 2rem;
+  }
+
+  .inicioWeatherNow span {
+    margin-top: 0.1rem;
+    font-size: 0.78rem;
   }
 
   .inicioInfo {
@@ -543,7 +546,23 @@
 
 @media (max-width: 520px) {
   .inicioVerdict {
-    font-size: 2.5rem;
+    font-size: 2.3rem;
+  }
+
+  .inicioInfo {
+    gap: 0.7rem;
+  }
+
+  .inicioReason {
+    font-size: 0.95rem;
+  }
+
+  .inicioStats div {
+    padding: 0.45rem 0.65rem;
+  }
+
+  .inicioStats dd {
+    font-size: 1rem;
   }
 
   .inicioAction:not(.isPrimary) {

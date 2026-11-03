@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { isRainy } from "../services/weatherService";
 import "./weatherCourt3d.css";
 
@@ -20,14 +20,24 @@ export default function WeatherCourt3D({ weather, night, rain }) {
   const ballRef = useRef(null);
   const shadowRef = useRef(null);
   const rainRef = useRef(null);
+  const [inView, setInView] = useState(true);
 
   const isNight = night ?? Number(weather?.isDay) === 0;
   const isRaining = rain ?? isRainy(weather || {});
 
+  // Fuera de pantalla no hay nada que animar: se pausan los bucles y las animaciones CSS.
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || !("IntersectionObserver" in window)) return undefined;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting));
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     const ball = ballRef.current;
     const shadow = shadowRef.current;
-    if (!ball || !shadow || prefersReducedMotion()) return undefined;
+    if (!ball || !shadow || !inView || prefersReducedMotion()) return undefined;
 
     let frameId;
     let direction = 1;
@@ -73,7 +83,7 @@ export default function WeatherCourt3D({ weather, night, rain }) {
 
     frameId = window.requestAnimationFrame(animate);
     return () => window.cancelAnimationFrame(frameId);
-  }, []);
+  }, [inView]);
 
   useEffect(() => {
     const area = areaRef.current;
@@ -93,7 +103,7 @@ export default function WeatherCourt3D({ weather, night, rain }) {
   useEffect(() => {
     const canvas = rainRef.current;
     const stage = stageRef.current;
-    if (!canvas || !stage || !isRaining || prefersReducedMotion()) return undefined;
+    if (!canvas || !stage || !isRaining || !inView || prefersReducedMotion()) return undefined;
 
     const context = canvas.getContext("2d");
     let frameId;
@@ -147,7 +157,7 @@ export default function WeatherCourt3D({ weather, night, rain }) {
       window.cancelAnimationFrame(frameId);
       context.clearRect(0, 0, canvas.width, canvas.height);
     };
-  }, [isNight, isRaining]);
+  }, [isNight, isRaining, inView]);
 
   // El ratón inclina la pista aunque el texto de la portada quede por encima.
   useEffect(() => {
@@ -166,7 +176,7 @@ export default function WeatherCourt3D({ weather, night, rain }) {
 
   return (
     <div
-      className={`weatherCourt3d${isNight ? " isNight" : ""}${isRaining ? " isRaining" : ""}`}
+      className={`weatherCourt3d${isNight ? " isNight" : ""}${isRaining ? " isRaining" : ""}${inView ? "" : " isOffscreen"}`}
       ref={stageRef}
       aria-hidden="true"
     >
