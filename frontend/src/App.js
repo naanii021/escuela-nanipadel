@@ -16,6 +16,7 @@ import Avisos from "./pages/Avisos";
 import WhatsAppInbox from "./pages/WhatsAppInbox";
 import "./styles/premium.css";
 import "./styles/redesign.css";
+import "./styles/movil.css";
 
 
 function App() {
