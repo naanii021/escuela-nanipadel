@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "http://nanipadel.duckdns.org/api/:path*"
+      "destination": "https://nanipadel.duckdns.org/api/:path*"
     }
   ]
 }
