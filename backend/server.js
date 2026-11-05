@@ -67,7 +67,8 @@ app.use(cors({
 }));
 
 // Permite leer JSON que llegue en el body de las peticiones
-app.use(express.json());
+// Se guarda el cuerpo en bruto: el webhook de WhatsApp verifica con él la firma de Meta.
+app.use(express.json({ verify: (req, _res, buf) => { req.rawBody = buf; } }));
 
 // Servimos subidas moderadas desde una carpeta controlada por el backend
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

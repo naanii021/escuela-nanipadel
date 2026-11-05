@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import express from "express";
 import { db } from "../db/connection.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
@@ -176,8 +177,25 @@ router.get("/webhook", (req, res) => {
   return res.sendStatus(403);
 });
 
+// Meta firma cada POST con el secreto de la app (cabecera X-Hub-Signature-256, HMAC-SHA256 del cuerpo).
+function hasValidMetaSignature(req) {
+  const secret = process.env.WHATSAPP_APP_SECRET;
+  const received = Buffer.from(String(req.headers?.["x-hub-signature-256"] || ""));
+  const expected = Buffer.from(
+    `sha256=${crypto.createHmac("sha256", secret).update(req.rawBody || Buffer.alloc(0)).digest("hex")}`
+  );
+  return received.length === expected.length && crypto.timingSafeEqual(received, expected);
+}
+
 router.post("/webhook", async (req, res) => {
   try {
+    // Sin esta comprobación cualquiera podría enviar mensajes falsos y hacer que el asistente escriba a familias.
+    if (!process.env.WHATSAPP_APP_SECRET) {
+      console.error("Webhook de WhatsApp rechazado: falta WHATSAPP_APP_SECRET en el .env.");
+      return res.sendStatus(500);
+    }
+    if (!hasValidMetaSignature(req)) return res.sendStatus(401);
+
     if (!(await inboxReady())) {
       console.warn("WhatsApp inbox SQL is not active. Incoming webhook ignored.");
       return res.sendStatus(200);

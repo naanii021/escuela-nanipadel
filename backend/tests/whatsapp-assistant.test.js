@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import { registerHooks } from "node:module";
 import test from "node:test";
 
@@ -230,10 +231,19 @@ test("recuperaciones: solo pendientes y asignadas", async () => {
   assert.equal(none, "Mario Gómez no tiene recuperaciones pendientes ni asignadas.");
 });
 
-async function postWebhook(body) {
+const APP_SECRET = "secreto-de-prueba";
+
+// Petición firmada como lo haría Meta: HMAC-SHA256 del cuerpo en bruto con el secreto de la app.
+function metaRequest(body, { secret = APP_SECRET } = {}) {
+  const rawBody = Buffer.from(JSON.stringify(body));
+  const signature = `sha256=${crypto.createHmac("sha256", secret).update(rawBody).digest("hex")}`;
+  return { body, rawBody, headers: { "x-hub-signature-256": signature } };
+}
+
+async function postWebhook(body, request = metaRequest(body)) {
   const route = router.stack.find((layer) => layer.route?.path === "/webhook" && layer.route.methods.post).route;
   const res = { statusCode: null, sendStatus(code) { this.statusCode = code; return this; } };
-  await route.stack.at(-1).handle({ body }, res);
+  await route.stack.at(-1).handle(request, res);
   return res;
 }
 
@@ -250,6 +260,7 @@ test("webhook: responde solo si está activado, guarda la respuesta y no duplica
     return { ok: true, json: async () => ({ messages: [{ id: `wamid.out${sent.length}` }] }) };
   };
   try {
+    process.env.WHATSAPP_APP_SECRET = APP_SECRET;
     delete process.env.WHATSAPP_ASSISTANT_ENABLED;
     await postWebhook(inbound("wamid.in1", ANA, "horario"));
     assert.equal(sent.length, 0);
@@ -275,6 +286,46 @@ test("webhook: responde solo si está activado, guarda la respuesta y no duplica
   } finally {
     assistantTableExists = true;
     delete process.env.WHATSAPP_ASSISTANT_ENABLED;
+    delete process.env.WHATSAPP_APP_SECRET;
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("webhook: rechaza firmas falsas y no procesa nada sin el secreto de la app", async () => {
+  selections.clear();
+  const stored = messages.length;
+  const sent = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, options) => {
+    sent.push(JSON.parse(options.body));
+    return { ok: true, json: async () => ({ messages: [{ id: "wamid.x" }] }) };
+  };
+  const silenced = console.error;
+  console.error = () => {};
+  try {
+    process.env.WHATSAPP_ASSISTANT_ENABLED = "true";
+    const body = inbound("wamid.fake1", ANA, "horario");
+
+    process.env.WHATSAPP_APP_SECRET = APP_SECRET;
+    assert.equal((await postWebhook(body, metaRequest(body, { secret: "otro-secreto" }))).statusCode, 401);
+    assert.equal((await postWebhook(body, { body, rawBody: Buffer.from(JSON.stringify(body)), headers: {} })).statusCode, 401);
+    // Firma válida de un cuerpo distinto: el contenido fue manipulado.
+    const tampered = {
+      body,
+      rawBody: Buffer.from(JSON.stringify(body)),
+      headers: metaRequest(inbound("wamid.fake1", ANA, "otra cosa")).headers,
+    };
+    assert.equal((await postWebhook(body, tampered)).statusCode, 401);
+
+    delete process.env.WHATSAPP_APP_SECRET;
+    assert.equal((await postWebhook(body, { body, headers: {} })).statusCode, 500);
+
+    assert.equal(messages.length, stored);
+    assert.equal(sent.length, 0);
+  } finally {
+    console.error = silenced;
+    delete process.env.WHATSAPP_ASSISTANT_ENABLED;
+    delete process.env.WHATSAPP_APP_SECRET;
     globalThis.fetch = originalFetch;
   }
 });
