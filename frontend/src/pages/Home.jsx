@@ -2,10 +2,13 @@ import { Link } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import { getWeatherForClub, isRainy } from "../services/weatherService";
 import { apiGet } from "../services/api";
-import { isLogged } from "../services/auth";
+import { getUser, isLogged } from "../services/auth";
 import WeatherCourt3D from "../components/WeatherCourt3D";
 import "./home.css";
 import "./inicio.css";
+
+const STAFF_ROLES = ["admin", "profesor", "profe"];
+const DAY_LETTERS = ["D", "L", "M", "X", "J", "V", "S"];
 
 const CLUB_LAT = 39.483017;
 const CLUB_LON = -6.364445;
@@ -84,6 +87,7 @@ function Home() {
   const [weatherError, setWeatherError] = useState("");
   const [showWeatherModal, setShowWeatherModal] = useState(false);
   const [sceneId, setSceneId] = useState("ahora");
+  const [todayClasses, setTodayClasses] = useState([]);
   const [activeAlerts, setActiveAlerts] = useState([]);
   const [activeAlertsError, setActiveAlertsError] = useState("");
 
@@ -113,6 +117,25 @@ function Home() {
         setActiveAlerts([]);
         setActiveAlertsError("No se pudieron cargar las notificaciones. Inténtalo de nuevo más tarde.");
       });
+  }, [loggedIn]);
+
+  // Atajo para profesores y admin: las clases de hoy con acceso directo a pasar lista.
+  useEffect(() => {
+    const role = String(getUser()?.rol || "").toLowerCase();
+    if (!loggedIn || !STAFF_ROLES.includes(role)) return;
+    apiGet("/api/gestion/control/grupos")
+      .then((data) => {
+        const today = DAY_LETTERS[new Date().getDay()];
+        const own = data.profesor_actual_id
+          ? data.grupos.filter((group) => group.profesor_id === data.profesor_actual_id)
+          : data.grupos;
+        setTodayClasses(
+          own
+            .filter((group) => group.dia1 === today || group.dia2 === today)
+            .sort((a, b) => String(a.hora_inicio).localeCompare(String(b.hora_inicio)))
+        );
+      })
+      .catch(() => setTodayClasses([]));
   }, [loggedIn]);
 
   const scene = SCENES.find((item) => item.id === sceneId) || SCENES[0];
@@ -242,6 +265,31 @@ function Home() {
 
         </div>
       </section>
+
+      {todayClasses.length > 0 && (
+        <section className="inicioHoy" aria-labelledby="inicio-hoy-title">
+          <div className="sectionHeader sectionHeaderInline">
+            <div>
+              <span className="sectionEyebrow">Hoy</span>
+              <h2 id="inicio-hoy-title">Pasar lista</h2>
+            </div>
+          </div>
+          <ul className="inicioHoyList">
+            {todayClasses.map((group) => (
+              <li key={group.id}>
+                <Link to={`/panel?seccion=control&grupo=${group.id}`}>
+                  <strong>{String(group.hora_inicio).slice(0, 5)}</strong>
+                  <span>
+                    {String(group.nombre).replace(/\s*·\s*\d{1,2}:\d{2}\s*$/, "")}
+                    {group.pista_habitual ? <small>{group.pista_habitual}</small> : null}
+                  </span>
+                  <em>Pasar lista</em>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {showWeatherModal && weather && (
         <div className="weatherModalBackdrop" onClick={() => setShowWeatherModal(false)}>

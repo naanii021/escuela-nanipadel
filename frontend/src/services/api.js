@@ -1,4 +1,4 @@
-import { getToken } from "./auth";
+import { getToken, logout } from "./auth";
 import { buildApiUrl } from "./apiConfig";
 
 function buildHeaders(options = {}) {
@@ -46,6 +46,12 @@ export async function apiDelete(path, options = {}) {
   return apiRequest(path, { ...options, method: "DELETE" });
 }
 
+// Token caducado o inválido: se cierra la sesión y se vuelve al login con un aviso.
+function closeExpiredSession() {
+  logout();
+  if (window.location.pathname !== "/login") window.location.assign("/login?sesion=caducada");
+}
+
 async function apiRequest(path, options = {}) {
   const res = await fetch(buildApiUrl(path), {
     ...options,
@@ -75,6 +81,7 @@ async function apiRequest(path, options = {}) {
   }
 
   if (!res.ok) {
+    if (res.status === 401 && getToken()) closeExpiredSession();
     throw new Error(data.message || `No hemos podido completar la peticion (${res.status}).`);
   }
 

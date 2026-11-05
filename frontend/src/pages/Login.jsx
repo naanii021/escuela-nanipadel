@@ -16,6 +16,7 @@ function Login() {
   });
 
   const [error, setError] = useState("");
+  const sessionExpired = new URLSearchParams(window.location.search).get("sesion") === "caducada";
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -82,6 +83,10 @@ function Login() {
             ? "Entra para ver tus reservas, clases y avisos del club."
             : "Crea tu cuenta para reservar pista y participar en la actividad del club."}
         </p>
+
+        {sessionExpired && !error && (
+          <div className="loginNotice">Tu sesión ha caducado. Vuelve a entrar para continuar.</div>
+        )}
 
         {error && <div className="loginError">{error}</div>}
 

@@ -2,6 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { isRainy } from "../services/weatherService";
 import "./weatherCourt3d.css";
 
+// Cuatro jugadores en silueta: dos por lado, cerca de la red y al fondo.
+const PLAYERS = [
+  { x: 90, y: 190, side: "isFar" },
+  { x: 210, y: 190, side: "isFar" },
+  { x: 90, y: 410, side: "isNear" },
+  { x: 210, y: 410, side: "isNear" },
+];
+
 const STARS = Array.from({ length: 18 }, (_, index) => ({
   left: (index * 53) % 100,
   top: (index * 29) % 46,
@@ -20,6 +28,7 @@ export default function WeatherCourt3D({ weather, night, rain }) {
   const ballRef = useRef(null);
   const shadowRef = useRef(null);
   const rainRef = useRef(null);
+  const playerRefs = useRef([]);
   const [inView, setInView] = useState(true);
 
   const isNight = night ?? Number(weather?.isDay) === 0;
@@ -63,6 +72,8 @@ export default function WeatherCourt3D({ weather, night, rain }) {
       };
     };
 
+    const positions = PLAYERS.map(({ x, y }) => ({ x, y }));
+
     const animate = (now) => {
       let progress = (now - shot.startedAt) / shot.duration;
       if (progress >= 1) {
@@ -78,6 +89,21 @@ export default function WeatherCourt3D({ weather, night, rain }) {
       ball.style.transform = `translate3d(${x}px, ${y}px, ${z}px)`;
       shadow.style.transform = `translate3d(${x + z * 0.18}px, ${y + z * 0.1}px, 2px) scale(${scale})`;
       shadow.style.opacity = String(scale * 0.62);
+
+      // Cada jugador se acerca despacio hacia la bola sin salirse de su zona.
+      PLAYERS.forEach((base, index) => {
+        const refs = playerRefs.current[index];
+        const point = positions[index];
+        if (!refs?.figure || !refs.shade || !point) return;
+        point.x += (base.x + (x - base.x) * 0.3 - point.x) * 0.06;
+        point.y += (base.y + (y - 300) * 0.12 - point.y) * 0.06;
+        const bob = Math.sin(now * 0.008 + index * 1.7) * 1.2;
+        [refs.figure, refs.shade].forEach((element) => {
+          element.style.setProperty("--px", `${point.x.toFixed(1)}px`);
+          element.style.setProperty("--py", `${point.y.toFixed(1)}px`);
+        });
+        refs.figure.style.setProperty("--bob", `${bob.toFixed(2)}px`);
+      });
       frameId = window.requestAnimationFrame(animate);
     };
 
@@ -217,6 +243,34 @@ export default function WeatherCourt3D({ weather, night, rain }) {
           {["lightOne", "lightTwo", "lightThree", "lightFour"].map((name) => (
             <span className={`weatherCourtBeam beam-${name}`} key={name} />
           ))}
+          {PLAYERS.map((player, index) => {
+            const style = { "--px": `${player.x}px`, "--py": `${player.y}px` };
+            return (
+              <span key={index}>
+                <i
+                  className="weatherCourtPlayerShade"
+                  style={style}
+                  ref={(element) => {
+                    playerRefs.current[index] = { ...playerRefs.current[index], shade: element };
+                  }}
+                />
+                <i
+                  className={`weatherCourtPlayer ${player.side}`}
+                  style={style}
+                  ref={(element) => {
+                    playerRefs.current[index] = { ...playerRefs.current[index], figure: element };
+                  }}
+                >
+                  <svg viewBox="0 0 34 56" width="34" height="56">
+                    <circle cx="12" cy="6" r="5" />
+                    <path d="M6 14h12l2 17h-4l-1 25h-3l-1-13-1 13H7L6 31H4z" />
+                    <path className="racket" d="M18 21l7-8" />
+                    <ellipse className="racket" cx="28" cy="9" rx="4.5" ry="6" />
+                  </svg>
+                </i>
+              </span>
+            );
+          })}
           <span className="weatherCourtBall" ref={ballRef} />
           <span className="weatherCourtBallShadow" ref={shadowRef} />
         </div>
