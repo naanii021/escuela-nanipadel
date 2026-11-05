@@ -426,6 +426,73 @@
   background: transparent;
 }
 
+/* ---------- Pasar lista (profesores) ---------- */
+
+.inicioHoy {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.inicioHoyList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inicioHoyList a {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.9rem;
+  min-height: 64px;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-card);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: transform 160ms ease-out, border-color 160ms ease-out;
+}
+
+.inicioHoyList a:active {
+  transform: scale(0.98);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .inicioHoyList a:hover {
+    border-color: var(--color-secondary);
+  }
+}
+
+.inicioHoyList strong {
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.inicioHoyList span {
+  display: grid;
+  min-width: 0;
+  font-weight: 700;
+}
+
+.inicioHoyList small {
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.inicioHoyList em {
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  background: var(--color-secondary-soft);
+  color: var(--color-secondary-dark);
+  font-size: 0.8rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
 /* ---------- Noticias ---------- */
 
 .inicioNews {
@@ -588,7 +655,8 @@
 
   .inicioTabs::before,
   .inicioAction,
-  .inicioNewsCard {
+  .inicioNewsCard,
+  .inicioHoyList a {
     transition: none;
   }
 }

@@ -253,7 +253,9 @@ export default function PanelProfesor() {
   const userRole = user?.rol;
   const isAdmin = String(userRole || "").toLowerCase() === "admin";
 
-  const [activeSection, setActiveSection] = useState("gestion");
+  // /panel?seccion=control&grupo=ID abre directamente el control de ese grupo (atajo de la portada).
+  const [urlParams] = useState(() => new URLSearchParams(window.location.search));
+  const [activeSection, setActiveSection] = useState(() => (urlParams.get("seccion") === "control" ? "control" : "gestion"));
   const [activeView, setActiveView] = useState("grupos");
   const [alumnos, setAlumnos] = useState([]);
   const [grupos, setGrupos] = useState([]);
@@ -288,7 +290,7 @@ export default function PanelProfesor() {
   const [accessStudent, setAccessStudent] = useState(null);
   const [accessForm, setAccessForm] = useState(emptyAccessForm);
   const [studentToAdd, setStudentToAdd] = useState("");
-  const [controlGroupId, setControlGroupId] = useState("");
+  const [controlGroupId, setControlGroupId] = useState(() => urlParams.get("grupo") || "");
   const [controlGroups, setControlGroups] = useState([]);
   const [controlGroupsLoading, setControlGroupsLoading] = useState(false);
   const [controlDate, setControlDate] = useState(todayDate);
@@ -703,6 +705,12 @@ export default function PanelProfesor() {
       setRecoverySavingId(null);
     }
   };
+
+  // Al llegar desde el atajo de la portada, baja solo hasta el control de clases.
+  useEffect(() => {
+    if (loading || activeSection !== "control" || urlParams.get("seccion") !== "control") return;
+    document.getElementById("panel-control")?.scrollIntoView({ block: "start" });
+  }, [loading, activeSection, urlParams]);
 
   const saveControlSession = async () => {
     if (!controlGroup || !controlHasClass || controlLoading || controlSaving) return;
@@ -1384,14 +1392,14 @@ export default function PanelProfesor() {
       )}
 
       {!loading && !error && activeSection === "control" && (
-        <section className="schoolOpsPanel">
+        <section className="schoolOpsPanel" id="panel-control">
           <div className="opsPanelHeader">
             <div>
               <span className="staffEyebrow">Sesión diaria</span>
               <h2>Control de clases</h2>
               <p>Pasa lista y revisa el estado de la clase desde una vista clara.</p>
             </div>
-            <span className="opsCounter">{controlStudents.length} alumnos</span>
+            <span className="opsCounter">{controlStudents.length} {controlStudents.length === 1 ? "alumno" : "alumnos"}</span>
           </div>
 
           <div className="controlLayout">

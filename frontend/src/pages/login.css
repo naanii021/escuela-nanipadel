@@ -32,6 +32,16 @@
   font-weight: 600;
 }
 
+.loginNotice {
+  background: #fff7e0;
+  border: 1px solid #f2d27a;
+  color: #6b4e00;
+  padding: 0.75rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
 /* Formulario */
 .loginForm {
   display: grid;
