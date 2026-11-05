@@ -36,6 +36,7 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:3000",
   "http://localhost:4000",
   "https://escuela-nanipadel.vercel.app",
+  "https://nanipadel.vercel.app",
   // Web servida desde el miniPC: el navegador envía Origin también en los POST del mismo dominio.
   "http://nanipadel.duckdns.org",
   "https://nanipadel.duckdns.org",
