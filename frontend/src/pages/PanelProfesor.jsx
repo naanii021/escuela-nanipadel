@@ -1,240 +1,81 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "../services/api";
+import { apiDelete, apiGet, apiPost, apiPut } from "../services/api";
 import { getToken, getUser, logout } from "../services/auth";
+import AvisoGuardado, { useAvisoGuardado } from "../components/panel/AvisoGuardado";
+import ConfirmarDialogo from "../components/panel/ConfirmarDialogo";
+import HorarioDia from "../components/panel/HorarioDia";
+import PasarLista from "../components/panel/PasarLista";
+import Recuperaciones from "../components/panel/Recuperaciones";
+import { IcAtras, IcBuscar, IcMensaje, IcTelefono } from "../components/panel/Iconos";
+import {
+  DIAS_SEMANA, NIVELES, diaHoy, diasDelGrupo, estadoCupo, formatDias, formatFecha, formatHorario,
+  formatHorariosTexto, grupoActivo, hora, hoyISO, iniciales, minutosDe, nivelClass,
+  nivelKey, nivelLabel, nombreCompleto, nombrePista, opcionesNivel, plural, sinAcentos, telHref,
+  textoCupo, ultimaFechaDelDia, whatsappHref,
+} from "../components/panel/panelUtils";
+import "../components/panel/panelComponentes.css";
 import "./panelProfesor.css";
 
 const STAFF_ROLES = ["admin", "profesor", "profe"];
-const NIVELES = ["ninos", "iniciacion", "avanzado", "avanzado_plus", "competicion"];
-const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
 const GAME_LEVELS = [
   { value: "", label: "Sin nivel de juego" },
-  { value: 0, label: "0 - Iniciación" },
+  { value: 0, label: "0 - Empieza" },
   { value: 1, label: "1 - Principiante" },
   { value: 2, label: "2 - Medio bajo" },
   { value: 3, label: "3 - Medio" },
   { value: 4, label: "4 - Medio alto" },
   { value: 5, label: "5 - Avanzado" },
-  { value: 6, label: "6 - Competición / profesional" },
+  { value: 6, label: "6 - Competición" },
 ];
+const NIVEL_FILTROS = NIVELES.filter((item) => item.key !== "iniciacion_plus" && item.key !== "avanzado_plus");
 const GROUP_QUICK_FILTERS = [
   { key: "todos", label: "Todos" },
-  { key: "ninos", label: "Niños" },
-  { key: "iniciacion", label: "Iniciación" },
-  { key: "avanzado", label: "Avanzado" },
-  { key: "competicion", label: "Competición" },
-  { key: "con-huecos", label: "Con huecos" },
+  ...NIVEL_FILTROS.map((item) => ({ key: `nivel:${item.key}`, label: item.label })),
+  { key: "con-huecos", label: "Con plazas libres" },
   { key: "completos", label: "Completos" },
-  { key: "inactivos", label: "Inactivos" },
+  { key: "sobrecupo", label: "Más alumnos que plazas" },
+  { key: "inactivos", label: "Desactivados" },
 ];
 const STUDENT_QUICK_FILTERS = [
   { key: "todos", label: "Todos" },
-  { key: "sin-acceso", label: "Sin acceso" },
+  { key: "sin-acceso", label: "Sin acceso a la web" },
   { key: "con-acceso", label: "Con acceso" },
-  { key: "activos", label: "Activos" },
-  { key: "inactivos", label: "Inactivos" },
-  ...NIVELES.map((item) => ({ key: `nivel:${item}`, label: nivelLabel(item) })),
+  { key: "sin-grupo", label: "Sin grupo" },
+  { key: "inactivos", label: "De baja" },
 ];
 const PANEL_SECTIONS = [
+  { key: "control", label: "Pasar lista" },
   { key: "gestion", label: "Grupos y alumnos" },
-  { key: "horario", label: "Horario semanal" },
-  { key: "control", label: "Control de clases" },
+  { key: "horario", label: "Horario" },
   { key: "recuperaciones", label: "Recuperaciones" },
   { key: "seguimiento", label: "Seguimiento" },
 ];
-const WEEK_DAYS = [
-  { key: "L", label: "Lunes" },
-  { key: "M", label: "Martes" },
-  { key: "X", label: "Miércoles" },
-  { key: "J", label: "Jueves" },
-  { key: "V", label: "Viernes" },
-  { key: "S", label: "Sábado" },
-];
-const PRIMARY_COURTS = ["Pista 1", "Pista 2"];
-const ATTENDANCE_STATUS = [
-  { key: "presente", label: "Presente", tone: "positive" },
-  { key: "falta", label: "Falta", tone: "negative" },
-  { key: "justificada", label: "Falta justificada", tone: "warning" },
-];
-const CLASS_STATUS = [
-  { key: "programada", label: "Programada", tone: "neutral" },
-  { key: "dada", label: "Clase dada", tone: "positive" },
-];
-const RECOVERY_STATUS = [
-  { key: "pendiente", label: "Pendiente" },
-  { key: "asignada", label: "Asignada" },
-  { key: "recuperada", label: "Recuperada" },
-  { key: "cancelada", label: "Cancelada" },
-];
+const SECTION_KEYS = PANEL_SECTIONS.map((item) => item.key);
 
 const emptyGroupForm = {
-  codigo: "",
-  nombre: "",
-  nivel: "iniciacion",
-  profesor_id: "",
-  dia1: "L",
-  dia2: "",
-  hora_inicio: "18:00",
-  duracion_min: 60,
-  pista_habitual: "",
-  cupo: 4,
-  activo: 1,
+  codigo: "", nombre: "", nivel: "", profesor_id: "", dia1: "L", dia2: "",
+  hora_inicio: "18:00", duracion_min: 60, pista_habitual: "", cupo: 4, activo: 1,
 };
-
-const getGroupCapacityState = (group) => {
-  const cupo = Number(group?.cupo || 0);
-  const alumnos = group?.alumnos || [];
-  const day1 = group?.dia1
-    ? alumnos.filter((alumno) => Number(alumno.asiste_dia1 ?? 1) === 1).length
-    : 0;
-  const day2 = group?.dia2
-    ? alumnos.filter((alumno) => Number(alumno.asiste_dia2 ?? 1) === 1).length
-    : 0;
-  const dailyCounts = [];
-
-  if (group?.dia1) dailyCounts.push(day1);
-  if (group?.dia2) dailyCounts.push(day2);
-
-  return {
-    cupo,
-    day1,
-    day2,
-    hasSpace: !cupo || dailyCounts.some((count) => count < cupo),
-    isFull: cupo > 0 && dailyCounts.length > 0 && dailyCounts.every((count) => count >= cupo),
-    blocksAllDays: cupo > 0 && dailyCounts.some((count) => count >= cupo),
-  };
-};
-
-const formatGroupCapacity = (group) => {
-  const capacity = getGroupCapacityState(group);
-  if (!capacity.cupo) return `${group?.alumnos?.length || 0}/-`;
-  if (group?.dia1 && group?.dia2) {
-    return `${capacity.day1}/${capacity.cupo} · ${capacity.day2}/${capacity.cupo}`;
-  }
-  return `${capacity.day1}/${capacity.cupo}`;
-};
-
 const emptyStudentForm = {
-  nombre: "",
-  apellidos: "",
-  nivel: "iniciacion",
-  nivel_juego: "",
-  telefono: "",
-  email: "",
-  activo: 1,
-  observaciones: "",
-  matricula_activa: 1,
-  grupo_id: "",
-  asiste_dia1: 1,
-  asiste_dia2: 0,
-};
-
-const emptyAccessForm = {
-  email: "",
-  password: "",
-};
-
-const IcSearch = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-    <circle cx="11" cy="11" r="8" />
-    <path d="m21 21-4.35-4.35" />
-  </svg>
-);
-
-const todayCode = () => ["D", "L", "M", "X", "J", "V", "S"][new Date().getDay()];
-const todayDate = () => {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  nombre: "", apellidos: "", nivel: "", nivel_juego: "", telefono: "", email: "", activo: 1,
+  observaciones: "", matricula_activa: 1, grupo_id: "", asiste_dia1: 1, asiste_dia2: 0,
 };
 
 function canAccess(user) {
   return STAFF_ROLES.includes(String(user?.rol || "").toLowerCase());
 }
 
-function formatDias(d1, d2) {
-  const map = { L: "Lunes", M: "Martes", X: "Miércoles", J: "Jueves", V: "Viernes", S: "Sábado", D: "Domingo" };
-  return [d1, d2].filter(Boolean).map((dia) => map[dia] || dia).join(" y ") || "-";
-}
-
-function formatHora(horaInicio, duracionMin) {
-  if (!horaInicio) return "-";
-  const [hh, mm] = String(horaInicio).split(":");
-  const start = new Date();
-  start.setHours(Number(hh), Number(mm), 0, 0);
-  const end = new Date(start.getTime() + Number(duracionMin || 60) * 60000);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${pad(start.getHours())}:${pad(start.getMinutes())} - ${pad(end.getHours())}:${pad(end.getMinutes())}`;
-}
-
-function nivelLabel(nivel) {
-  const map = {
-    ninos: "Niños",
-    iniciacion: "Iniciación",
-    avanzado: "Avanzado",
-    avanzado_plus: "Avanzado +",
-    competicion: "Competición",
-  };
-  return map[nivel] || nivel || "-";
-}
-
-function nivelClass(nivel) {
-  return `levelPill level-${String(nivel || "default").replace("_", "-")}`;
-}
-
 function gameLevelLabel(value) {
-  const found = GAME_LEVELS.find((item) => String(item.value) === String(value));
+  const found = GAME_LEVELS.find((item) => String(item.value) === String(value ?? ""));
   return found ? found.label : "Sin nivel de juego";
-}
-
-function initials(nombre, apellidos = "") {
-  return `${String(nombre || "A").charAt(0)}${String(apellidos || "").charAt(0)}`.toUpperCase();
-}
-
-function normalize(value) {
-  return String(value || "").toLowerCase();
-}
-
-function getGroupDays(group) {
-  return [group?.dia1, group?.dia2].filter(Boolean);
-}
-
-function getCourtName(value) {
-  const raw = String(value || "").trim();
-  const normalized = raw.toLowerCase();
-
-  if (normalized === "1" || /pista\s*(n(?:o|umero)?\s*)?1\b/.test(normalized)) return "Pista 1";
-  if (normalized === "2" || /pista\s*(n(?:o|umero)?\s*)?2\b/.test(normalized)) return "Pista 2";
-  return raw || "Sin pista asignada";
-}
-
-function descriptorLabel(value, fallback = "-") {
-  const text = String(value || "").trim().replaceAll("_", " ").replaceAll("-", " ");
-  return text ? `${text.charAt(0).toUpperCase()}${text.slice(1)}` : fallback;
-}
-
-function attendanceFlag(value, fallback) {
-  return value === undefined || value === null || value === "" ? fallback : Number(value) === 1;
-}
-
-function getStudentsForDay(group, day) {
-  return (group?.alumnos || []).filter((student) =>
-    (group.dia1 === day && attendanceFlag(student.asiste_dia1, true)) ||
-    (group.dia2 === day && attendanceFlag(student.asiste_dia2, true))
-  );
-}
-
-function getStudentDays(group, student) {
-  return formatDias(
-    attendanceFlag(student?.asiste_dia1, true) ? group?.dia1 : null,
-    attendanceFlag(student?.asiste_dia2, true) ? group?.dia2 : null
-  );
 }
 
 function toGroupForm(group) {
   return {
     codigo: group.codigo || "",
     nombre: group.nombre || "",
-    nivel: group.nivel || "iniciacion",
+    nivel: group.nivel || "",
     profesor_id: group.profesor_id || "",
     dia1: group.dia1 || "L",
     dia2: group.dia2 || "",
@@ -246,6 +87,42 @@ function toGroupForm(group) {
   };
 }
 
+function studentDays(group, student) {
+  return formatDias(
+    Number(student?.asiste_dia1 ?? 1) === 1 ? group?.dia1 : null,
+    Number(student?.asiste_dia2 ?? 1) === 1 ? group?.dia2 : null
+  );
+}
+
+// Fecha para pasar lista de un grupo: hoy si tiene clase; si no, su última clase.
+function fechaDeLista(group) {
+  const dias = diasDelGrupo(group);
+  if (!dias.length || dias.includes(diaHoy())) return hoyISO();
+  return dias.map((dia) => ultimaFechaDelDia(dia)).sort().pop();
+}
+
+function grupoIds(alumno) {
+  return String(alumno?.grupo_ids || "").split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function ContactLinks({ persona, compact = false }) {
+  const tel = telHref(persona?.telefono);
+  const wa = whatsappHref(persona?.telefono);
+  if (!tel && !persona?.email) return compact ? null : <span className="ppMuted">Sin teléfono ni email</span>;
+  return (
+    <span className="ppContact">
+      {tel && <a className="ppBtn ppBtnSmall" href={tel}><IcTelefono /> {compact ? "Llamar" : persona.telefono}</a>}
+      {wa && <a className="ppBtn ppBtnSmall" href={wa} target="_blank" rel="noreferrer"><IcMensaje /> WhatsApp</a>}
+      {!tel && persona?.email && <a className="ppBtn ppBtnSmall" href={`mailto:${persona.email}`}>Email</a>}
+    </span>
+  );
+}
+
+function sectionFromUrl(params) {
+  const value = params.get("seccion");
+  return SECTION_KEYS.includes(value) ? value : null;
+}
+
 export default function PanelProfesor() {
   const navigate = useNavigate();
   const user = getUser();
@@ -253,24 +130,32 @@ export default function PanelProfesor() {
   const userRole = user?.rol;
   const isAdmin = String(userRole || "").toLowerCase() === "admin";
 
-  // /panel?seccion=control&grupo=ID abre directamente el control de ese grupo (atajo de la portada).
+  // /panel?seccion=control&grupo=ID abre directamente la lista de ese grupo (atajo de la portada).
   const [urlParams] = useState(() => new URLSearchParams(window.location.search));
-  const [activeSection, setActiveSection] = useState(() => (urlParams.get("seccion") === "control" ? "control" : "gestion"));
+  const [activeSection, setActiveSection] = useState(() => sectionFromUrl(urlParams) || "control");
+  const [scrollTick, setScrollTick] = useState(() => (sectionFromUrl(urlParams) ? 1 : 0));
+  const [controlPeticion, setControlPeticion] = useState(() => (
+    urlParams.get("grupo") ? { grupoId: urlParams.get("grupo"), fecha: urlParams.get("fecha") || hoyISO(), n: 1 } : null
+  ));
   const [activeView, setActiveView] = useState("grupos");
+
   const [alumnos, setAlumnos] = useState([]);
   const [grupos, setGrupos] = useState([]);
   const [curso, setCurso] = useState(null);
   const [sede, setSede] = useState(null);
   const [catalogos, setCatalogos] = useState({ profesores: [], pistas: [], alumnos: [] });
-  const [stats, setStats] = useState({ totalAlumnos: 0, totalGrupos: 0, gruposActivos: 0 });
+  const [stats, setStats] = useState({ totalAlumnos: 0, totalGrupos: 0 });
   const [scope, setScope] = useState("profesor");
-  const [selectedGroupId, setSelectedGroupId] = useState(null);
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [scopeMessage, setScopeMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [telegramLink, setTelegramLink] = useState(null);
+  const [loadError, setLoadError] = useState("");
+
+  const [recuperaciones, setRecuperaciones] = useState([]);
+  const [recSesiones, setRecSesiones] = useState([]);
+  const [recLoading, setRecLoading] = useState(false);
+  const [recError, setRecError] = useState("");
+  const [listasHoy, setListasHoy] = useState({});
+  const [listasTick, setListasTick] = useState(0);
 
   const [search, setSearch] = useState("");
   const [nivel, setNivel] = useState("");
@@ -278,55 +163,52 @@ export default function PanelProfesor() {
   const [grupo, setGrupo] = useState("");
   const [groupQuickFilter, setGroupQuickFilter] = useState("todos");
   const [studentQuickFilter, setStudentQuickFilter] = useState("todos");
-  const [studentProfile, setStudentProfile] = useState(null);
 
+  const [selectedGroupId, setSelectedGroupId] = useState(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [addQuery, setAddQuery] = useState("");
+  const [groupBusy, setGroupBusy] = useState(false);
+  const [groupError, setGroupError] = useState("");
+  const [confirmacion, setConfirmacion] = useState(null);
+  const [confirmError, setConfirmError] = useState("");
+
+  const [studentProfile, setStudentProfile] = useState(null);
   const [groupFormOpen, setGroupFormOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
   const [groupForm, setGroupForm] = useState(emptyGroupForm);
   const [studentFormOpen, setStudentFormOpen] = useState(false);
   const [creatingStudent, setCreatingStudent] = useState(false);
-  const [studentForm, setStudentForm] = useState({});
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [studentForm, setStudentForm] = useState(emptyStudentForm);
   const [accessFormOpen, setAccessFormOpen] = useState(false);
   const [accessStudent, setAccessStudent] = useState(null);
-  const [accessForm, setAccessForm] = useState(emptyAccessForm);
-  const [studentToAdd, setStudentToAdd] = useState("");
-  const [controlGroupId, setControlGroupId] = useState(() => urlParams.get("grupo") || "");
-  const [controlGroups, setControlGroups] = useState([]);
-  const [controlGroupsLoading, setControlGroupsLoading] = useState(false);
-  const [controlDate, setControlDate] = useState(todayDate);
-  const [classStatus, setClassStatus] = useState("programada");
-  const [attendanceDraft, setAttendanceDraft] = useState({});
-  const [controlSession, setControlSession] = useState(null);
-  const [controlStudents, setControlStudents] = useState([]);
-  const [controlProfessorId, setControlProfessorId] = useState("");
-  const [controlObservations, setControlObservations] = useState("");
-  const [controlLoading, setControlLoading] = useState(false);
-  const [controlSaving, setControlSaving] = useState(false);
-  const [controlError, setControlError] = useState("");
-  const [recoveries, setRecoveries] = useState([]);
-  const [recoverySessions, setRecoverySessions] = useState([]);
-  const [recoveryDrafts, setRecoveryDrafts] = useState({});
-  const [recoveryLoading, setRecoveryLoading] = useState(false);
-  const [recoverySavingId, setRecoverySavingId] = useState(null);
-  const [recoveryError, setRecoveryError] = useState("");
+  const [accessForm, setAccessForm] = useState({ email: "", password: "" });
+  const [formSaving, setFormSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+
   const [trackingGroupId, setTrackingGroupId] = useState("");
+  const [telegramLink, setTelegramLink] = useState(null);
+  const [telegramBusy, setTelegramBusy] = useState(false);
+  const [telegramError, setTelegramError] = useState("");
+
+  const { aviso, mostrar: mostrarAviso, cerrar: cerrarAviso } = useAvisoGuardado();
+  const anchorRef = useRef(null);
+  const tabsRef = useRef(null);
+  const detailRef = useRef(null);
 
   const loadPanel = useCallback(async () => {
     try {
-      setLoading(true);
-      setError("");
+      setLoadError("");
       const data = await apiGet("/api/gestion/resumen");
-
       setAlumnos(data.alumnos || []);
       setGrupos(data.grupos || []);
       setCurso(data.curso || null);
       setSede(data.sede || null);
       setCatalogos(data.catalogos || { profesores: [], pistas: [], alumnos: [] });
-      setStats(data.stats || { totalAlumnos: 0, totalGrupos: 0, gruposActivos: 0 });
+      setStats(data.stats || { totalAlumnos: 0, totalGrupos: 0 });
       setScope(data.scope || "profesor");
-      setSelectedGroupId((current) => current || (data.grupos || [])[0]?.id || null);
-      setControlGroupId((current) => current || (data.grupos || [])[0]?.id || "");
-      setTrackingGroupId((current) => current || (data.grupos || [])[0]?.id || "");
+      setScopeMessage(data.message || "");
+      setTrackingGroupId((current) => current || String((data.grupos || [])[0]?.id || ""));
     } catch (e) {
       const message = String(e.message || "");
       if (message.includes("401") || message.includes("No autorizado") || message.includes("Token")) {
@@ -334,331 +216,180 @@ export default function PanelProfesor() {
         navigate("/login", { replace: true });
         return;
       }
-      setError(message || "No hemos podido cargar el panel de la escuela.");
+      setLoadError(message || "No hemos podido cargar el panel.");
     } finally {
       setLoading(false);
     }
   }, [navigate]);
+
+  const loadRecoveries = useCallback(async () => {
+    try {
+      setRecLoading(true);
+      setRecError("");
+      const data = await apiGet("/api/gestion/control/recuperaciones");
+      setRecuperaciones(data.recuperaciones || []);
+      setRecSesiones(data.sesiones || []);
+    } catch (e) {
+      setRecError(e.message || "No hemos podido cargar las recuperaciones.");
+    } finally {
+      setRecLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!token) {
       navigate("/login", { replace: true });
       return;
     }
-
     if (!canAccess({ rol: userRole })) {
       navigate("/", { replace: true });
       return;
     }
-
     loadPanel();
-  }, [loadPanel, navigate, token, userRole]);
-
-  const loadRecoveries = useCallback(async () => {
-    try {
-      setRecoveryLoading(true);
-      setRecoveryError("");
-      const data = await apiGet("/api/gestion/control/recuperaciones");
-      setRecoveries(data.recuperaciones || []);
-      setRecoverySessions(data.sesiones || []);
-      setRecoveryDrafts(Object.fromEntries((data.recuperaciones || []).map((item) => [item.id, {
-        estado: item.estado,
-        fecha_recuperacion: item.fecha_recuperacion || "",
-        sesion_recuperacion_id: item.sesion_recuperacion_id || "",
-      }])));
-    } catch (e) {
-      setRecoveryError(e.message || "No se pudieron cargar las recuperaciones.");
-    } finally {
-      setRecoveryLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (activeSection === "recuperaciones") loadRecoveries();
-  }, [activeSection, loadRecoveries]);
+    loadRecoveries();
+  }, [loadPanel, loadRecoveries, navigate, token, userRole]);
 
   const profesores = useMemo(() => {
     const source = catalogos.profesores?.length
-      ? catalogos.profesores.map((item) => ({ id: item.id, name: item.nombre_completo || `${item.nombre} ${item.apellidos || ""}`.trim() }))
+      ? catalogos.profesores.map((item) => ({ id: item.id, name: item.nombre_completo || nombreCompleto(item) }))
       : grupos.map((item) => ({ id: item.profesor_id, name: item.profesor })).filter((item) => item.id && item.name);
-
     return Array.from(new Map(source.map((item) => [String(item.id), item])).values())
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a, b) => a.name.localeCompare(b.name, "es"));
   }, [catalogos.profesores, grupos]);
 
-  const niveles = useMemo(() => {
-    const values = new Set(NIVELES);
-    [...alumnos, ...grupos].forEach((item) => {
-      if (item.nivel) values.add(item.nivel);
-    });
-    return Array.from(values);
-  }, [alumnos, grupos]);
+  const nivelOptionsFor = useCallback((actual) => opcionesNivel([...alumnos, ...grupos], actual), [alumnos, grupos]);
 
-  const gruposOptions = useMemo(
-    () => grupos.map((item) => ({ id: String(item.id), nombre: item.nombre || item.codigo || `Grupo ${item.id}` })),
-    [grupos]
-  );
+  const todayClasses = useMemo(() => {
+    const code = diaHoy();
+    return grupos
+      .filter((item) => grupoActivo(item) && diasDelGrupo(item).includes(code))
+      .sort((a, b) => (minutosDe(a.hora_inicio) ?? 0) - (minutosDe(b.hora_inicio) ?? 0));
+  }, [grupos]);
+
+  // ¿Ya tiene lista pasada cada clase de hoy? (una lectura por clase; normalmente son pocas)
+  useEffect(() => {
+    if (!todayClasses.length) return undefined;
+    let cancelled = false;
+    const fecha = hoyISO();
+    Promise.allSettled(todayClasses.map((item) => apiGet(`/api/gestion/control/grupos/${item.id}/sesiones?fecha=${fecha}`)))
+      .then((results) => {
+        if (cancelled) return;
+        setListasHoy(Object.fromEntries(results.map((result, index) => [
+          todayClasses[index].id,
+          result.status === "fulfilled" && result.value.sesiones?.length && result.value.asistencias?.length ? "guardada" : "",
+        ])));
+      });
+    return () => { cancelled = true; };
+  }, [todayClasses, listasTick]);
+
+  const panelMetrics = useMemo(() => ({
+    totalGrupos: stats.totalGrupos || grupos.length,
+    totalAlumnos: stats.totalAlumnos || alumnos.length,
+    gruposConHuecos: grupos.filter((item) => grupoActivo(item) && estadoCupo(item).hayPlazas).length,
+    gruposSobrecupo: grupos.filter((item) => grupoActivo(item) && estadoCupo(item).sobrecupo).length,
+    alumnosSinAcceso: alumnos.filter((item) => !item.usuario_id).length,
+    recuperacionesSinFecha: recuperaciones.filter((item) => item.estado === "pendiente").length,
+  }), [alumnos, grupos, recuperaciones, stats.totalAlumnos, stats.totalGrupos]);
 
   const filteredAlumnos = useMemo(() => {
-    const text = normalize(search);
-
+    const text = sinAcentos(search.trim());
     return alumnos.filter((alumno) => {
-      const matchText =
-        !text ||
-        normalize(`${alumno.nombre} ${alumno.apellidos} ${alumno.grupos} ${alumno.profesores}`).includes(text);
-      const matchNivel = !nivel || alumno.nivel === nivel;
-      const matchProfesor = !profesor || normalize(alumno.profesores).includes(normalize(profesor));
-      const matchGrupo = !grupo || String(alumno.grupo_ids || "").split(",").includes(String(grupo));
+      const matchText = !text || sinAcentos(`${nombreCompleto(alumno)} ${alumno.grupos || ""} ${alumno.profesores || ""} ${alumno.telefono || ""}`).includes(text);
+      const matchNivel = !nivel || nivelKey(alumno.nivel) === nivel;
+      const matchProfesor = !profesor || sinAcentos(alumno.profesores).includes(sinAcentos(profesor));
+      const matchGrupo = !grupo || grupoIds(alumno).includes(String(grupo));
       const matchQuick =
         studentQuickFilter === "todos" ||
         (studentQuickFilter === "sin-acceso" && !alumno.usuario_id) ||
         (studentQuickFilter === "con-acceso" && alumno.usuario_id) ||
-        (studentQuickFilter === "activos" && Number(alumno.matricula_activa ?? 1) === 1) ||
-        (studentQuickFilter === "inactivos" && Number(alumno.matricula_activa ?? 1) === 0) ||
-        (studentQuickFilter.startsWith("nivel:") && alumno.nivel === studentQuickFilter.replace("nivel:", ""));
-
+        (studentQuickFilter === "sin-grupo" && grupoIds(alumno).length === 0) ||
+        (studentQuickFilter === "inactivos" && Number(alumno.matricula_activa ?? 1) === 0);
       return matchText && matchNivel && matchProfesor && matchGrupo && matchQuick;
     });
   }, [alumnos, search, nivel, profesor, grupo, studentQuickFilter]);
 
   const filteredGrupos = useMemo(() => {
-    const text = normalize(search);
-
+    const text = sinAcentos(search.trim());
     return grupos.filter((item) => {
-      const alumnosText = (item.alumnos || []).map((alumno) => `${alumno.nombre} ${alumno.apellidos}`).join(" ");
-      const matchText = !text || normalize(`${item.nombre} ${item.codigo} ${item.profesor} ${item.pista_habitual} ${item.deporte} ${item.categoria} ${alumnosText}`).includes(text);
-      const matchNivel = !nivel || item.nivel === nivel;
-      const matchProfesor = !profesor || String(item.profesor_id) === String(profesor) || item.profesor === profesor;
+      const alumnosText = (item.alumnos || []).map(nombreCompleto).join(" ");
+      const matchText = !text || sinAcentos(`${item.nombre} ${item.codigo} ${item.profesor} ${item.pista_habitual} ${alumnosText}`).includes(text);
+      const key = nivelKey(item.nivel);
+      const matchNivel = !nivel || key === nivel;
+      const matchProfesor = !profesor || item.profesor === profesor;
       const matchGrupo = !grupo || String(item.id) === String(grupo);
-      const capacity = getGroupCapacityState(item);
+      const cupo = estadoCupo(item);
+      const quick = groupQuickFilter;
       const matchQuick =
-        groupQuickFilter === "todos" ||
-        item.nivel === groupQuickFilter ||
-        (groupQuickFilter === "avanzado" && item.nivel === "avanzado_plus") ||
-        (groupQuickFilter === "con-huecos" && Number(item.activo ?? 1) === 1 && capacity.hasSpace) ||
-        (groupQuickFilter === "completos" && capacity.isFull) ||
-        (groupQuickFilter === "inactivos" && Number(item.activo ?? 1) === 0);
-
+        quick === "todos" ||
+        (quick.startsWith("nivel:") && (key === quick.slice(6) || key === `${quick.slice(6)}_plus`)) ||
+        (quick === "con-huecos" && grupoActivo(item) && cupo.hayPlazas) ||
+        (quick === "completos" && cupo.completo) ||
+        (quick === "sobrecupo" && cupo.sobrecupo) ||
+        (quick === "inactivos" && !grupoActivo(item));
       return matchText && matchNivel && matchProfesor && matchGrupo && matchQuick;
     });
   }, [grupos, search, nivel, profesor, grupo, groupQuickFilter]);
 
+  // Solo se ofrecen filtros de nivel que tengan algún grupo (los "plus" cuentan con su nivel base).
+  const nivelesConGrupos = useMemo(
+    () => new Set(grupos.map((item) => nivelKey(item.nivel).replace("_plus", "")).filter(Boolean)),
+    [grupos]
+  );
+
   const groupedFilteredGrupos = useMemo(() => {
-    const labels = [...NIVELES, "otros"];
-    return labels
-      .map((level) => ({
-        key: level,
-        label: level === "otros" ? "Otros" : nivelLabel(level),
-        items: filteredGrupos.filter((item) => (NIVELES.includes(item.nivel) ? item.nivel : "otros") === level),
+    const keys = [...NIVELES.map((item) => item.key), "otro", ""];
+    return keys
+      .map((key) => ({
+        key: key || "sin-nivel",
+        label: key === "otro" ? "Otros niveles" : key === "" ? "Sin nivel" : NIVELES.find((item) => item.key === key).label,
+        items: filteredGrupos
+          .filter((item) => nivelKey(item.nivel) === key)
+          .sort((a, b) => (minutosDe(a.hora_inicio) ?? 0) - (minutosDe(b.hora_inicio) ?? 0)),
       }))
       .filter((section) => section.items.length > 0);
   }, [filteredGrupos]);
 
-  const panelMetrics = useMemo(() => {
-    const gruposConHuecos = grupos.filter((item) => {
-      const capacity = getGroupCapacityState(item);
-      return Number(item.activo ?? 1) === 1 && capacity.hasSpace;
-    }).length;
-    const alumnosSinAcceso = alumnos.filter((item) => !item.usuario_id).length;
 
-    return {
-      totalGrupos: stats.totalGrupos || grupos.length,
-      totalAlumnos: stats.totalAlumnos || alumnos.length,
-      gruposConHuecos,
-      alumnosSinAcceso,
-    };
-  }, [alumnos, grupos, stats.totalAlumnos, stats.totalGrupos]);
-
-  const todayClasses = useMemo(() => {
-    const code = todayCode();
-    return grupos.filter((item) => Number(item.activo ?? 1) === 1 && getGroupDays(item).includes(code));
-  }, [grupos]);
-
-  const pendingItems = useMemo(() => {
-    const items = [];
-    if (panelMetrics.alumnosSinAcceso > 0) {
-      items.push({
-        key: "access",
-        title: "Alumnos sin acceso",
-        text: `${panelMetrics.alumnosSinAcceso} alumno${panelMetrics.alumnosSinAcceso === 1 ? "" : "s"} pendiente${panelMetrics.alumnosSinAcceso === 1 ? "" : "s"} de acceso.`,
-        action: () => {
-          setActiveSection("gestion");
-          setActiveView("alumnos");
-          setStudentQuickFilter("sin-acceso");
-        },
-      });
-    }
-
-    if (panelMetrics.gruposConHuecos > 0) {
-      items.push({
-        key: "slots",
-        title: "Grupos con huecos",
-        text: `${panelMetrics.gruposConHuecos} grupo${panelMetrics.gruposConHuecos === 1 ? "" : "s"} con plazas para revisar.`,
-        action: () => {
-          setActiveSection("gestion");
-          setActiveView("grupos");
-          setGroupQuickFilter("con-huecos");
-        },
-      });
-    }
-
-    return items;
-  }, [panelMetrics.alumnosSinAcceso, panelMetrics.gruposConHuecos]);
-
-  const adminQuickActions = useMemo(() => {
-    const sharedActions = [
-      { key: "groups", label: isAdmin ? "Gestionar grupos" : "Mis grupos", text: "Horarios, cupos y niveles", onClick: () => { setActiveSection("gestion"); setActiveView("grupos"); } },
-      { key: "students", label: isAdmin ? "Gestionar alumnos" : "Ver alumnos", text: "Fichas y grupos asignados", onClick: () => { setActiveSection("gestion"); setActiveView("alumnos"); } },
-      { key: "reservas", label: "Ver reservas", text: "Agenda de pistas", to: "/reservas" },
-      { key: "weather", label: "Ver estado pista", text: "Sensor y tiempo", to: "/estado-pista" },
-    ];
-
-    if (!isAdmin) {
-      return [
-        ...sharedActions,
-        { key: "control", label: "Control de clases", text: "Pasar lista y revisar sesión", onClick: () => setActiveSection("control") },
-        { key: "schedule", label: "Horario semanal", text: "Agenda de grupos", onClick: () => setActiveSection("horario") },
-      ];
-    }
-
-    return [
-      ...sharedActions,
-      { key: "notice", label: "Crear aviso", text: "Comunicación del club", to: "/avisos" },
-      { key: "tournament", label: "Crear torneo", text: "Formatos y jornadas", to: "/torneos" },
-      { key: "whatsapp", label: "Mensajes WhatsApp", text: "Conversaciones y respuestas", to: "/panel/whatsapp" },
-    ];
-  }, [isAdmin]);
-
-  const adminModules = useMemo(() => [
-    { key: "alumnos", title: "Alumnos", text: "Consulta y organiza los alumnos de la escuela.", value: panelMetrics.totalAlumnos, label: "alumnos", onClick: () => { setActiveSection("gestion"); setActiveView("alumnos"); } },
-    { key: "grupos", title: "Grupos", text: "Revisa niveles, horarios, profesores y ocupación.", value: panelMetrics.totalGrupos, label: "grupos", onClick: () => { setActiveSection("gestion"); setActiveView("grupos"); } },
-    { key: "reservas", title: "Reservas", text: "Abre la agenda de pistas y partidas del club.", value: "Ver", label: "agenda", to: "/reservas" },
-    { key: "torneos", title: "Torneos", text: "Gestiona torneos, americanos y nuevos formatos.", value: "Ver", label: "torneos", to: "/torneos" },
-    { key: "avisos", title: "Avisos", text: "Crea comunicaciones para alumnos o profesores.", value: "Crear", label: "aviso", to: "/avisos" },
-    ...(isAdmin ? [{ key: "whatsapp", title: "WhatsApp", text: "Gestiona mensajes entrantes del club.", value: "Abrir", label: "mensajes", to: "/panel/whatsapp" }] : []),
-    { key: "tienda", title: "Tienda", text: "Consulta productos y servicios publicados.", value: "Ver", label: "tienda", to: "/tienda" },
-  ], [isAdmin, panelMetrics.totalAlumnos, panelMetrics.totalGrupos]);
-
-  const weeklySchedule = useMemo(() => {
-    const createWeek = () => Object.fromEntries(WEEK_DAYS.map((day) => [day.key, []]));
-    const courts = new Map(PRIMARY_COURTS.map((court) => [court, createWeek()]));
-
-    grupos
-      .filter((item) => Number(item.activo ?? 1) === 1)
-      .forEach((group) => {
-        const courtName = getCourtName(group.pista_habitual);
-        if (!courts.has(courtName)) courts.set(courtName, createWeek());
-
-        getGroupDays(group).forEach((day) => {
-          const courtWeek = courts.get(courtName);
-          if (courtWeek[day]) {
-            courtWeek[day].push({
-              group,
-              students: getStudentsForDay(group, day),
-            });
-          }
-        });
-      });
-
-    courts.forEach((courtWeek) => {
-      Object.values(courtWeek).forEach((dayGroups) => {
-        dayGroups.sort((a, b) => String(a.group.hora_inicio || "").localeCompare(String(b.group.hora_inicio || "")));
-      });
-    });
-
-    return Array.from(courts, ([name, days]) => ({ name, days }))
-      .filter(({ name, days }) => PRIMARY_COURTS.includes(name) || Object.values(days).some((items) => items.length));
-  }, [grupos]);
-
+  // Si no se ha elegido ninguno, el primero tal y como aparece en la lista.
   const selectedGroup = useMemo(
-    () => filteredGrupos.find((item) => String(item.id) === String(selectedGroupId)) || filteredGrupos[0] || null,
-    [filteredGrupos, selectedGroupId]
+    () => filteredGrupos.find((item) => String(item.id) === String(selectedGroupId)) || groupedFilteredGrupos[0]?.items[0] || null,
+    [filteredGrupos, groupedFilteredGrupos, selectedGroupId]
   );
 
-  useEffect(() => {
-    if (activeSection !== "control") return;
-    let cancelled = false;
-    setControlGroupsLoading(true);
-    setControlGroups([]);
-    setControlError("");
-    apiGet("/api/gestion/control/grupos")
-      .then((data) => { if (!cancelled) setControlGroups(data.grupos || []); })
-      .catch((e) => { if (!cancelled) setControlError(e.message || "No se pudieron cargar los grupos."); })
-      .finally(() => { if (!cancelled) setControlGroupsLoading(false); });
-    return () => { cancelled = true; };
-  }, [activeSection]);
-
-  const controlGroup = useMemo(
-    () => controlGroups.find((item) => String(item.id) === String(controlGroupId)) || controlGroups[0] || null,
-    [controlGroupId, controlGroups]
-  );
-
-  const controlDay = useMemo(() => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(controlDate)) return null;
-    return ["D", "L", "M", "X", "J", "V", "S"][new Date(`${controlDate}T00:00:00Z`).getUTCDay()];
-  }, [controlDate]);
-  const controlHasClass = Boolean(controlGroup && controlDay && getGroupDays(controlGroup).includes(controlDay));
-
-  useEffect(() => {
-    if (activeSection !== "control") return;
-    if (!controlGroup?.id || !controlDate) {
-      setControlSession(null);
-      setControlStudents([]);
-      setAttendanceDraft({});
-      return;
-    }
-    let cancelled = false;
-    setControlLoading(true);
-    setControlError("");
-    setControlSession(null);
-    setControlStudents([]);
-    setAttendanceDraft({});
-    apiGet(`/api/gestion/control/grupos/${controlGroup.id}/sesiones?fecha=${encodeURIComponent(controlDate)}`)
-      .then((data) => {
-        if (cancelled) return;
-        const session = data.sesiones?.[0] || null;
-        setControlSession(session);
-        setControlStudents(data.alumnos || []);
-        setAttendanceDraft(Object.fromEntries((data.asistencias || []).map((item) => [item.alumno_id, item.estado])));
-        setClassStatus(session?.estado || "programada");
-        setControlProfessorId(session?.profesor_id ?? data.profesor_actual_id ?? "");
-        setControlObservations(session?.observaciones || "");
-      })
-      .catch((e) => { if (!cancelled) setControlError(e.message || "No se pudo cargar la sesión."); })
-      .finally(() => { if (!cancelled) setControlLoading(false); });
-    return () => { cancelled = true; };
-  }, [activeSection, controlGroup, controlDate]);
+  const studentsToAdd = useMemo(() => {
+    if (!selectedGroup) return [];
+    const text = sinAcentos(addQuery.trim());
+    if (!text) return [];
+    const assigned = new Set((selectedGroup.alumnos || []).map((alumno) => String(alumno.id)));
+    return (catalogos.alumnos || [])
+      .filter((alumno) => !assigned.has(String(alumno.id)) && sinAcentos(nombreCompleto(alumno)).includes(text))
+      .slice(0, 6);
+  }, [addQuery, catalogos.alumnos, selectedGroup]);
 
   const trackingGroup = useMemo(
-    () => grupos.find((item) => String(item.id) === String(trackingGroupId)) || selectedGroup || grupos[0] || null,
-    [grupos, selectedGroup, trackingGroupId]
+    () => grupos.find((item) => String(item.id) === String(trackingGroupId)) || grupos[0] || null,
+    [grupos, trackingGroupId]
   );
-
-  const studentsAvailableForGroup = useMemo(() => {
-    if (!selectedGroup) return [];
-    const assigned = new Set((selectedGroup.alumnos || []).map((alumno) => String(alumno.id)));
-    return (catalogos.alumnos || []).filter((alumno) => !assigned.has(String(alumno.id)));
-  }, [catalogos.alumnos, selectedGroup]);
+  const trackingSessions = useMemo(() => (
+    trackingGroup
+      ? recSesiones.filter((item) => String(item.grupo_id) === String(trackingGroup.id)).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha))).slice(0, 12)
+      : []
+  ), [recSesiones, trackingGroup]);
 
   const studentProfileGroup = useMemo(() => {
-    if (!studentProfile) return null;
-    const firstGroupId = String(studentProfile.grupo_ids || "").split(",").filter(Boolean)[0];
-    if (!firstGroupId) return null;
-    return grupos.find((item) => String(item.id) === String(firstGroupId)) || null;
+    const id = grupoIds(studentProfile)[0];
+    return id ? grupos.find((item) => String(item.id) === id) || null : null;
   }, [grupos, studentProfile]);
-
   const studentProfileMembership = useMemo(
     () => studentProfileGroup?.alumnos?.find((item) => String(item.id) === String(studentProfile?.id)) || null,
     [studentProfile, studentProfileGroup]
   );
-
   const studentFormGroup = useMemo(
     () => grupos.find((item) => String(item.id) === String(studentForm.grupo_id)) || null,
     [grupos, studentForm.grupo_id]
   );
 
   const hasFilters = search || nivel || profesor || grupo || groupQuickFilter !== "todos" || studentQuickFilter !== "todos";
-
   const clearFilters = () => {
     setSearch("");
     setNivel("");
@@ -668,188 +399,173 @@ export default function PanelProfesor() {
     setStudentQuickFilter("todos");
   };
 
-  const showNotice = (message) => {
-    setNotice(message);
-    window.setTimeout(() => setNotice(""), 2600);
-  };
+  // ---------- Navegación entre secciones ----------
+  const goToSection = useCallback((key) => {
+    setActiveSection(key);
+    setGroupError("");
+    setScrollTick((n) => n + 1);
+    const params = new URLSearchParams(window.location.search);
+    params.set("seccion", key);
+    if (key !== "control") { params.delete("grupo"); params.delete("fecha"); }
+    window.history.replaceState(window.history.state, "", `${window.location.pathname}?${params.toString()}`);
+  }, []);
 
-  const createTelegramLink = async () => {
-    try {
-      setSaving(true);
-      setError("");
-      const data = await apiPost("/api/gestion/control/telegram/link-code", {});
-      setTelegramLink(data);
-    } catch (e) {
-      setError(e.message || "No se pudo generar el código de Telegram.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const saveRecovery = async (recoveryId) => {
-    const draft = recoveryDrafts[recoveryId];
-    if (!draft) return;
-    try {
-      setRecoverySavingId(recoveryId);
-      setRecoveryError("");
-      await apiPatch(`/api/gestion/control/recuperaciones/${recoveryId}`, {
-        estado: draft.estado,
-        fecha_recuperacion: draft.fecha_recuperacion || null,
-        sesion_recuperacion_id: draft.sesion_recuperacion_id || null,
-      });
-      await loadRecoveries();
-      showNotice("Recuperación actualizada.");
-    } catch (e) {
-      setRecoveryError(e.message || "No se pudo guardar la recuperación.");
-    } finally {
-      setRecoverySavingId(null);
-    }
-  };
-
-  // Al llegar desde el atajo de la portada, baja solo hasta el control de clases.
+  // Tras tocar una pestaña o acción, la vista baja hasta el contenido (B8).
   useEffect(() => {
-    if (loading || activeSection !== "control" || urlParams.get("seccion") !== "control") return;
-    document.getElementById("panel-control")?.scrollIntoView({ block: "start" });
-  }, [loading, activeSection, urlParams]);
+    if (!scrollTick || loading) return undefined;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    // Se espera un instante a que se pinten los avisos de arriba, que mueven la posición.
+    const timer = window.setTimeout(() => {
+      const anchor = anchorRef.current;
+      const header = document.querySelector(".headerWrap")?.getBoundingClientRect().height || 70;
+      if (anchor && Math.abs(anchor.getBoundingClientRect().top - header) > 8) {
+        anchor.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
+      }
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [scrollTick, loading, activeSection]);
 
-  const saveControlSession = async () => {
-    if (!controlGroup || !controlHasClass || controlLoading || controlSaving) return;
-    const body = {
-      fecha: controlDate,
-      ...(isAdmin || controlProfessorId ? { profesor_id: controlProfessorId || null } : {}),
-      estado: classStatus,
-      observaciones: controlObservations,
-      asistencias: controlStudents.map((alumno) => ({
-        alumno_id: alumno.id,
-        estado: attendanceDraft[alumno.id] || "presente",
-      })),
-    };
-    try {
-      setControlSaving(true);
-      setControlError("");
-      const path = `/api/gestion/control/grupos/${controlGroup.id}/sesiones`;
-      const data = controlSession
-        ? await apiPut(`${path}/${controlSession.id}/asistencia`, body)
-        : await apiPost(path, body);
-      setControlSession(data.sesion);
-      setControlProfessorId(data.sesion?.profesor_id ?? "");
-      setControlStudents(data.alumnos || []);
-      setAttendanceDraft(Object.fromEntries((data.asistencias || []).map((item) => [item.alumno_id, item.estado])));
-      showNotice("Sesión y asistencia guardadas.");
-    } catch (e) {
-      setControlError(e.message || "No se pudo guardar la asistencia.");
-    } finally {
-      setControlSaving(false);
-    }
+  // La pestaña activa siempre a la vista dentro de la barra.
+  useEffect(() => {
+    const bar = tabsRef.current;
+    const active = bar?.querySelector('[aria-current="page"]');
+    if (!bar || !active) return;
+    const left = active.offsetLeft - 12;
+    const right = active.offsetLeft + active.offsetWidth + 12;
+    if (left < bar.scrollLeft) bar.scrollTo({ left });
+    else if (right > bar.scrollLeft + bar.clientWidth) bar.scrollTo({ left: right - bar.clientWidth });
+  }, [activeSection, loading]);
+
+  const openControl = (group, fecha = hoyISO()) => {
+    setControlPeticion((current) => ({ grupoId: String(group.id), fecha, n: (current?.n || 0) + 1 }));
+    goToSection("control");
   };
 
+  const openGroup = (group) => {
+    setSelectedGroupId(group.id);
+    setActiveView("grupos");
+    setSearch("");
+    setGroupQuickFilter("todos");
+    setNivel("");
+    setProfesor("");
+    setGrupo("");
+    setDetailOpen(true);
+    goToSection("gestion");
+  };
+
+  const selectGroup = (group) => {
+    setSelectedGroupId(group.id);
+    setDetailOpen(true);
+    setAddQuery("");
+    setGroupError("");
+    window.requestAnimationFrame(() => {
+      const detail = detailRef.current;
+      if (detail && window.matchMedia("(max-width: 980px)").matches) detail.scrollIntoView({ block: "start" });
+    });
+  };
+
+  // ---------- Modales: Esc cierra el que está encima ----------
+  const anyModalOpen = Boolean(studentProfile || groupFormOpen || studentFormOpen || accessFormOpen);
+  useEffect(() => {
+    if (!anyModalOpen) return undefined;
+    const onKey = (event) => {
+      if (event.key !== "Escape" || formSaving) return;
+      if (accessFormOpen) setAccessFormOpen(false);
+      else if (studentFormOpen) setStudentFormOpen(false);
+      else if (groupFormOpen) setGroupFormOpen(false);
+      else setStudentProfile(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [anyModalOpen, accessFormOpen, studentFormOpen, groupFormOpen, formSaving]);
+
+  // ---------- Acciones de grupos ----------
   const openNewGroup = () => {
     setEditingGroup(null);
-    setGroupForm(emptyGroupForm);
+    setGroupForm({ ...emptyGroupForm, nivel: nivelOptionsFor("").find((item) => nivelKey(item.value) === "iniciacion")?.value || "" });
+    setFormError("");
     setGroupFormOpen(true);
   };
 
   const openEditGroup = (group) => {
     setEditingGroup(group);
     setGroupForm(toGroupForm(group));
+    setFormError("");
     setGroupFormOpen(true);
   };
 
   const saveGroup = async (event) => {
     event.preventDefault();
     if (!isAdmin) return;
-
     try {
-      setSaving(true);
+      setFormSaving(true);
+      setFormError("");
       if (editingGroup) {
         await apiPut(`/api/gestion/grupos/${editingGroup.id}`, groupForm);
-        showNotice("Grupo guardado.");
       } else {
         const data = await apiPost("/api/gestion/grupos", groupForm);
         setSelectedGroupId(data.id);
-        showNotice("Grupo creado.");
       }
-
       setGroupFormOpen(false);
+      mostrarAviso(editingGroup ? `Grupo «${groupForm.nombre}» guardado.` : `Grupo «${groupForm.nombre}» creado.`);
       await loadPanel();
     } catch (e) {
-      setError(e.message || "No hemos podido guardar el grupo.");
+      setFormError(e.message || "No se ha podido guardar el grupo. Revisa los datos y vuelve a intentarlo.");
     } finally {
-      setSaving(false);
+      setFormSaving(false);
     }
   };
 
-  const deactivateGroup = async (group) => {
-    if (!isAdmin || !group) return;
-    const confirmed = window.confirm(`¿Quieres desactivar el grupo "${group.nombre}"?`);
-    if (!confirmed) return;
-
-    try {
-      setSaving(true);
-      await apiDelete(`/api/gestion/grupos/${group.id}`);
-      setSelectedGroupId(null);
-      showNotice("Grupo desactivado.");
-      await loadPanel();
-    } catch (e) {
-      setError(e.message || "No hemos podido desactivar el grupo.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const addStudentToGroup = async () => {
-    if (!isAdmin || !selectedGroup || !studentToAdd) return;
-
-    const capacity = getGroupCapacityState(selectedGroup);
-    if (capacity.blocksAllDays) {
-      setError(
-        "No se puede añadir para todos los días: al menos una clase ya está completa. " +
-        "Edita la ficha del alumno si solo asistirá al día que tiene plaza."
-      );
-      return;
-    }
-
-    try {
-      setSaving(true);
-      await apiPost(`/api/gestion/grupos/${selectedGroup.id}/alumnos`, { alumno_id: studentToAdd });
-      setStudentToAdd("");
-      showNotice("Alumno añadido al grupo.");
-      await loadPanel();
-    } catch (e) {
-      setError(e.message || "No hemos podido añadir el alumno al grupo.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const removeStudentFromGroup = async (alumno) => {
+  const addStudentToGroup = async (alumno) => {
     if (!isAdmin || !selectedGroup || !alumno) return;
-    const confirmed = window.confirm(`¿Quieres quitar a ${alumno.nombre} ${alumno.apellidos} de este grupo?`);
-    if (!confirmed) return;
-
     try {
-      setSaving(true);
-      await apiDelete(`/api/gestion/grupos/${selectedGroup.id}/alumnos/${alumno.id}`);
-      showNotice("Alumno quitado del grupo.");
+      setGroupBusy(true);
+      setGroupError("");
+      await apiPost(`/api/gestion/grupos/${selectedGroup.id}/alumnos`, { alumno_id: alumno.id });
+      setAddQuery("");
+      mostrarAviso(`${nombreCompleto(alumno)} añadido a ${selectedGroup.nombre}.`);
       await loadPanel();
     } catch (e) {
-      setError(e.message || "No hemos podido quitar el alumno del grupo.");
+      setGroupError(`${e.message || "No se ha podido añadir."} Puedes volver a intentarlo.`);
     } finally {
-      setSaving(false);
+      setGroupBusy(false);
     }
   };
 
+  const runConfirmed = async () => {
+    if (!confirmacion) return;
+    const { tipo, grupo: target, alumno } = confirmacion;
+    try {
+      setGroupBusy(true);
+      setConfirmError("");
+      if (tipo === "quitar") {
+        await apiDelete(`/api/gestion/grupos/${target.id}/alumnos/${alumno.id}`);
+        mostrarAviso(`${nombreCompleto(alumno)} ya no está en ${target.nombre}.`);
+      } else {
+        await apiDelete(`/api/gestion/grupos/${target.id}`);
+        setSelectedGroupId(null);
+        mostrarAviso(`Grupo «${target.nombre}» desactivado.`);
+      }
+      setConfirmacion(null);
+      await loadPanel();
+    } catch (e) {
+      setConfirmError(`${e.message || "No se ha podido hacer."} Puedes volver a intentarlo.`);
+    } finally {
+      setGroupBusy(false);
+    }
+  };
+
+  // ---------- Acciones de alumnos ----------
   const openEditStudent = (student) => {
-    const groupId = String(student.grupo_ids || "").split(",").filter(Boolean)[0] || "";
+    const groupId = grupoIds(student)[0] || "";
     const assignedGroup = grupos.find((item) => String(item.id) === String(groupId));
     const groupStudent = assignedGroup?.alumnos?.find((item) => String(item.id) === String(student.id));
-
     setCreatingStudent(false);
     setSelectedStudent(student);
     setStudentForm({
       nombre: student.nombre || "",
       apellidos: student.apellidos || "",
-      nivel: student.nivel || "iniciacion",
+      nivel: student.nivel || "",
       nivel_juego: student.nivel_juego ?? "",
       telefono: student.telefono || "",
       email: student.email || "",
@@ -860,6 +576,7 @@ export default function PanelProfesor() {
       asiste_dia1: Number(groupStudent?.asiste_dia1 ?? (assignedGroup?.dia1 ? 1 : 0)),
       asiste_dia2: Number(groupStudent?.asiste_dia2 ?? (assignedGroup?.dia2 ? 1 : 0)),
     });
+    setFormError("");
     setStudentFormOpen(true);
   };
 
@@ -869,10 +586,11 @@ export default function PanelProfesor() {
     setSelectedStudent(null);
     setStudentForm({
       ...emptyStudentForm,
-      grupo_id: initialGroup?.id || "",
+      grupo_id: initialGroup?.id ? String(initialGroup.id) : "",
       asiste_dia1: initialGroup?.dia1 ? 1 : 0,
       asiste_dia2: initialGroup?.dia2 ? 1 : 0,
     });
+    setFormError("");
     setStudentFormOpen(true);
   };
 
@@ -897,779 +615,574 @@ export default function PanelProfesor() {
   const saveStudent = async (event) => {
     event.preventDefault();
     if (!isAdmin) return;
-
     if (studentForm.grupo_id && !Number(studentForm.asiste_dia1) && !Number(studentForm.asiste_dia2)) {
-      setError("Selecciona al menos un día de asistencia para el grupo.");
+      setFormError("Marca al menos un día al que vendrá al grupo.");
       return;
     }
-
     try {
-      setSaving(true);
-      if (creatingStudent) {
-        await apiPost("/api/gestion/alumnos", studentForm);
-        showNotice(studentForm.grupo_id ? "Alumno creado y asignado al grupo." : "Alumno creado.");
-      } else if (selectedStudent) {
-        await apiPut(`/api/gestion/alumnos/${selectedStudent.id}`, studentForm);
-        showNotice("Alumno, matrícula y grupo guardados.");
-      }
-
+      setFormSaving(true);
+      setFormError("");
+      if (creatingStudent) await apiPost("/api/gestion/alumnos", studentForm);
+      else if (selectedStudent) await apiPut(`/api/gestion/alumnos/${selectedStudent.id}`, studentForm);
       setStudentFormOpen(false);
+      mostrarAviso(creatingStudent ? `${nombreCompleto(studentForm)} dado de alta.` : `Datos de ${nombreCompleto(studentForm)} guardados.`);
       await loadPanel();
     } catch (e) {
-      setError(e.message || "No hemos podido guardar el alumno.");
+      setFormError(e.message || "No se ha podido guardar. Revisa los datos y vuelve a intentarlo.");
     } finally {
-      setSaving(false);
+      setFormSaving(false);
     }
   };
 
   const openCreateAccess = (student) => {
     setAccessStudent(student);
-    setAccessForm({
-      email: student.email || "",
-      password: "",
-    });
+    setAccessForm({ email: student.email || "", password: "" });
+    setFormError("");
     setAccessFormOpen(true);
   };
 
   const saveAccess = async (event) => {
     event.preventDefault();
     if (!isAdmin || !accessStudent) return;
-
     try {
-      setSaving(true);
+      setFormSaving(true);
+      setFormError("");
       await apiPost(`/api/gestion/alumnos/${accessStudent.id}/crear-acceso`, accessForm);
       setAccessFormOpen(false);
-      showNotice("Acceso creado para el alumno.");
+      mostrarAviso(`${nombreCompleto(accessStudent)} ya puede entrar en la web.`);
       await loadPanel();
     } catch (e) {
-      setError(e.message || "No hemos podido crear el acceso del alumno.");
+      setFormError(e.message || "No se ha podido crear el acceso. Vuelve a intentarlo.");
     } finally {
-      setSaving(false);
+      setFormSaving(false);
     }
   };
 
-  if (!token || !canAccess({ rol: userRole })) {
-    return null;
-  }
+  const createTelegramLink = async () => {
+    try {
+      setTelegramBusy(true);
+      setTelegramError("");
+      setTelegramLink(await apiPost("/api/gestion/control/telegram/link-code", {}));
+    } catch (e) {
+      setTelegramError(e.message || "No se ha podido generar el código. Vuelve a intentarlo.");
+    } finally {
+      setTelegramBusy(false);
+    }
+  };
+
+  if (!token || !canAccess({ rol: userRole })) return null;
+
+  const cursoTexto = `Curso ${curso?.nombre || "2026/27"} · ${sede?.nombre || "Seminario Diocesano"}`;
+  const profesorSinVincular = !isAdmin && scope === "profesor" && scopeMessage && grupos.length === 0;
+
+  const alerts = [
+    panelMetrics.recuperacionesSinFecha > 0 && {
+      key: "rec", tone: "warn",
+      text: `${plural(panelMetrics.recuperacionesSinFecha, "recuperación", "recuperaciones")} sin fecha`,
+      onClick: () => goToSection("recuperaciones"),
+    },
+    isAdmin && panelMetrics.gruposSobrecupo > 0 && {
+      key: "sobrecupo", tone: "warn",
+      text: `${plural(panelMetrics.gruposSobrecupo, "grupo")} con más alumnos que plazas`,
+      onClick: () => { clearFilters(); setActiveView("grupos"); setGroupQuickFilter("sobrecupo"); goToSection("gestion"); },
+    },
+    isAdmin && panelMetrics.alumnosSinAcceso > 0 && {
+      key: "acceso",
+      text: `${plural(panelMetrics.alumnosSinAcceso, "alumno")} sin acceso a la web`,
+      onClick: () => { clearFilters(); setActiveView("alumnos"); setStudentQuickFilter("sin-acceso"); goToSection("gestion"); },
+    },
+    isAdmin && panelMetrics.gruposConHuecos > 0 && {
+      key: "huecos",
+      text: `${plural(panelMetrics.gruposConHuecos, "grupo")} con plazas libres`,
+      onClick: () => { clearFilters(); setActiveView("grupos"); setGroupQuickFilter("con-huecos"); goToSection("gestion"); },
+    },
+  ].filter(Boolean);
+
+  const otherPages = [
+    { to: "/reservas", label: "Reservas" },
+    { to: "/estado-pista", label: "Estado de la pista" },
+    { to: "/avisos", label: "Avisos" },
+    ...(isAdmin ? [{ to: "/torneos", label: "Torneos" }, { to: "/panel/whatsapp", label: "WhatsApp" }] : []),
+  ];
+
+  const selectedCupo = selectedGroup ? estadoCupo(selectedGroup) : null;
+  const confirmName = confirmacion?.alumno ? nombreCompleto(confirmacion.alumno) : "";
 
   return (
-    <section className="staffPanel">
-      <header className="staffHero">
-        <div className="staffHeroText">
-          <span className="staffEyebrow">Panel de escuela</span>
+    <section className="ppPanel">
+      <header className="ppHead">
+        <div>
           <h1>{isAdmin ? "Panel de administración" : "Panel de profesor"}</h1>
-          <div className="schoolContextBadge" aria-label="Curso y sede activos">
-            <strong>Curso {curso?.nombre || "2026/27"}</strong>
-            <span>·</span>
-            <strong>{sede?.nombre || "Seminario Diocesano"}</strong>
-          </div>
           <p>
-            {scope === "admin"
-              ? "Gestiona clases, alumnos, reservas y avisos del club."
-              : "Consulta tus grupos, alumnos y tareas de clase."}
+            {cursoTexto}
+            {isAdmin && !loading && !loadError && ` · ${plural(panelMetrics.totalGrupos, "grupo")} · ${plural(panelMetrics.totalAlumnos, "alumno")}`}
           </p>
-        </div>
-
-        <div className="staffSummary">
-          <div className="metricCard"><span>Grupos del curso</span><strong>{loading ? "-" : panelMetrics.totalGrupos}</strong></div>
-          <div className="metricCard"><span>Alumnos totales</span><strong>{loading ? "-" : panelMetrics.totalAlumnos}</strong></div>
-          <div className="metricCard"><span>Grupos con huecos</span><strong>{loading ? "-" : panelMetrics.gruposConHuecos}</strong></div>
-          <div className="metricCard"><span>Sin acceso</span><strong>{loading ? "-" : panelMetrics.alumnosSinAcceso}</strong></div>
         </div>
       </header>
 
-      {notice && <div className="staffNotice">{notice}</div>}
-      {!isAdmin && (
-        <div className="telegramLinkPanel">
-          <div>
-            <strong>Telegram para profesores</strong>
-            <span>Vincula este usuario con un chat privado mediante un código de un solo uso.</span>
-          </div>
-          {telegramLink ? (
-            <div className="telegramLinkCode">
-              <code>{telegramLink.command}</code>
-              {telegramLink.link && <a className="staffPrimaryBtn" href={telegramLink.link} target="_blank" rel="noreferrer">Abrir Telegram</a>}
-              <button className="staffSecondaryBtn" type="button" onClick={createTelegramLink} disabled={saving}>Generar otro código</button>
-              <small>Caduca en {telegramLink.expires_in_minutes} minutos.</small>
-            </div>
-          ) : (
-            <button className="staffSecondaryBtn" type="button" onClick={createTelegramLink} disabled={saving}>Generar código de Telegram</button>
-          )}
+      {loading && <div className="ppSkeleton" aria-label="Cargando el panel" />}
+
+      {!loading && loadError && (
+        <div className="ppInlineError ppLoadError" role="alert">
+          <strong>No hemos podido cargar el panel.</strong>
+          <span>{loadError}</span>
+          <button type="button" className="ppBtn ppBtnPrimary" onClick={() => { setLoading(true); loadPanel(); }}>Reintentar</button>
         </div>
       )}
 
-      <section className="adminOverview" aria-label="Resumen de hoy">
-        <div className="adminOverviewHead">
-          <div>
-            <span className="staffEyebrow">Resumen de hoy</span>
-            <h2>Vista rápida del club</h2>
-          </div>
-          <span className="adminTodayBadge">{todayClasses.length ? `${todayClasses.length} clase${todayClasses.length === 1 ? "" : "s"} hoy` : "Todo al día"}</span>
+      {profesorSinVincular && (
+        <div className="ppNotice" role="note">
+          <strong>Tu usuario aún no está unido a tu ficha de profesor.</strong>
+          <span>Por eso no ves grupos. Pide a la administración que lo vincule y vuelve a entrar.</span>
         </div>
+      )}
 
-        <div className="adminTodayGrid">
-          <article><span>Clases de hoy</span><strong>{loading ? "-" : todayClasses.length}</strong></article>
-          <article><span>Reservas de hoy</span><strong>Ver</strong></article>
-          <article><span>Avisos activos</span><strong>Crear</strong></article>
-          <article><span>Partidas abiertas</span><strong>Ver</strong></article>
-          <article><span>Torneos próximos</span><strong>Ver</strong></article>
-        </div>
-      </section>
-
-      <section className="adminQuickPanel" aria-label="Acciones rápidas">
-        <div className="adminSectionHead">
-          <h2>Acciones rápidas</h2>
-          <p>Las tareas más habituales, siempre a mano.</p>
-        </div>
-        <div className="adminQuickGrid">
-          {adminQuickActions.map((action) => (
-            action.to ? (
-              <Link className="adminQuickCard" key={action.key} to={action.to}>
-                <strong>{action.label}</strong>
-                <span>{action.text}</span>
-              </Link>
-            ) : (
-              <button className="adminQuickCard" key={action.key} type="button" onClick={action.onClick}>
-                <strong>{action.label}</strong>
-                <span>{action.text}</span>
-              </button>
-            )
+      {!loading && !loadError && alerts.length > 0 && (
+        <div className="ppAlerts" role="group" aria-label="Pendiente de revisar">
+          {alerts.map((item) => (
+            <button key={item.key} type="button" className="ppAlert" data-tone={item.tone || "info"} onClick={item.onClick}>{item.text}</button>
           ))}
         </div>
-      </section>
+      )}
 
-      <section className="adminPendingPanel" aria-label="Pendiente de revisar">
-        <div className="adminSectionHead">
-          <h2>Pendiente de revisar</h2>
-          <p>Pequeñas señales para saber por dónde empezar.</p>
-        </div>
-        {pendingItems.length ? (
-          <div className="adminPendingGrid">
-            {pendingItems.map((item) => (
-              <button className="adminPendingCard" key={item.key} type="button" onClick={item.action}>
-                <strong>{item.title}</strong>
-                <span>{item.text}</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="adminEmptyState">
-            <strong>Todo al día.</strong>
-            <span>No hay tareas pendientes.</span>
-          </div>
-        )}
-      </section>
-
-      <section className="adminModulesPanel" aria-label="Gestión por módulos">
-        <div className="adminSectionHead">
-          <h2>Gestión por módulos</h2>
-          <p>Accede a cada área sin tener que revisar todo el panel de golpe.</p>
-        </div>
-        <div className="adminModulesGrid">
-          {adminModules.map((module) => (
-            module.to ? (
-              <Link className="adminModuleCard" key={module.key} to={module.to}>
-                <div>
-                  <h3>{module.title}</h3>
-                  <p>{module.text}</p>
-                </div>
-                <strong>{module.value}</strong>
-                <span>{module.label}</span>
-              </Link>
-            ) : (
-              <button className="adminModuleCard" key={module.key} type="button" onClick={module.onClick}>
-                <div>
-                  <h3>{module.title}</h3>
-                  <p>{module.text}</p>
-                </div>
-                <strong>{module.value}</strong>
-                <span>{module.label}</span>
-              </button>
-            )
+      <div ref={anchorRef} className="ppAnchor" aria-hidden="true" />
+      <nav className="ppTabs" aria-label="Secciones del panel">
+        <div className="ppTabsScroll" ref={tabsRef}>
+          {PANEL_SECTIONS.map((section) => (
+            <button
+              key={section.key}
+              type="button"
+              className="ppTab"
+              aria-current={activeSection === section.key ? "page" : undefined}
+              onClick={() => goToSection(section.key)}
+            >
+              {section.label}
+              {section.key === "recuperaciones" && panelMetrics.recuperacionesSinFecha > 0 && (
+                <span className="ppCount">{panelMetrics.recuperacionesSinFecha}</span>
+              )}
+            </button>
           ))}
         </div>
-      </section>
-
-      <nav className="staffSectionNav" aria-label="Secciones de gestión">
-        {PANEL_SECTIONS.map((section) => (
-          <button
-            key={section.key}
-            type="button"
-            className={activeSection === section.key ? "active" : ""}
-            onClick={() => setActiveSection(section.key)}
-          >
-            {section.label}
-          </button>
-        ))}
       </nav>
 
-      {activeSection === "gestion" && (
-        <>
-      <div className="staffToolbar">
-        <div className="staffTabs" aria-label="Vistas del panel">
-          <button className={activeView === "grupos" ? "active" : ""} onClick={() => setActiveView("grupos")}>Grupos</button>
-          <button className={activeView === "alumnos" ? "active" : ""} onClick={() => setActiveView("alumnos")}>Alumnos</button>
-        </div>
+      {!loading && !loadError && (
+        <div className="ppContent" key={activeSection}>
+          {activeSection === "control" && (
+            <PasarLista
+              isAdmin={isAdmin}
+              profesores={profesores}
+              peticion={controlPeticion}
+              listasHoy={listasHoy}
+              onAviso={mostrarAviso}
+              onGuardada={() => { setListasTick((n) => n + 1); loadRecoveries(); }}
+            />
+          )}
 
-        <div className="staffSearch">
-          <span aria-hidden="true"><IcSearch /></span>
-          <input type="search" placeholder="Buscar alumno, grupo, profesor o pista" value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
+          {activeSection === "horario" && (
+            <HorarioDia grupos={grupos} onPasarLista={openControl} onVerGrupo={openGroup} />
+          )}
 
-        {isAdmin && (
-          <div className="staffActions">
-            <button className="staffSecondaryBtn" onClick={openNewStudent}>Crear alumno</button>
-            <button className="staffPrimaryBtn" onClick={openNewGroup}>Crear grupo</button>
-          </div>
-        )}
-      </div>
+          {activeSection === "recuperaciones" && (
+            <Recuperaciones
+              recuperaciones={recuperaciones}
+              sesiones={recSesiones}
+              cargando={recLoading}
+              error={recError}
+              onRecargar={loadRecoveries}
+              onAviso={mostrarAviso}
+            />
+          )}
 
-      <div className="staffFilters">
-        <div className="quickFilters" aria-label={activeView === "grupos" ? "Filtros rápidos de grupos" : "Filtros rápidos de alumnos"}>
-          {(activeView === "grupos" ? GROUP_QUICK_FILTERS : STUDENT_QUICK_FILTERS).map((item) => {
-            const active = activeView === "grupos" ? groupQuickFilter === item.key : studentQuickFilter === item.key;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                className={active ? "quickFilterChip active" : "quickFilterChip"}
-                onClick={() => activeView === "grupos" ? setGroupQuickFilter(item.key) : setStudentQuickFilter(item.key)}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <select value={nivel} onChange={(e) => setNivel(e.target.value)}>
-          <option value="">Todos los niveles</option>
-          {niveles.map((item) => <option key={item} value={item}>{nivelLabel(item)}</option>)}
-        </select>
-
-        <select value={profesor} onChange={(e) => setProfesor(e.target.value)}>
-          <option value="">Todos los profesores</option>
-          {profesores.map((item) => <option key={item.id || item.name} value={item.name}>{item.name}</option>)}
-        </select>
-
-        <select value={grupo} onChange={(e) => setGrupo(e.target.value)}>
-          <option value="">Todos los grupos</option>
-          {gruposOptions.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
-        </select>
-
-        {hasFilters && <button onClick={clearFilters}>Limpiar filtros</button>}
-      </div>
-
-      {loading && <div className="staffSkeletonGrid">{[1, 2, 3].map((item) => <div className="staffSkeleton" key={item} />)}</div>}
-
-      {!loading && error && (
-        <div className="staffError">
-          <strong>No hemos podido cargar el panel</strong>
-          <p>{error}</p>
-          <Link to="/login">Volver a iniciar sesión</Link>
-        </div>
-      )}
-
-      {!loading && !error && activeView === "grupos" && (
-        <div className="groupsWorkspace">
-          <aside className="groupList" aria-label="Listado de grupos">
-            <div className="panelSectionTitle"><h2>Grupos</h2><span>{filteredGrupos.length} resultados</span></div>
-
-            {groupedFilteredGrupos.map((section) => (
-              <div className="groupLevelSection" key={section.key}>
-                <div className="groupLevelHeading">
-                  <span>{section.label}</span>
-                  <small>{section.items.length}</small>
-                </div>
-                {section.items.map((item) => (
-                  <button key={item.id} className={String(selectedGroup?.id) === String(item.id) ? "groupListItem active" : "groupListItem"} data-level={item.nivel || "default"} onClick={() => setSelectedGroupId(item.id)}>
-                    <span className="groupListTop">
-                      <strong>{item.nombre}</strong>
-                      <small>{formatGroupCapacity(item)}</small>
-                    </span>
-                    <span className="groupListMeta">
-                      <span className={nivelClass(item.nivel)}>{nivelLabel(item.nivel)}</span>
-                      <span>{formatDias(item.dia1, item.dia2)}</span>
-                      <span>{formatHora(item.hora_inicio, item.duracion_min)}</span>
-                      <span>{getCourtName(item.pista_habitual)}</span>
-                      <span>{descriptorLabel(item.deporte)}</span>
-                      <span>{descriptorLabel(item.categoria)}</span>
-                    </span>
-                  </button>
-                ))}
+          {activeSection === "gestion" && (
+            <section className="ppSection" aria-labelledby="pp-gestion-title">
+              <div className="ppSectionHead">
+                <h2 id="pp-gestion-title">Grupos y alumnos</h2>
               </div>
-            ))}
 
-            {filteredGrupos.length === 0 && <div className="staffEmpty">No hay grupos que coincidan con estos filtros.</div>}
-          </aside>
-
-          <main className="groupDetail">
-            {selectedGroup ? (
-              <>
-                <div className="groupDetailHeader">
-                  <div className="groupTitleBlock">
-                    <span className={nivelClass(selectedGroup.nivel)}>{nivelLabel(selectedGroup.nivel)}</span>
-                    <h2>{selectedGroup.nombre}</h2>
-                    <p className="groupSubtitle">
-                      <span>{selectedGroup.codigo || "Sin código"}</span>
-                      <span>{selectedGroup.profesor || "Profesor sin asignar"}</span>
-                    </p>
-                  </div>
-                  <div className="groupHeaderActions">
-                    {isAdmin && (
-                      <>
-                        <button className="staffSecondaryBtn" onClick={() => openEditGroup(selectedGroup)}>Editar</button>
-                        <button className="staffDangerBtn" onClick={() => deactivateGroup(selectedGroup)} disabled={saving}>Desactivar</button>
-                      </>
-                    )}
-                    <div className="groupCapacity"><strong>{selectedGroup.alumnos?.length || 0}</strong><span>alumnos</span></div>
-                  </div>
+              <div className="ppToolbar">
+                <div className="ppSegmentedTabs" role="group" aria-label="Qué ver">
+                  <button type="button" aria-pressed={activeView === "grupos"} onClick={() => setActiveView("grupos")}>
+                    Grupos <span className="ppCount">{grupos.length}</span>
+                  </button>
+                  <button type="button" aria-pressed={activeView === "alumnos"} onClick={() => setActiveView("alumnos")}>
+                    Alumnos <span className="ppCount">{alumnos.length}</span>
+                  </button>
                 </div>
-
-                <div className="groupMetaGrid">
-                  <div><span>Profesor</span><strong>{selectedGroup.profesor || "Sin profesor asignado"}</strong></div>
-                  <div><span>Días</span><strong>{formatDias(selectedGroup.dia1, selectedGroup.dia2)}</strong></div>
-                  <div><span>Horario</span><strong>{formatHora(selectedGroup.hora_inicio, selectedGroup.duracion_min)}</strong></div>
-                  <div><span>Pista</span><strong>{getCourtName(selectedGroup.pista_habitual)}</strong></div>
-                  <div><span>Deporte</span><strong>{descriptorLabel(selectedGroup.deporte)}</strong></div>
-                  <div><span>Categoría</span><strong>{descriptorLabel(selectedGroup.categoria)}</strong></div>
-                  <div><span>Cupo por día</span><strong>{formatGroupCapacity(selectedGroup)}</strong></div>
-                  <div><span>Estado</span><strong>{Number(selectedGroup.activo ?? 1) === 1 ? "Activo" : "Inactivo"}</strong></div>
-                </div>
-
+                <label className="ppSearch">
+                  <IcBuscar />
+                  <input
+                    type="search"
+                    enterKeyHint="search"
+                    aria-label={activeView === "grupos" ? "Buscar grupo" : "Buscar alumno"}
+                    placeholder={activeView === "grupos" ? "Buscar grupo, profesor o alumno" : "Buscar alumno por nombre o teléfono"}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </label>
                 {isAdmin && (
-                  <div className="addStudentBar">
-                    <select value={studentToAdd} onChange={(e) => setStudentToAdd(e.target.value)}>
-                      <option value="">Añadir alumno existente</option>
-                      {studentsAvailableForGroup.map((alumno) => (
-                        <option key={alumno.id} value={alumno.id}>{alumno.nombre} {alumno.apellidos} - {nivelLabel(alumno.nivel)}</option>
-                      ))}
-                    </select>
-                    <button onClick={addStudentToGroup} disabled={!studentToAdd || saving}>Añadir alumno</button>
+                  <div className="ppToolbarActions">
+                    <button type="button" className="ppBtn" onClick={openNewStudent}>Nuevo alumno</button>
+                    <button type="button" className="ppBtn" onClick={openNewGroup}>Nuevo grupo</button>
                   </div>
                 )}
+              </div>
 
-                <div className="groupStudentsHeader">
-                  <h3>Alumnos asignados</h3>
-                  <span>{selectedGroup.alumnos?.length || 0} en este grupo</span>
+              <div className="ppFilterChips" role="group" aria-label="Filtros rápidos">
+                {(activeView === "grupos" ? GROUP_QUICK_FILTERS : STUDENT_QUICK_FILTERS)
+                  .filter((item) => isAdmin || !["sin-acceso", "con-acceso", "inactivos", "sobrecupo"].includes(item.key))
+                  .filter((item) => !item.key.startsWith("nivel:") || nivelesConGrupos.has(item.key.slice(6)))
+                  .filter((item) => item.key !== "sobrecupo" || panelMetrics.gruposSobrecupo > 0)
+                  .map((item) => {
+                    const active = activeView === "grupos" ? groupQuickFilter === item.key : studentQuickFilter === item.key;
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        className="ppChip"
+                        aria-pressed={active}
+                        onClick={() => (activeView === "grupos" ? setGroupQuickFilter(item.key) : setStudentQuickFilter(item.key))}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+              </div>
+
+              <details className="ppMoreFilters">
+                <summary>Más filtros</summary>
+                <div className="ppMoreFiltersBody">
+                  <label className="ppField"><span>Nivel</span>
+                    <select value={nivel} onChange={(e) => setNivel(e.target.value)}>
+                      <option value="">Todos los niveles</option>
+                      {NIVELES.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
+                      <option value="otro">Otros niveles</option>
+                    </select>
+                  </label>
+                  <label className="ppField"><span>Profesor</span>
+                    <select value={profesor} onChange={(e) => setProfesor(e.target.value)}>
+                      <option value="">Todos los profesores</option>
+                      {profesores.map((item) => <option key={item.id || item.name} value={item.name}>{item.name}</option>)}
+                    </select>
+                  </label>
+                  <label className="ppField"><span>Grupo</span>
+                    <select value={grupo} onChange={(e) => setGrupo(e.target.value)}>
+                      <option value="">Todos los grupos</option>
+                      {grupos.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+                    </select>
+                  </label>
                 </div>
+              </details>
+              {hasFilters && <button type="button" className="ppBtn ppBtnGhost" onClick={clearFilters}>Quitar filtros</button>}
 
-                <div className="studentsGrid">
-                  {(selectedGroup.alumnos || []).map((alumno) => (
-                    <article className="studentMiniCard" data-level={alumno.nivel || selectedGroup.nivel || "default"} key={alumno.id}>
-                      <div className="studentMark">{initials(alumno.nombre, alumno.apellidos)}</div>
-                      <div>
-                        <h3>{alumno.nombre} {alumno.apellidos}</h3>
-                        <p>{nivelLabel(alumno.nivel || selectedGroup.nivel)}</p>
-                        <small className="studentAttendanceDays">Asiste: {getStudentDays(selectedGroup, alumno)}</small>
-                        {(alumno.telefono || alumno.email) && <small>{alumno.telefono || alumno.email}</small>}
+              {activeView === "grupos" && (
+                <div className={`ppGroups${detailOpen ? " isDetailOpen" : ""}`}>
+                  <div className="ppGroupList" aria-label="Lista de grupos">
+                    <p className="ppResultCount">{plural(filteredGrupos.length, "grupo")}</p>
+                    {groupedFilteredGrupos.map((section) => (
+                      <div className="ppGroupLevel" key={section.key}>
+                        <h3>{section.label}</h3>
+                        <ul>
+                          {section.items.map((item) => {
+                            const cupo = estadoCupo(item);
+                            return (
+                              <li key={item.id}>
+                                <button
+                                  type="button"
+                                  className="ppGroupItem"
+                                  aria-current={String(selectedGroup?.id) === String(item.id) ? "true" : undefined}
+                                  onClick={() => selectGroup(item)}
+                                >
+                                  <span className="ppGroupItemTop">
+                                    <strong>{item.nombre}</strong>
+                                    <span className={cupo.sobrecupo ? "ppCupo isOver" : cupo.completo ? "ppCupo isFull" : "ppCupo"}>{textoCupo(item)}</span>
+                                  </span>
+                                  <span className="ppGroupItemMeta">
+                                    {formatDias(item.dia1, item.dia2)}, {hora(item.hora_inicio) || "sin hora"} · {nombrePista(item.pista_habitual)}
+                                    {item.profesor ? ` · ${item.profesor}` : ""}
+                                    {!grupoActivo(item) ? " · Desactivado" : ""}
+                                  </span>
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
                       </div>
-                      {isAdmin && <button className="miniDangerBtn" onClick={() => removeStudentFromGroup(alumno)}>Quitar</button>}
-                    </article>
-                  ))}
-                </div>
-
-                {(!selectedGroup.alumnos || selectedGroup.alumnos.length === 0) && <div className="staffEmpty">Este grupo todavía no tiene alumnos asignados.</div>}
-              </>
-            ) : (
-              <div className="staffEmpty">Selecciona un grupo para ver su detalle.</div>
-            )}
-          </main>
-        </div>
-      )}
-
-      {!loading && !error && activeView === "alumnos" && (
-        <div className="studentsPanel">
-          <div className="panelSectionTitle"><h2>Alumnos</h2><span>{filteredAlumnos.length} resultados</span></div>
-
-          <div className="studentsTable">
-            <div className={isAdmin ? "studentsTableHead studentsTableHeadAdmin" : "studentsTableHead"}>
-              <span>Alumno</span><span>Nivel</span><span>Juego</span><span>Acceso</span><span>Grupo</span><span>Profesor</span><span>Horario / pista</span><span>Acciones</span>
-            </div>
-
-            {filteredAlumnos.map((alumno) => (
-              <article className={isAdmin ? "studentRow studentRowAdmin" : "studentRow"} key={alumno.id}>
-                <div className="studentIdentity">
-                  <div className="studentMark" data-level={alumno.nivel || "default"}>{initials(alumno.nombre, alumno.apellidos)}</div>
-                  <div><strong>{alumno.nombre} {alumno.apellidos}</strong><small>{alumno.telefono || alumno.email || "Sin contacto"}</small></div>
-                </div>
-                <span className={nivelClass(alumno.nivel)}>{nivelLabel(alumno.nivel)}</span>
-                <span className="studentCell">{gameLevelLabel(alumno.nivel_juego)}</span>
-                <span className={alumno.usuario_id ? "accessBadge accessOn" : "accessBadge accessOff"}>{alumno.usuario_id ? "Con acceso" : "Sin acceso"}</span>
-                <span className="studentCell">{alumno.grupos || "-"}</span>
-                <span className="studentCell">{alumno.profesores || "-"}</span>
-                <span className="studentCell">{alumno.horarios || "-"}{alumno.pistas ? ` - Pista ${alumno.pistas}` : ""}</span>
-                <div className="rowActions">
-                  <button className="staffSecondaryBtn" onClick={() => setStudentProfile(alumno)}>Ver ficha</button>
-                  {isAdmin && (
-                    <>
-                      {!alumno.usuario_id && <button className="staffPrimaryBtn" onClick={() => openCreateAccess(alumno)}>Crear acceso</button>}
-                      <button className="staffSecondaryBtn" onClick={() => openEditStudent(alumno)}>Editar</button>
-                    </>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
-
-          {filteredAlumnos.length === 0 && <div className="staffEmpty">No hay alumnos que coincidan con estos filtros.</div>}
-        </div>
-      )}
-        </>
-      )}
-
-      {!loading && !error && activeSection === "horario" && (
-        <section className="schoolOpsPanel">
-          <div className="opsPanelHeader">
-            <div>
-              <span className="staffEyebrow">Agenda semanal</span>
-              <h2>Horario semanal</h2>
-              <p>Curso {curso?.nombre || "2026/27"} · {sede?.nombre || "Seminario Diocesano"} · grupos organizados por pista.</p>
-            </div>
-            <span className="opsCounter">{grupos.filter((item) => Number(item.activo ?? 1) === 1).length} grupos activos</span>
-          </div>
-
-          <div className="weeklyCourts">
-            {weeklySchedule.map((court) => {
-              const courtGroupCount = new Set(
-                Object.values(court.days).flat().map(({ group }) => group.id)
-              ).size;
-
-              return (
-                <section className="courtSchedule" key={court.name}>
-                  <div className="courtScheduleHeader">
-                    <div>
-                      <span>Pista</span>
-                      <h3>{court.name}</h3>
-                    </div>
-                    <strong>{courtGroupCount} grupo{courtGroupCount === 1 ? "" : "s"}</strong>
-                  </div>
-
-                  <div className="weeklyGrid">
-                    {WEEK_DAYS.map((day) => (
-                      <article className="weekDayColumn" key={`${court.name}-${day.key}`}>
-                        <div className="weekDayHeader">
-                          <strong>{day.label}</strong>
-                          <span>{court.days[day.key]?.length || 0}</span>
-                        </div>
-
-                        <div className="dayClassStack">
-                          {(court.days[day.key] || []).map(({ group, students }) => (
-                            <button
-                              type="button"
-                              className="scheduleClassCard"
-                              data-level={group.nivel || "default"}
-                              key={`${court.name}-${day.key}-${group.id}`}
-                              onClick={() => {
-                                setSelectedGroupId(group.id);
-                                setActiveView("grupos");
-                                setActiveSection("gestion");
-                              }}
-                            >
-                              <span className="scheduleTime">{String(group.hora_inicio || "").slice(0, 5) || "-"}</span>
-                              <strong>{group.nombre}</strong>
-                              <span className={nivelClass(group.nivel)}>{nivelLabel(group.nivel)}</span>
-                              <small>{descriptorLabel(group.deporte)} · {descriptorLabel(group.categoria)}</small>
-                              <small>{group.profesor || "Profesor sin asignar"}</small>
-                              <div className="scheduleStudents">
-                                <span>{students.length} alumno{students.length === 1 ? "" : "s"} este día</span>
-                                <small>{students.length ? students.map((student) => student.nombre).join(", ") : "Sin alumnos asignados a este día"}</small>
-                              </div>
-                            </button>
-                          ))}
-
-                          {(!court.days[day.key] || court.days[day.key].length === 0) && (
-                            <div className="emptyDay">Sin clases</div>
-                          )}
-                        </div>
-                      </article>
                     ))}
+                    {filteredGrupos.length === 0 && <p className="ppEmpty">No hay grupos con estos filtros.</p>}
                   </div>
-                </section>
-              );
-            })}
-          </div>
-        </section>
-      )}
 
-      {!loading && !error && activeSection === "control" && (
-        <section className="schoolOpsPanel" id="panel-control">
-          <div className="opsPanelHeader">
-            <div>
-              <span className="staffEyebrow">Sesión diaria</span>
-              <h2>Control de clases</h2>
-              <p>Pasa lista y revisa el estado de la clase desde una vista clara.</p>
-            </div>
-            <span className="opsCounter">{controlStudents.length} {controlStudents.length === 1 ? "alumno" : "alumnos"}</span>
-          </div>
+                  <div className="ppGroupDetail" ref={detailRef}>
+                    {selectedGroup ? (
+                      <>
+                        <button type="button" className="ppBtn ppBtnGhost ppBack" onClick={() => setDetailOpen(false)}>
+                          <IcAtras /> Todos los grupos
+                        </button>
+                        <div className="ppDetailHead">
+                          <div>
+                            <h3>{selectedGroup.nombre}</h3>
+                            <p className="ppMetaLine">
+                              <span className={nivelClass(selectedGroup.nivel)}>{nivelLabel(selectedGroup.nivel)}</span>
+                              <span>{grupoActivo(selectedGroup) ? "Activo" : "Desactivado"}</span>
+                            </p>
+                          </div>
+                          <div className="ppDetailActions">
+                            {grupoActivo(selectedGroup) && (
+                              <button type="button" className="ppBtn ppBtnPrimary" onClick={() => openControl(selectedGroup, fechaDeLista(selectedGroup))}>
+                                Pasar lista
+                              </button>
+                            )}
+                            {isAdmin && <button type="button" className="ppBtn" onClick={() => openEditGroup(selectedGroup)}>Editar grupo</button>}
+                            {isAdmin && grupoActivo(selectedGroup) && (
+                              <button type="button" className="ppBtn ppBtnDangerQuiet" onClick={() => { setConfirmError(""); setConfirmacion({ tipo: "desactivar", grupo: selectedGroup }); }}>
+                                Desactivar
+                              </button>
+                            )}
+                          </div>
+                        </div>
 
-          <div className="controlLayout">
-            <aside className="sessionPanel">
-              <label>
-                Grupo
-                <select value={controlGroup?.id || ""} onChange={(e) => setControlGroupId(e.target.value)}>
-                  {controlGroups.map((item) => <option key={item.id} value={item.id}>{item.nombre || item.codigo || `Grupo ${item.id}`}</option>)}
-                </select>
-              </label>
-              <label>
-                Fecha
-                <input type="date" value={controlDate} onChange={(e) => setControlDate(e.target.value)} />
-              </label>
+                        <dl className="ppFacts">
+                          <div><dt>Días y hora</dt><dd>{formatDias(selectedGroup.dia1, selectedGroup.dia2)}, {formatHorario(selectedGroup.hora_inicio, selectedGroup.duracion_min)}</dd></div>
+                          <div><dt>Pista</dt><dd>{nombrePista(selectedGroup.pista_habitual)}</dd></div>
+                          <div><dt>Profesor</dt><dd>{selectedGroup.profesor || "Sin profesor"}</dd></div>
+                          <div><dt>Plazas</dt><dd>{textoCupo(selectedGroup)}</dd></div>
+                        </dl>
 
-              {controlGroup && (
-                <div className="sessionSummary">
-                  <span className={nivelClass(controlGroup.nivel)}>{nivelLabel(controlGroup.nivel)}</span>
-                  <h3>{controlGroup.nombre}</h3>
-                  <p>{formatDias(controlGroup.dia1, controlGroup.dia2)} · {formatHora(controlGroup.hora_inicio, controlGroup.duracion_min)}</p>
-                  <p>Profesor habitual: {controlGroup.profesor || "sin asignar"} · {controlGroup.pista_habitual || "Sin pista"}</p>
+                        {selectedCupo?.sobrecupo && (
+                          <p className="ppNotice ppNoticeWarn">Hay más alumnos que plazas ({textoCupo(selectedGroup)}). Revisa quién viene cada día.</p>
+                        )}
+
+                        {groupError && <p className="ppInlineError" role="alert">{groupError}</p>}
+
+                        {isAdmin && grupoActivo(selectedGroup) && (
+                          <div className="ppAddStudent">
+                            <label className="ppField">
+                              <span>Añadir un alumno a este grupo</span>
+                              <input type="search" enterKeyHint="search" value={addQuery} placeholder="Escribe su nombre" onChange={(e) => setAddQuery(e.target.value)} />
+                            </label>
+                            {selectedCupo?.algunDiaCompleto && addQuery && (
+                              <p className="ppFieldNote">Algún día ya está completo, así que no se puede apuntar a todos los días. Si solo vendrá el día con plaza, ábrelo en Alumnos y usa «Editar».</p>
+                            )}
+                            {addQuery && !selectedCupo?.algunDiaCompleto && (
+                              studentsToAdd.length ? (
+                                <ul className="ppPickList">
+                                  {studentsToAdd.map((alumno) => (
+                                    <li key={alumno.id}>
+                                      <button type="button" className="ppPickItem" onClick={() => addStudentToGroup(alumno)} disabled={groupBusy}>
+                                        <span>{nombreCompleto(alumno)}{alumno.nivel ? ` · ${nivelLabel(alumno.nivel)}` : ""}</span>
+                                        <strong>Añadir</strong>
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : <p className="ppFieldNote">No hay ningún alumno con ese nombre fuera del grupo.</p>
+                            )}
+                          </div>
+                        )}
+
+                        <h4 className="ppSubhead">Alumnos ({selectedGroup.alumnos?.length || 0})</h4>
+                        {(selectedGroup.alumnos || []).length === 0 ? (
+                          <p className="ppEmpty">Este grupo aún no tiene alumnos.</p>
+                        ) : (
+                          <ul className="ppPeople">
+                            {selectedGroup.alumnos.map((alumno) => (
+                              <li className="ppPeopleRow" key={alumno.id}>
+                                <div className="ppPerson">
+                                  <span className="ppAvatar" aria-hidden="true">{iniciales(alumno)}</span>
+                                  <span className="ppPersonText">
+                                    <strong>{nombreCompleto(alumno)}</strong>
+                                    <small>Viene: {studentDays(selectedGroup, alumno)}{alumno.nivel ? ` · ${nivelLabel(alumno.nivel)}` : ""}</small>
+                                  </span>
+                                </div>
+                                <div className="ppRowActions">
+                                  <ContactLinks persona={alumno} compact />
+                                  {isAdmin && (
+                                    <button type="button" className="ppBtn ppBtnSmall ppBtnDangerQuiet" onClick={() => { setConfirmError(""); setConfirmacion({ tipo: "quitar", grupo: selectedGroup, alumno }); }}>
+                                      Quitar
+                                    </button>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </>
+                    ) : (
+                      <p className="ppEmpty">Elige un grupo para ver sus alumnos.</p>
+                    )}
+                  </div>
                 </div>
               )}
 
-              <label>
-                Profesor de esta sesión
-                <select value={controlProfessorId} onChange={(e) => setControlProfessorId(e.target.value)}>
-                  <option value="">{isAdmin ? "Sin profesor asignado" : "Usar mi profesor"}</option>
-                  {profesores.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                </select>
-              </label>
-              <label>
-                Observaciones
-                <textarea value={controlObservations} onChange={(e) => setControlObservations(e.target.value)} rows={3} />
-              </label>
-
-              <div className="statusChips" aria-label="Estado de clase">
-                {CLASS_STATUS.map((status) => (
-                  <button
-                    key={status.key}
-                    type="button"
-                    data-tone={status.tone}
-                    className={classStatus === status.key ? "statusChip active" : "statusChip"}
-                    onClick={() => setClassStatus(status.key)}
-                  >
-                    {status.label}
-                  </button>
-                ))}
-              </div>
-            </aside>
-
-            <main className="attendancePanel">
-              <div className="panelSectionTitle">
-                <h2>Asistencia</h2>
-                <span>{controlSession ? "Sesión guardada" : "Sesión sin guardar"}</span>
-              </div>
-
-              {controlLoading && <div className="staffEmpty">Cargando asistencia...</div>}
-              {controlGroupsLoading && <div className="staffEmpty">Cargando grupos...</div>}
-              {controlError && <div className="preparedNotice" role="alert">{controlError}</div>}
-              {!controlGroupsLoading && !controlError && !controlGroup && <div className="staffEmpty">No hay grupos activos para este curso y sede.</div>}
-              {!controlLoading && controlGroup && !controlHasClass && <div className="staffEmpty">Este grupo no tiene clase el día elegido.</div>}
-
-              <div className="attendanceList">
-                {!controlLoading && controlStudents.map((alumno) => {
-                  const current = attendanceDraft[alumno.id] || "presente";
-                  return (
-                    <article className="attendanceRow" key={alumno.id}>
-                      <div className="studentIdentity">
-                        <div className="studentMark" data-level={alumno.nivel || controlGroup.nivel || "default"}>{initials(alumno.nombre, alumno.apellidos)}</div>
-                        <div><strong>{alumno.nombre} {alumno.apellidos}</strong><small>{nivelLabel(alumno.nivel || controlGroup.nivel)}</small></div>
-                      </div>
-                      <div className="attendanceActions">
-                        {ATTENDANCE_STATUS.map((status) => (
-                          <button
-                            key={status.key}
-                            type="button"
-                            data-tone={status.tone}
-                            className={current === status.key ? "statusChip active" : "statusChip"}
-                            onClick={() => setAttendanceDraft((draft) => ({ ...draft, [alumno.id]: status.key }))}
-                          >
-                            {status.label}
-                          </button>
-                        ))}
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-
-              {!controlLoading && controlHasClass && controlStudents.length === 0 && <div className="staffEmpty">No hay alumnos asignados para este día.</div>}
-              <button className="staffPrimaryBtn" type="button" onClick={saveControlSession} disabled={!controlHasClass || controlGroupsLoading || controlLoading || controlSaving || !controlGroup || !!controlError}>
-                {controlSaving ? "Guardando..." : controlSession ? "Actualizar sesión y asistencia" : "Guardar sesión y asistencia"}
-              </button>
-            </main>
-          </div>
-        </section>
-      )}
-
-      {!loading && !error && activeSection === "recuperaciones" && (
-        <section className="schoolOpsPanel">
-          <div className="opsPanelHeader">
-            <div>
-              <span className="staffEyebrow">Clases pendientes</span>
-              <h2>Recuperaciones</h2>
-              <p>Consulta y asigna las recuperaciones del curso actual.</p>
-            </div>
-            <span className="opsCounter">{recoveries.length} recuperaciones</span>
-          </div>
-
-          {recoveryLoading && <div className="staffEmpty">Cargando recuperaciones...</div>}
-          {recoveryError && <div className="preparedNotice" role="alert">{recoveryError}</div>}
-          {!recoveryLoading && !recoveryError && recoveries.length === 0 && <div className="staffEmpty">No hay recuperaciones registradas en este curso.</div>}
-          {!recoveryLoading && recoveries.length > 0 && (
-            <div className="recoveryList">
-              {recoveries.map((item) => {
-                const draft = recoveryDrafts[item.id] || {};
-                const options = recoverySessions.filter((session) =>
-                  session.fecha === draft.fecha_recuperacion && Number(session.id) !== Number(item.sesion_origen_id)
-                );
-                return (
-                  <article className="recoveryCard recoveryEntry" key={item.id}>
-                    <div>
-                      <strong>{item.alumno_nombre} {item.alumno_apellidos}</strong>
-                      <p>Grupo de origen: {item.grupo_origen} · Fecha original: {item.fecha_original}</p>
-                      <p>Motivo: {item.motivo === "falta_justificada" ? "Falta justificada" : descriptorLabel(item.motivo)}</p>
-                      <p>Estado: {RECOVERY_STATUS.find((status) => status.key === item.estado)?.label || item.estado}
-                        {item.fecha_recuperacion ? ` · Fecha asignada: ${item.fecha_recuperacion}` : ""}
-                        {item.sesion_recuperacion_id ? ` · Sesión #${item.sesion_recuperacion_id}` : ""}
-                      </p>
-                    </div>
-                    <div className="recoveryControls">
-                      <label>Estado
-                        <select value={draft.estado || "pendiente"} onChange={(e) => setRecoveryDrafts((current) => ({
-                          ...current, [item.id]: { ...current[item.id], estado: e.target.value },
-                        }))}>
-                          {RECOVERY_STATUS.map((status) => <option key={status.key} value={status.key}>{status.label}</option>)}
-                        </select>
-                      </label>
-                      <label>Fecha de recuperación
-                        <input type="date" value={draft.fecha_recuperacion || ""} onChange={(e) => setRecoveryDrafts((current) => ({
-                          ...current, [item.id]: {
-                            ...current[item.id], fecha_recuperacion: e.target.value, sesion_recuperacion_id: "",
-                            estado: e.target.value && current[item.id]?.estado === "pendiente" ? "asignada" : current[item.id]?.estado,
-                          },
-                        }))} />
-                      </label>
-                      <label>Sesión existente
-                        <select value={draft.sesion_recuperacion_id || ""} disabled={!draft.fecha_recuperacion} onChange={(e) => setRecoveryDrafts((current) => ({
-                          ...current, [item.id]: { ...current[item.id], sesion_recuperacion_id: e.target.value },
-                        }))}>
-                          <option value="">Sin sesión asignada</option>
-                          {options.map((session) => <option key={session.id} value={session.id}>
-                            {session.grupo_nombre} · {String(session.hora_inicio || "").slice(0, 5)} · #{session.id}
-                          </option>)}
-                        </select>
-                      </label>
-                      <button className="staffPrimaryBtn" type="button" onClick={() => saveRecovery(item.id)} disabled={recoverySavingId === item.id}>
-                        {recoverySavingId === item.id ? "Guardando..." : "Guardar recuperación"}
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
+              {activeView === "alumnos" && (
+                <div className="ppStudents">
+                  <p className="ppResultCount">{plural(filteredAlumnos.length, "alumno")}</p>
+                  <div className="ppStudentsHead" aria-hidden="true">
+                    <span>Alumno</span><span>Nivel</span><span>Grupo y horario</span><span>Acceso</span><span />
+                  </div>
+                  <ul className="ppStudentList">
+                    {filteredAlumnos.map((alumno) => (
+                      <li className="ppStudentRow" key={alumno.id}>
+                        <div className="ppPerson">
+                          <span className="ppAvatar" aria-hidden="true">{iniciales(alumno)}</span>
+                          <span className="ppPersonText">
+                            <strong>{nombreCompleto(alumno)}</strong>
+                            <small>{alumno.telefono || alumno.email || "Sin teléfono ni email"}</small>
+                          </span>
+                        </div>
+                        <span className="ppStudentCell"><span className={nivelClass(alumno.nivel)}>{nivelLabel(alumno.nivel)}</span></span>
+                        <span className="ppStudentCell ppStudentGroup">
+                          {alumno.grupos || "Sin grupo"}
+                          {alumno.horarios && <small>{formatHorariosTexto(alumno.horarios)}{alumno.pistas ? ` · ${nombrePista(alumno.pistas)}` : ""}</small>}
+                        </span>
+                        <span className="ppStudentCell">
+                          <span className={alumno.usuario_id ? "ppTag isOn" : "ppTag"}>{alumno.usuario_id ? "Entra en la web" : "Sin acceso"}</span>
+                        </span>
+                        <div className="ppRowActions">
+                          <button type="button" className="ppBtn ppBtnSmall" onClick={() => setStudentProfile(alumno)}>Ver ficha</button>
+                          {isAdmin && <button type="button" className="ppBtn ppBtnSmall" onClick={() => openEditStudent(alumno)}>Editar</button>}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  {filteredAlumnos.length === 0 && <p className="ppEmpty">No hay alumnos con estos filtros.</p>}
+                </div>
+              )}
+            </section>
           )}
-        </section>
+
+          {activeSection === "seguimiento" && (
+            <section className="ppSection" aria-labelledby="pp-seg-title">
+              <div className="ppSectionHead">
+                <h2 id="pp-seg-title">Seguimiento</h2>
+                <p>Clases con lista pasada y alumnos de cada grupo. Las notas se escriben al pasar lista, en «Más opciones».</p>
+              </div>
+              {grupos.length === 0 ? (
+                <p className="ppEmpty">No hay grupos para mostrar.</p>
+              ) : (
+                <>
+                  <label className="ppField ppFieldInline">
+                    <span>Grupo</span>
+                    <select value={trackingGroup?.id || ""} onChange={(e) => setTrackingGroupId(e.target.value)}>
+                      {grupos.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+                    </select>
+                  </label>
+                  {trackingGroup && (
+                    <div className="ppTracking">
+                      <div>
+                        <h3 className="ppSubhead">Clases con lista pasada</h3>
+                        {recError && <p className="ppInlineError" role="alert">{recError}</p>}
+                        {!recError && trackingSessions.length === 0 && <p className="ppEmpty">Aún no se ha pasado lista en este grupo.</p>}
+                        {trackingSessions.length > 0 && (
+                          <ul className="ppPickList">
+                            {trackingSessions.map((session) => (
+                              <li key={session.id}>
+                                <button type="button" className="ppPickItem" onClick={() => openControl(trackingGroup, session.fecha)}>
+                                  <span>{formatFecha(session.fecha)}, {hora(session.hora_inicio)}</span>
+                                  <strong>Ver lista y notas</strong>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="ppSubhead">Alumnos ({trackingGroup.alumnos?.length || 0})</h3>
+                        {(trackingGroup.alumnos || []).length === 0 ? (
+                          <p className="ppEmpty">Este grupo aún no tiene alumnos.</p>
+                        ) : (
+                          <ul className="ppPeople">
+                            {trackingGroup.alumnos.map((alumno) => (
+                              <li className="ppPeopleRow" key={alumno.id}>
+                                <div className="ppPerson">
+                                  <span className="ppAvatar" aria-hidden="true">{iniciales(alumno)}</span>
+                                  <span className="ppPersonText">
+                                    <strong>{nombreCompleto(alumno)}</strong>
+                                    <small>Viene: {studentDays(trackingGroup, alumno)}</small>
+                                  </span>
+                                </div>
+                                <div className="ppRowActions"><ContactLinks persona={alumno} compact /></div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </section>
+          )}
+        </div>
       )}
 
-      {!loading && !error && activeSection === "seguimiento" && (
-        <section className="schoolOpsPanel">
-          <div className="opsPanelHeader">
-            <div>
-              <span className="staffEyebrow">Notas internas</span>
-              <h2>Seguimiento</h2>
-              <p>Anota objetivos, observaciones y evolución por grupo.</p>
-            </div>
-            <select className="opsSelect" value={trackingGroup?.id || ""} onChange={(e) => setTrackingGroupId(e.target.value)}>
-              {gruposOptions.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
-            </select>
-          </div>
-
-          <div className="trackingGrid">
-            <article className="trackingCard trackingCardWide">
-              <span className={nivelClass(trackingGroup?.nivel)}>{nivelLabel(trackingGroup?.nivel)}</span>
-              <h3>{trackingGroup?.nombre || "Selecciona un grupo"}</h3>
-              <p>{trackingGroup ? `${trackingGroup.profesor || "Profesor sin asignar"} · ${formatDias(trackingGroup.dia1, trackingGroup.dia2)} · ${formatHora(trackingGroup.hora_inicio, trackingGroup.duracion_min)}` : "No hay datos de grupo."}</p>
-            </article>
-            <article className="trackingCard">
-              <h3>Observaciones del grupo</h3>
-              <p>Espacio para notas internas del profesor o la administración.</p>
-            </article>
-            <article className="trackingCard">
-              <h3>Objetivos trabajados</h3>
-              <div className="trackingTags">
-                <span>Técnica</span>
-                <span>Posicionamiento</span>
-                <span>Partido</span>
+      {!isAdmin && !loading && (
+        <details className="ppTelegram">
+          <summary>Pasar lista desde Telegram</summary>
+          <div className="ppTelegramBody">
+            <p>Une tu usuario a un chat privado de Telegram con un código que sirve una sola vez.</p>
+            {telegramError && <p className="ppInlineError" role="alert">{telegramError}</p>}
+            {telegramLink ? (
+              <div className="ppTelegramCode">
+                <code>{telegramLink.command}</code>
+                {telegramLink.link && <a className="ppBtn ppBtnPrimary" href={telegramLink.link} target="_blank" rel="noreferrer">Abrir Telegram</a>}
+                <button className="ppBtn" type="button" onClick={createTelegramLink} disabled={telegramBusy}>Generar otro código</button>
+                <small>El código caduca en {telegramLink.expires_in_minutes} minutos.</small>
               </div>
-            </article>
-            <article className="trackingCard">
-              <h3>Alumnos</h3>
-              <div className="trackingStudents">
-                {(trackingGroup?.alumnos || []).slice(0, 6).map((alumno) => (
-                  <span key={alumno.id}>{alumno.nombre} {alumno.apellidos}</span>
-                ))}
-                {(!trackingGroup?.alumnos || trackingGroup.alumnos.length === 0) && <span>Este grupo todavía no tiene alumnos.</span>}
-              </div>
-            </article>
+            ) : (
+              <button className="ppBtn" type="button" onClick={createTelegramLink} disabled={telegramBusy}>
+                {telegramBusy ? "Generando..." : "Generar código de Telegram"}
+              </button>
+            )}
           </div>
-        </section>
+        </details>
       )}
+
+      <nav className="ppLinks" aria-label="Otras páginas">
+        <span>Otras páginas:</span>
+        {otherPages.map((item) => <Link key={item.to} className="ppLink" to={item.to}>{item.label}</Link>)}
+      </nav>
 
       {studentProfile && (
-        <div className="staffModalBackdrop">
-          <aside className="studentProfileDrawer" aria-label="Ficha completa del alumno">
-            <div className="modalHeader">
-              <h2>Ficha de alumno</h2>
-              <button type="button" onClick={() => setStudentProfile(null)} aria-label="Cerrar ficha">Cerrar</button>
-            </div>
-
-            <div className="studentProfileHero">
-              <div className="studentMark" data-level={studentProfile.nivel || "default"}>
-                {initials(studentProfile.nombre, studentProfile.apellidos)}
+        <div className="ppBackdrop" onClick={(event) => { if (event.target === event.currentTarget) setStudentProfile(null); }}>
+          <aside className="ppSheet" role="dialog" aria-modal="true" aria-labelledby="pp-ficha-title">
+            <div className="ppSheetHead">
+              <div className="ppPerson">
+                <span className="ppAvatar" aria-hidden="true">{iniciales(studentProfile)}</span>
+                <span className="ppPersonText">
+                  <strong id="pp-ficha-title">{nombreCompleto(studentProfile)}</strong>
+                  <small>{nivelLabel(studentProfile.nivel)} · {Number(studentProfile.matricula_activa ?? 1) === 1 ? "Matrícula activa" : "De baja este curso"}</small>
+                </span>
               </div>
-              <div>
-                <span className={nivelClass(studentProfile.nivel)}>{nivelLabel(studentProfile.nivel)}</span>
-                <h3>{studentProfile.nombre} {studentProfile.apellidos}</h3>
-                <p>{Number(studentProfile.activo ?? 1) === 1 ? "Alumno activo" : "Alumno inactivo"}</p>
-              </div>
+              <button type="button" className="ppBtn ppBtnSmall" onClick={() => setStudentProfile(null)}>Cerrar</button>
             </div>
 
-            <div className="profileInfoGrid">
-              <div><span>Teléfono</span><strong>{studentProfile.telefono || "No disponible"}</strong></div>
-              <div><span>Email</span><strong>{studentProfile.email || "No disponible"}</strong></div>
-              <div><span>Nivel de juego</span><strong>{gameLevelLabel(studentProfile.nivel_juego)}</strong></div>
-              <div><span>Acceso plataforma</span><strong>{studentProfile.usuario_id ? "Con acceso" : "Sin acceso"}</strong></div>
-              <div><span>Matrícula 2026/27</span><strong>{Number(studentProfile.matricula_activa ?? 1) === 1 ? "Activa" : "Inactiva"}</strong></div>
-              <div><span>Grupo</span><strong>{studentProfile.grupos || "No disponible"}</strong></div>
-              <div><span>Profesor</span><strong>{studentProfile.profesores || studentProfileGroup?.profesor || "No disponible"}</strong></div>
-              <div><span>Días</span><strong>{studentProfileGroup && studentProfileMembership ? getStudentDays(studentProfileGroup, studentProfileMembership) : "No disponible"}</strong></div>
-              <div><span>Horario</span><strong>{studentProfile.horarios || (studentProfileGroup ? formatHora(studentProfileGroup.hora_inicio, studentProfileGroup.duracion_min) : "No disponible")}</strong></div>
-              <div><span>Pista</span><strong>{studentProfile.pistas || studentProfileGroup?.pista_habitual || "No disponible"}</strong></div>
-            </div>
+            <ContactLinks persona={studentProfile} />
 
-            <div className="profileNotes">
-              <span>Observaciones</span>
-              <p>{studentProfile.observaciones || "No disponible"}</p>
-            </div>
+            <dl className="ppFacts">
+              <div><dt>Teléfono</dt><dd>{studentProfile.telefono || "No consta"}</dd></div>
+              <div><dt>Email</dt><dd>{studentProfile.email || "No consta"}</dd></div>
+              <div><dt>Grupo</dt><dd>{studentProfile.grupos || "Sin grupo"}</dd></div>
+              <div><dt>Profesor</dt><dd>{studentProfile.profesores || studentProfileGroup?.profesor || "No consta"}</dd></div>
+              <div><dt>Días</dt><dd>{studentProfileGroup && studentProfileMembership ? studentDays(studentProfileGroup, studentProfileMembership) : "No consta"}</dd></div>
+              <div><dt>Horario</dt><dd>{formatHorariosTexto(studentProfile.horarios) || (studentProfileGroup ? formatHorario(studentProfileGroup.hora_inicio, studentProfileGroup.duracion_min) : "No consta")}</dd></div>
+              <div><dt>Pista</dt><dd>{studentProfile.pistas ? nombrePista(studentProfile.pistas) : studentProfileGroup ? nombrePista(studentProfileGroup.pista_habitual) : "No consta"}</dd></div>
+              <div><dt>Nivel de juego</dt><dd>{gameLevelLabel(studentProfile.nivel_juego)}</dd></div>
+              <div><dt>Acceso a la web</dt><dd>{studentProfile.usuario_id ? "Sí" : "No"}</dd></div>
+            </dl>
 
-            <div className="profileActions">
+            {studentProfile.observaciones && (
+              <div className="ppSheetNotes"><h3 className="ppSubhead">Notas</h3><p>{studentProfile.observaciones}</p></div>
+            )}
+
+            <div className="ppSheetActions">
               {studentProfileGroup && (
-                <button
-                  type="button"
-                  className="staffSecondaryBtn"
-                  onClick={() => {
-                    setSelectedGroupId(studentProfileGroup.id);
-                    setActiveSection("gestion");
-                    setActiveView("grupos");
-                    setStudentProfile(null);
-                  }}
-                >
-                  Ver grupo
-                </button>
+                <button type="button" className="ppBtn" onClick={() => { setStudentProfile(null); openGroup(studentProfileGroup); }}>Ver su grupo</button>
+              )}
+              {isAdmin && !studentProfile.usuario_id && (
+                <button type="button" className="ppBtn" onClick={() => { const s = studentProfile; setStudentProfile(null); openCreateAccess(s); }}>Darle acceso a la web</button>
               )}
               {isAdmin && (
-                <>
-                  {!studentProfile.usuario_id && <button type="button" className="staffPrimaryBtn" onClick={() => { setStudentProfile(null); openCreateAccess(studentProfile); }}>Crear acceso</button>}
-                  <button type="button" className="staffSecondaryBtn" onClick={() => { setStudentProfile(null); openEditStudent(studentProfile); }}>Editar / desactivar</button>
-                </>
+                <button type="button" className="ppBtn" onClick={() => { const s = studentProfile; setStudentProfile(null); openEditStudent(s); }}>Editar o dar de baja</button>
               )}
             </div>
           </aside>
@@ -1677,50 +1190,99 @@ export default function PanelProfesor() {
       )}
 
       {isAdmin && groupFormOpen && (
-        <div className="staffModalBackdrop">
-          <form className="staffModal" onSubmit={saveGroup}>
-            <div className="modalHeader"><h2>{editingGroup ? "Editar grupo" : "Crear grupo"}</h2><button type="button" onClick={() => setGroupFormOpen(false)}>Cerrar</button></div>
-            <div className="formGrid">
-              <label>Nombre<input value={groupForm.nombre} onChange={(e) => setGroupForm({ ...groupForm, nombre: e.target.value })} required /></label>
-              <label>Código<input value={groupForm.codigo} onChange={(e) => setGroupForm({ ...groupForm, codigo: e.target.value })} /></label>
-              <label>Nivel<select value={groupForm.nivel} onChange={(e) => setGroupForm({ ...groupForm, nivel: e.target.value })}>{NIVELES.map((item) => <option key={item} value={item}>{nivelLabel(item)}</option>)}</select></label>
-              <label>Profesor<select value={groupForm.profesor_id} onChange={(e) => setGroupForm({ ...groupForm, profesor_id: e.target.value })}><option value="">Sin profesor</option>{profesores.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-              <label>Día 1<select value={groupForm.dia1} onChange={(e) => setGroupForm({ ...groupForm, dia1: e.target.value })}>{DIAS.map((dia) => <option key={dia} value={dia}>{formatDias(dia)}</option>)}</select></label>
-              <label>Día 2<select value={groupForm.dia2} onChange={(e) => setGroupForm({ ...groupForm, dia2: e.target.value })}><option value="">Sin segundo día</option>{DIAS.map((dia) => <option key={dia} value={dia}>{formatDias(dia)}</option>)}</select></label>
-              <label>Hora<input type="time" value={groupForm.hora_inicio} onChange={(e) => setGroupForm({ ...groupForm, hora_inicio: e.target.value })} /></label>
-              <label>Duración<input type="number" min="30" step="15" value={groupForm.duracion_min} onChange={(e) => setGroupForm({ ...groupForm, duracion_min: Number(e.target.value) })} /></label>
-              <label>Pista<input list="pistas-list" value={groupForm.pista_habitual} onChange={(e) => setGroupForm({ ...groupForm, pista_habitual: e.target.value })} /></label>
-              <label>Cupo<input type="number" min="1" value={groupForm.cupo} onChange={(e) => setGroupForm({ ...groupForm, cupo: Number(e.target.value) })} /></label>
-              <label>Activo<select value={groupForm.activo} onChange={(e) => setGroupForm({ ...groupForm, activo: Number(e.target.value) })}><option value={1}>Activo</option><option value={0}>Inactivo</option></select></label>
+        <div className="ppBackdrop">
+          <form className="ppModal" onSubmit={saveGroup} aria-labelledby="pp-gform-title">
+            <div className="ppSheetHead">
+              <h2 id="pp-gform-title">{editingGroup ? `Editar ${editingGroup.nombre}` : "Nuevo grupo"}</h2>
+              <button type="button" className="ppBtn ppBtnSmall" onClick={() => setGroupFormOpen(false)} disabled={formSaving}>Cerrar</button>
             </div>
-            <datalist id="pistas-list">{(catalogos.pistas || []).map((pista) => <option key={pista.id} value={pista.nombre} />)}</datalist>
-            <div className="modalActions"><button type="button" onClick={() => setGroupFormOpen(false)}>Cancelar</button><button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</button></div>
+            <div className="ppFormGrid">
+              <label className="ppField"><span>Nombre</span><input value={groupForm.nombre} onChange={(e) => setGroupForm({ ...groupForm, nombre: e.target.value })} required /></label>
+              <label className="ppField"><span>Código (opcional)</span><input value={groupForm.codigo} autoCapitalize="characters" onChange={(e) => setGroupForm({ ...groupForm, codigo: e.target.value })} /></label>
+              <label className="ppField"><span>Nivel</span>
+                <select value={groupForm.nivel} onChange={(e) => setGroupForm({ ...groupForm, nivel: e.target.value })}>
+                  {nivelOptionsFor(groupForm.nivel).map((item) => <option key={item.value || "none"} value={item.value}>{item.label}</option>)}
+                </select>
+              </label>
+              <label className="ppField"><span>Profesor</span>
+                <select value={groupForm.profesor_id} onChange={(e) => setGroupForm({ ...groupForm, profesor_id: e.target.value })}>
+                  <option value="">Sin profesor</option>
+                  {profesores.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </label>
+              <label className="ppField"><span>Primer día</span>
+                <select value={groupForm.dia1} onChange={(e) => setGroupForm({ ...groupForm, dia1: e.target.value })}>
+                  {DIAS_SEMANA.map((dia) => <option key={dia.key} value={dia.key}>{dia.label}</option>)}
+                </select>
+              </label>
+              <label className="ppField"><span>Segundo día</span>
+                <select value={groupForm.dia2} onChange={(e) => setGroupForm({ ...groupForm, dia2: e.target.value })}>
+                  <option value="">Solo un día</option>
+                  {DIAS_SEMANA.map((dia) => <option key={dia.key} value={dia.key}>{dia.label}</option>)}
+                </select>
+              </label>
+              <label className="ppField"><span>Hora de inicio</span><input type="time" value={groupForm.hora_inicio} onChange={(e) => setGroupForm({ ...groupForm, hora_inicio: e.target.value })} /></label>
+              <label className="ppField"><span>Duración (minutos)</span><input type="number" inputMode="numeric" min="30" step="15" value={groupForm.duracion_min} onChange={(e) => setGroupForm({ ...groupForm, duracion_min: Number(e.target.value) })} /></label>
+              <label className="ppField"><span>Pista</span><input list="pp-pistas" value={groupForm.pista_habitual} onChange={(e) => setGroupForm({ ...groupForm, pista_habitual: e.target.value })} /></label>
+              <label className="ppField"><span>Plazas por día</span><input type="number" inputMode="numeric" min="1" value={groupForm.cupo} onChange={(e) => setGroupForm({ ...groupForm, cupo: Number(e.target.value) })} /></label>
+              <label className="ppField"><span>Estado</span>
+                <select value={groupForm.activo} onChange={(e) => setGroupForm({ ...groupForm, activo: Number(e.target.value) })}>
+                  <option value={1}>Activo</option><option value={0}>Desactivado</option>
+                </select>
+              </label>
+            </div>
+            <datalist id="pp-pistas">{(catalogos.pistas || []).map((pista) => <option key={pista.id} value={pista.nombre} />)}</datalist>
+            {formError && <p className="ppInlineError" role="alert">{formError}</p>}
+            <div className="ppModalActions">
+              <button type="button" className="ppBtn" onClick={() => setGroupFormOpen(false)} disabled={formSaving}>Cancelar</button>
+              <button type="submit" className="ppBtn ppBtnPrimary" disabled={formSaving}>{formSaving ? "Guardando..." : editingGroup ? "Guardar cambios" : "Crear grupo"}</button>
+            </div>
           </form>
         </div>
       )}
 
       {isAdmin && studentFormOpen && (
-        <div className="staffModalBackdrop">
-          <form className="staffModal" onSubmit={saveStudent}>
-            <div className="modalHeader"><h2>{creatingStudent ? "Crear alumno" : "Editar alumno"}</h2><button type="button" onClick={() => setStudentFormOpen(false)}>Cerrar</button></div>
-            <div className="studentEnrollmentIntro">
-              <span>Matrícula</span>
-              <strong>Curso {curso?.nombre || "2026/27"} · {sede?.nombre || "Seminario Diocesano"}</strong>
-              <small>El grupo es opcional y no necesita tener un profesor asignado.</small>
+        <div className="ppBackdrop">
+          <form className="ppModal" onSubmit={saveStudent} aria-labelledby="pp-sform-title">
+            <div className="ppSheetHead">
+              <h2 id="pp-sform-title">{creatingStudent ? "Nuevo alumno" : `Editar a ${nombreCompleto(selectedStudent)}`}</h2>
+              <button type="button" className="ppBtn ppBtnSmall" onClick={() => setStudentFormOpen(false)} disabled={formSaving}>Cerrar</button>
             </div>
-            <div className="formGrid">
-              <label>Nombre<input value={studentForm.nombre || ""} onChange={(e) => setStudentForm({ ...studentForm, nombre: e.target.value })} required /></label>
-              <label>Apellidos<input value={studentForm.apellidos || ""} onChange={(e) => setStudentForm({ ...studentForm, apellidos: e.target.value })} /></label>
-              <label>Nivel<select value={studentForm.nivel || ""} onChange={(e) => setStudentForm({ ...studentForm, nivel: e.target.value })}>{NIVELES.map((item) => <option key={item} value={item}>{nivelLabel(item)}</option>)}</select></label>
-              <label>Nivel de juego<select value={studentForm.nivel_juego ?? ""} onChange={(e) => setStudentForm({ ...studentForm, nivel_juego: e.target.value === "" ? null : Number(e.target.value) })}>{GAME_LEVELS.map((item) => <option key={String(item.value)} value={item.value}>{item.label}</option>)}</select></label>
-              <label>Teléfono<input value={studentForm.telefono || ""} onChange={(e) => setStudentForm({ ...studentForm, telefono: e.target.value })} /></label>
-              <label>Email<input type="email" value={studentForm.email || ""} onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })} /></label>
-              <label>Activo<select value={studentForm.activo ?? 1} onChange={(e) => setStudentForm({ ...studentForm, activo: Number(e.target.value) })}><option value={1}>Activo</option><option value={0}>Inactivo</option></select></label>
-              <label>Matrícula<select value={studentForm.matricula_activa ?? 1} onChange={(e) => updateStudentEnrollment(Number(e.target.value))}><option value={1}>Activa</option><option value={0}>Inactiva</option></select></label>
-              <label>Asignar a grupo<select value={studentForm.grupo_id || ""} onChange={(e) => updateStudentGroup(e.target.value)} disabled={!Number(studentForm.matricula_activa)}><option value="">Sin grupo por ahora</option>{gruposOptions.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
+            <p className="ppFieldNote">Matrícula del {cursoTexto}. El grupo es opcional.</p>
+            <div className="ppFormGrid">
+              <label className="ppField"><span>Nombre</span><input value={studentForm.nombre || ""} autoComplete="off" onChange={(e) => setStudentForm({ ...studentForm, nombre: e.target.value })} required /></label>
+              <label className="ppField"><span>Apellidos</span><input value={studentForm.apellidos || ""} autoComplete="off" onChange={(e) => setStudentForm({ ...studentForm, apellidos: e.target.value })} /></label>
+              <label className="ppField"><span>Nivel</span>
+                <select value={studentForm.nivel || ""} onChange={(e) => setStudentForm({ ...studentForm, nivel: e.target.value })}>
+                  {nivelOptionsFor(studentForm.nivel).map((item) => <option key={item.value || "none"} value={item.value}>{item.label}</option>)}
+                </select>
+              </label>
+              <label className="ppField"><span>Nivel de juego</span>
+                <select value={studentForm.nivel_juego ?? ""} onChange={(e) => setStudentForm({ ...studentForm, nivel_juego: e.target.value === "" ? null : Number(e.target.value) })}>
+                  {GAME_LEVELS.map((item) => <option key={String(item.value)} value={item.value}>{item.label}</option>)}
+                </select>
+              </label>
+              <label className="ppField"><span>Teléfono</span><input type="tel" inputMode="tel" autoComplete="tel" value={studentForm.telefono || ""} onChange={(e) => setStudentForm({ ...studentForm, telefono: e.target.value })} /></label>
+              <label className="ppField"><span>Email</span><input type="email" inputMode="email" autoComplete="email" autoCapitalize="none" value={studentForm.email || ""} onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })} /></label>
+              <label className="ppField"><span>Ficha</span>
+                <select value={studentForm.activo ?? 1} onChange={(e) => setStudentForm({ ...studentForm, activo: Number(e.target.value) })}>
+                  <option value={1}>Activa</option><option value={0}>Desactivada</option>
+                </select>
+              </label>
+              <label className="ppField"><span>Matrícula de este curso</span>
+                <select value={studentForm.matricula_activa ?? 1} onChange={(e) => updateStudentEnrollment(Number(e.target.value))}>
+                  <option value={1}>Matriculado</option><option value={0}>De baja</option>
+                </select>
+              </label>
+              <label className="ppField ppFieldWide"><span>Grupo</span>
+                <select value={studentForm.grupo_id || ""} onChange={(e) => updateStudentGroup(e.target.value)} disabled={!Number(studentForm.matricula_activa)}>
+                  <option value="">Sin grupo por ahora</option>
+                  {grupos.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+                </select>
+              </label>
               {studentFormGroup && Number(studentForm.matricula_activa) === 1 && (
-                <fieldset className="formFieldWide studentDaysField">
-                  <legend>Días de asistencia en {studentFormGroup.nombre}</legend>
+                <fieldset className="ppFieldWide ppCheckGroup">
+                  <legend>Días que viene a {studentFormGroup.nombre}</legend>
                   <label>
                     <input type="checkbox" checked={Number(studentForm.asiste_dia1) === 1} onChange={(e) => setStudentForm({ ...studentForm, asiste_dia1: e.target.checked ? 1 : 0 })} />
                     <span>{formatDias(studentFormGroup.dia1)}</span>
@@ -1733,29 +1295,53 @@ export default function PanelProfesor() {
                   )}
                 </fieldset>
               )}
-              <label className="formFieldWide">Observaciones<input value={studentForm.observaciones || ""} onChange={(e) => setStudentForm({ ...studentForm, observaciones: e.target.value })} placeholder="Notas internas opcionales" /></label>
+              <label className="ppField ppFieldWide"><span>Notas (opcional)</span><textarea rows={2} value={studentForm.observaciones || ""} onChange={(e) => setStudentForm({ ...studentForm, observaciones: e.target.value })} /></label>
             </div>
-            <div className="modalActions"><button type="button" onClick={() => setStudentFormOpen(false)}>Cancelar</button><button type="submit" disabled={saving}>{saving ? "Guardando..." : creatingStudent ? "Crear alumno" : "Guardar alumno"}</button></div>
+            {formError && <p className="ppInlineError" role="alert">{formError}</p>}
+            <div className="ppModalActions">
+              <button type="button" className="ppBtn" onClick={() => setStudentFormOpen(false)} disabled={formSaving}>Cancelar</button>
+              <button type="submit" className="ppBtn ppBtnPrimary" disabled={formSaving}>{formSaving ? "Guardando..." : creatingStudent ? "Dar de alta" : "Guardar cambios"}</button>
+            </div>
           </form>
         </div>
       )}
 
       {isAdmin && accessFormOpen && (
-        <div className="staffModalBackdrop">
-          <form className="staffModal" onSubmit={saveAccess}>
-            <div className="modalHeader"><h2>Crear acceso</h2><button type="button" onClick={() => setAccessFormOpen(false)}>Cerrar</button></div>
-            <div className="accessIntro">
-              <strong>{accessStudent?.nombre} {accessStudent?.apellidos}</strong>
-              <span>Se creara una cuenta para que este alumno pueda entrar a la plataforma.</span>
+        <div className="ppBackdrop">
+          <form className="ppModal" onSubmit={saveAccess} aria-labelledby="pp-aform-title">
+            <div className="ppSheetHead">
+              <h2 id="pp-aform-title">Acceso a la web para {nombreCompleto(accessStudent)}</h2>
+              <button type="button" className="ppBtn ppBtnSmall" onClick={() => setAccessFormOpen(false)} disabled={formSaving}>Cerrar</button>
             </div>
-            <div className="formGrid">
-              <label>Email<input type="email" value={accessForm.email || ""} onChange={(e) => setAccessForm({ ...accessForm, email: e.target.value })} required /></label>
-              <label>Contrasena inicial<input type="password" value={accessForm.password || ""} onChange={(e) => setAccessForm({ ...accessForm, password: e.target.value })} minLength={6} required /></label>
+            <p className="ppFieldNote">Se creará una cuenta para que pueda entrar con este email y contraseña.</p>
+            <div className="ppFormGrid">
+              <label className="ppField"><span>Email</span><input type="email" inputMode="email" autoComplete="off" autoCapitalize="none" value={accessForm.email || ""} onChange={(e) => setAccessForm({ ...accessForm, email: e.target.value })} required /></label>
+              <label className="ppField"><span>Contraseña inicial (mínimo 6 caracteres)</span><input type="password" autoComplete="new-password" value={accessForm.password || ""} onChange={(e) => setAccessForm({ ...accessForm, password: e.target.value })} minLength={6} required /></label>
             </div>
-            <div className="modalActions"><button type="button" onClick={() => setAccessFormOpen(false)}>Cancelar</button><button type="submit" disabled={saving}>{saving ? "Creando..." : "Crear acceso"}</button></div>
+            {formError && <p className="ppInlineError" role="alert">{formError}</p>}
+            <div className="ppModalActions">
+              <button type="button" className="ppBtn" onClick={() => setAccessFormOpen(false)} disabled={formSaving}>Cancelar</button>
+              <button type="submit" className="ppBtn ppBtnPrimary" disabled={formSaving}>{formSaving ? "Creando..." : "Crear acceso"}</button>
+            </div>
           </form>
         </div>
       )}
+
+      <ConfirmarDialogo
+        abierto={Boolean(confirmacion)}
+        titulo={confirmacion?.tipo === "quitar" ? `¿Quitar a ${confirmName} de ${confirmacion?.grupo?.nombre}?` : `¿Desactivar el grupo ${confirmacion?.grupo?.nombre || ""}?`}
+        texto={confirmacion?.tipo === "quitar"
+          ? "Dejará de salir en la lista de este grupo. Su ficha no se borra."
+          : "El grupo dejará de salir en el horario y al pasar lista. Se puede volver a activar desde «Editar grupo»."}
+        confirmar={confirmacion?.tipo === "quitar" ? `Quitar a ${confirmName.split(" ")[0]}` : "Desactivar grupo"}
+        cancelar={confirmacion?.tipo === "quitar" ? "No, dejarlo" : "No, mantenerlo"}
+        ocupado={groupBusy}
+        error={confirmError}
+        onConfirmar={runConfirmed}
+        onCancelar={() => setConfirmacion(null)}
+      />
+
+      <AvisoGuardado aviso={aviso} onCerrar={cerrarAviso} />
     </section>
   );
 }
