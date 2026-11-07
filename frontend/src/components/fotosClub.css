@@ -1,0 +1,201 @@
+/* Fotos del club: una destacada con fundido y una tira de miniaturas para elegir. */
+
+.fotosClub {
+  display: grid;
+  gap: 1rem;
+}
+
+.fotosClub .sectionHeader {
+  margin-bottom: 0;
+}
+
+.fotosClubCuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.fotosClubDestacada {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--color-primary, #17372a);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.fotosClubMarco {
+  position: relative;
+  aspect-ratio: 16 / 9;
+}
+
+.fotosClubMarco img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 900ms ease;
+}
+
+.fotosClubMarco img.isActual {
+  opacity: 1;
+}
+
+/* Pie de foto sobre un degradado oscuro: se lee sobre cualquier imagen. */
+.fotosClubDestacada figcaption {
+  position: absolute;
+  inset: auto 0 0;
+  display: grid;
+  gap: 0.15rem;
+  padding: 2.6rem 4.5rem 0.95rem 1.1rem;
+  background: linear-gradient(to top, rgba(8, 20, 14, 0.82), rgba(8, 20, 14, 0.5) 55%, transparent);
+  color: #ffffff;
+  pointer-events: none;
+}
+
+.fotosClubDestacada figcaption span {
+  color: var(--lime, #b8ee58);
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.fotosClubDestacada figcaption strong {
+  font-size: 1.15rem;
+  line-height: 1.25;
+}
+
+.fotosClubPausa {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 0.7rem;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  background: rgba(8, 20, 14, 0.62);
+  color: #ffffff;
+  cursor: pointer;
+  transition: transform 120ms var(--ease-out), background-color 120ms ease;
+}
+
+.fotosClubPausa:active {
+  transform: scale(0.94);
+}
+
+.fotosClubPausa:focus-visible {
+  outline: 3px solid var(--lime, #b8ee58);
+  outline-offset: 2px;
+}
+
+/* Miniaturas: en el móvil se deslizan con el dedo; en escritorio caben todas. */
+.fotosClubTira {
+  display: flex;
+  gap: 0.55rem;
+  padding: 2px 2px 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.fotosClubTira::-webkit-scrollbar {
+  display: none;
+}
+
+.fotosClubTira button {
+  flex: 0 0 auto;
+  width: 112px;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: var(--color-border);
+  cursor: pointer;
+  scroll-snap-align: start;
+  opacity: 0.72;
+  transition: opacity 160ms ease, border-color 160ms ease, transform 120ms var(--ease-out);
+}
+
+.fotosClubTira button.isActual {
+  border-color: var(--color-secondary-dark);
+  opacity: 1;
+}
+
+.fotosClubTira button:active {
+  transform: scale(0.96);
+}
+
+.fotosClubTira button:focus-visible {
+  outline: 3px solid var(--color-secondary-dark);
+  outline-offset: 2px;
+}
+
+.fotosClubTira img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  -webkit-user-drag: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fotosClubTira button:hover {
+    opacity: 1;
+  }
+
+  .fotosClubPausa:hover {
+    background: rgba(8, 20, 14, 0.82);
+  }
+}
+
+@media (min-width: 900px) {
+  .fotosClubCuerpo {
+    grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .fotosClubTira {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+    padding: 0;
+  }
+
+  .fotosClubTira button {
+    width: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .fotosClubMarco {
+    aspect-ratio: 4 / 3;
+  }
+
+  .fotosClubDestacada figcaption strong {
+    font-size: 1.05rem;
+  }
+
+  .fotosClubTira button {
+    width: 96px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Sin pase automático; al elegir otra foto queda un fundido corto, sin movimiento. */
+  .fotosClubMarco img {
+    transition-duration: 200ms;
+  }
+
+  .fotosClubTira button,
+  .fotosClubPausa {
+    transition: none;
+  }
+}

@@ -1,0 +1,101 @@
+/* Noticias del pádel: titulares de la prensa, cada uno enlaza a su medio. */
+
+.noticiasPadel {
+  display: grid;
+  gap: 1rem;
+}
+
+.noticiasPadel .sectionHeader {
+  margin-bottom: 0;
+}
+
+.noticiasPadel .sectionHeader p {
+  font-size: 1rem;
+}
+
+.noticiasPadelLista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.noticiasPadelLista a {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-height: 64px;
+  height: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-card);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: border-color 160ms ease, transform 120ms var(--ease-out);
+}
+
+.noticiasPadelLista a:active {
+  transform: scale(0.98);
+}
+
+.noticiasPadelLista a:focus-visible {
+  outline: 3px solid var(--color-secondary-dark);
+  outline-offset: 2px;
+}
+
+.noticiasPadelLista a > svg {
+  flex: none;
+  color: var(--color-secondary-dark);
+}
+
+.noticiasPadelTexto {
+  display: grid;
+  flex: 1;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.noticiasPadelTexto strong {
+  font-size: 1.02rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.noticiasPadelTexto small {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.noticiasPadel .visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .noticiasPadelLista a:hover {
+    border-color: var(--color-secondary);
+  }
+
+  .noticiasPadelLista a:hover strong {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .noticiasPadelLista a {
+    transition: none;
+  }
+
+  .noticiasPadelLista a:active {
+    transform: none;
+  }
+}
