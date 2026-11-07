@@ -1,30 +1,29 @@
 import "./reservas.css";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import "./reservar.css";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../services/api";
 import { getUser, isLogged } from "../services/auth";
+import { ahoraMadrid, esPasada, fechaCorta, fechaLarga, horaFin, sumarDias } from "../services/fechas";
 import { requestNotificationsRefresh } from "../services/notificationEvents";
-import { buildClubWhatsappUrl } from "../services/whatsappLinks";
+import Hoja from "../components/Hoja";
+import Toast from "../components/Toast";
+import MisReservas from "../components/MisReservas";
 
 const HOURS = ["09:00", "10:30", "12:00", "13:30", "15:00", "16:30", "18:00", "19:30", "21:00", "22:30"];
-const TIME_LABELS = { morning: "Manana", afternoon: "Tarde", evening: "Noche" };
+const PRICE = 10;
+const DURATION = 90;
 const AVATAR_COLORS = ["#2563eb", "#16a34a", "#9333ea", "#dc2626", "#ea580c", "#0891b2", "#be185d"];
 const GAME_LEVELS = [
-  { value: 0, label: "0 - Iniciación" },
-  { value: 1, label: "1 - Principiante" },
-  { value: 2, label: "2 - Medio bajo" },
-  { value: 3, label: "3 - Medio" },
-  { value: 4, label: "4 - Medio alto" },
-  { value: 5, label: "5 - Avanzado" },
-  { value: 6, label: "6 - Competición / profesional" },
+  { value: 0, label: "0 · Iniciación" },
+  { value: 1, label: "1 · Principiante" },
+  { value: 2, label: "2 · Medio bajo" },
+  { value: 3, label: "3 · Medio" },
+  { value: 4, label: "4 · Medio alto" },
+  { value: 5, label: "5 · Avanzado" },
+  { value: 6, label: "6 · Competición" },
 ];
-
-function getTimeOfDay(hhmm) {
-  const hour = parseInt(hhmm, 10);
-  if (hour < 13) return "morning";
-  if (hour < 19) return "afternoon";
-  return "evening";
-}
+const ALREADY_IN = "Ya estás en esta partida.";
 
 function getInitials(name) {
   if (!name) return "?";
@@ -40,175 +39,141 @@ function getAvatarColor(name) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-function cap(str) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-function nextHour(hhmm, durationMinutes = 90) {
-  const [h, m] = hhmm.split(":").map(Number);
-  const d = new Date();
-  d.setHours(h, m, 0, 0);
-  d.setMinutes(d.getMinutes() + durationMinutes);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
-
-function toISODate(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-function prettyDate(dateISO) {
-  const [y, m, d] = dateISO.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("es-ES", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-  });
-}
-
 function levelLabel(value) {
   const found = GAME_LEVELS.find((item) => Number(item.value) === Number(value));
-  return found ? found.label.replace(/^\d - /, "") : "-";
+  return found ? found.label.replace(/^\d · /, "") : "sin nivel";
 }
 
-function playerName(player) {
-  return `${player?.nombre || "Jugador"} ${player?.apellidos || ""}`.trim();
-}
-
-function participantName(player, fallback = "Jugador") {
-  if (!player) return fallback;
+function participantName(player) {
+  if (!player) return "Jugador";
   if (player.tipo_participante === "invitado") return player.nombre_invitado || player.nombre || "Invitado";
-  return `${player.nombre || fallback} ${player.apellidos || ""}`.trim();
+  return `${player.nombre || "Jugador"} ${player.apellidos || ""}`.trim();
 }
 
 function freeSeats(slot) {
   return Math.max(Number(slot?.maxJugadores || 4) - Number(slot?.plazasOcupadas || 0), 0);
 }
 
-function slotStateLabel(slot) {
-  if (!slot) return "";
-  if (slot.status === "disponible") return "Libre";
-  if (slot.tipoReserva === "abierta") {
-    return Number(slot.plazasOcupadas) >= Number(slot.maxJugadores) ? "Partida completa" : "Partida abierta";
-  }
-  if (slot.reservaEstado === "cancelada") return "Cancelada";
-  return "Reserva privada";
+function plural(n, uno, varios) {
+  return `${n} ${n === 1 ? uno : varios}`;
 }
 
-function compatibilityText(slot) {
-  if (!slot || slot.tipoReserva !== "abierta") return null;
-  if (slot.motivoNoUnirse === "Ya estás en esta partida.") return "Ya formas parte de esta partida.";
-  if (slot.puedeUnirse) return "Tu nivel encaja con esta partida.";
-  return slot.motivoNoUnirse || "No puedes unirte a esta partida.";
+function slotWhen(slot) {
+  return `${fechaLarga(slot.dateISO)}, de ${slot.start} a ${slot.end}`;
 }
 
-const PlayerIcon = (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5" />
-    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+function validDate(value, todayISO) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value || "") && value >= todayISO ? value : null;
+}
+
+const IconCheck = (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="m5 12.5 4.5 4.5L19 7.5" />
   </svg>
 );
 
-function PlayerAvatars({ nombreCliente, status, participantes = [], maxJugadores = 4, tipoReserva }) {
-  const total = Number(maxJugadores || 4);
-  const filledPlayers = tipoReserva === "abierta" ? participantes : [{ nombre: nombreCliente }];
+const IconCalendar = (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+    <path d="M3.5 10h17M8 3v4M16 3v4" />
+  </svg>
+);
 
-  if (status !== "disponible") {
+function SlotCell({ slot, onReserve, onDetail }) {
+  const label = `${slot.courtName}, de ${slot.start} a ${slot.end}`;
+
+  if (slot.pasada) {
+    return <div className="rsCelda isPasada">Ya ha pasado</div>;
+  }
+  if (slot.mia) {
     return (
-      <div className="playerSlots">
-        <div className="playerAvatars">
-          {filledPlayers.slice(0, total).map((player, index) => {
-            const playerLabel = participantName(player, nombreCliente || "Jugador");
-            const isGuest = player?.tipo_participante === "invitado";
-            return (
-              <div
-                key={`${playerLabel}-${index}`}
-                className={`playerAvatar playerFilled${isGuest ? " playerGuest" : ""}`}
-                style={{ "--avatar-bg": getAvatarColor(playerLabel) }}
-                title={isGuest ? `${playerLabel} · Invitado` : playerLabel}
-              >
-                {getInitials(playerLabel)}
-              </div>
-            );
-          })}
-          {Array.from({ length: Math.max(total - filledPlayers.length, 0) }).map((_, index) => (
-            <div key={index} className="playerAvatar playerEmpty" aria-hidden="true">{PlayerIcon}</div>
-          ))}
-        </div>
-        <div className="playerInfo">
-          <span className="playerName">{tipoReserva === "abierta" ? `${filledPlayers.length}/${total} jugadores` : nombreCliente || "Reservado"}</span>
-          <span className="playerOpenBadge">{tipoReserva === "abierta" ? "partida abierta" : "reserva completa"}</span>
-        </div>
-      </div>
+      <button type="button" className="rsCelda isMia" onClick={() => onDetail(slot)} aria-label={`${label}: tu reserva. Ver o cancelar`}>
+        <strong>Tu reserva</strong>
+        <span>Ver o cancelar</span>
+      </button>
     );
   }
-
-  return (
-    <div className="playerSlots">
-      <div className="playerAvatars">
-        {Array.from({ length: total }).map((_, index) => (
-          <div key={index} className="playerAvatar playerEmpty" aria-hidden="true">{PlayerIcon}</div>
-        ))}
-      </div>
-      <div className="playerInfo">
-        <span className="playerOpenBadge playerOpenAvailable">4 plazas libres</span>
-      </div>
-    </div>
-  );
+  if (slot.status === "disponible") {
+    return (
+      <button type="button" className="rsCelda isLibre" onClick={() => onReserve(slot)} aria-label={`${label}: libre. Reservar`}>
+        <strong>{IconCheck} Libre</strong>
+        <span>Reservar</span>
+      </button>
+    );
+  }
+  if (slot.status === "abierta") {
+    const seats = freeSeats(slot);
+    return (
+      <button type="button" className="rsCelda isAbierta" onClick={() => onDetail(slot)} aria-label={`${label}: partida abierta, ${plural(seats, "plaza libre", "plazas libres")}`}>
+        <strong>Partida abierta</strong>
+        <span>{plural(seats, "plaza libre", "plazas libres")}</span>
+      </button>
+    );
+  }
+  return <div className="rsCelda isOcupada">Ocupada</div>;
 }
 
 function Reservas() {
-  const [todayISO, tomorrowISO, weekendISO] = useMemo(() => {
-    const now = new Date();
-    const day = now.getDay();
-    const daysUntilSaturday = day === 6 ? 0 : (6 - day + 7) % 7;
-    return [
-      toISODate(now),
-      toISODate(new Date(now.getTime() + 86400000)),
-      toISODate(new Date(now.getTime() + daysUntilSaturday * 86400000)),
-    ];
-  }, []);
   const navigate = useNavigate();
-  const toastTimerRef = useRef(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const todayISO = ahoraMadrid().fecha;
+  const logged = isLogged();
+  const me = getUser();
 
-  const [selectedDateISO, setSelectedDateISO] = useState(todayISO);
+  const [selectedDateISO, setSelectedDateISO] = useState(() => validDate(searchParams.get("fecha"), todayISO) || todayISO);
   const [courts, setCourts] = useState([]);
   const [reservas, setReservas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [courtFilter, setCourtFilter] = useState("all");
-  const [onlyAvailable, setOnlyAvailable] = useState(false);
-  const [searchHour, setSearchHour] = useState("");
-  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [loadError, setLoadError] = useState("");
+  const [showPast, setShowPast] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [misKey, setMisKey] = useState(0);
+  const [contact, setContact] = useState({ nombre: me?.nombre || "", telefono: "" });
+
+  // Hojas
+  const [confirmSlot, setConfirmSlot] = useState(null);
   const [detailSlot, setDetailSlot] = useState(null);
-  const [reserveType, setReserveType] = useState("completa");
-  const [reserveName, setReserveName] = useState("");
-  const [reservePhone, setReservePhone] = useState("");
-  const [reserveNote, setReserveNote] = useState("");
-  const [levelMin, setLevelMin] = useState(0);
-  const [levelMax, setLevelMax] = useState(6);
-  const [openMatchGuests, setOpenMatchGuests] = useState(0);
   const [joinSlot, setJoinSlot] = useState(null);
-  const [joinGuests, setJoinGuests] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
-  const [toast, setToast] = useState({ msg: "", type: "" });
+  const [cancelSlot, setCancelSlot] = useState(null);
+
+  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => sumarDias(todayISO, i)), [todayISO]);
 
   useEffect(() => {
     apiGet("/api/reservas/pistas")
       .then((data) => { if (data.ok) setCourts(data.pistas); })
-      .catch((e) => console.error("Error cargando pistas:", e));
+      .catch(() => setLoadError("No hemos podido cargar las pistas. Comprueba tu conexión."));
   }, []);
+
+  // Nombre y teléfono del perfil para no tener que escribirlos al reservar.
+  useEffect(() => {
+    if (!logged) return;
+    apiGet("/api/perfil")
+      .then((data) => {
+        const p = data.profile || {};
+        setContact((current) => ({
+          nombre: current.nombre || [p.nombre, p.apellidos].filter(Boolean).join(" "),
+          telefono: current.telefono || p.telefono || "",
+        }));
+      })
+      .catch(() => {});
+  }, [logged]);
 
   const loadReservas = useCallback(() => {
     setLoading(true);
+    setLoadError("");
     apiGet(`/api/reservas?fecha=${selectedDateISO}`)
       .then((data) => { if (data.ok) setReservas(data.reservas); })
-      .catch((e) => console.error("Error cargando reservas:", e))
+      .catch(() => setLoadError("No hemos podido cargar las horas de este día."))
       .finally(() => setLoading(false));
   }, [selectedDateISO]);
 
   useEffect(() => { loadReservas(); }, [loadReservas]);
+
+  const refreshAll = useCallback(() => {
+    loadReservas();
+    setMisKey((value) => value + 1);
+    requestNotificationsRefresh();
+  }, [loadReservas]);
 
   const slots = useMemo(() => {
     if (!courts.length) return [];
@@ -218,536 +183,567 @@ function Reservas() {
         .filter((r) => r.tipo_reserva !== "abierta" || Number(r.plazas_ocupadas || 0) > 0)
         .map((r) => [`${r.pista_id}|${String(r.hora_inicio).slice(0, 5)}`, r])
     );
-    const result = [];
 
-    for (const hour of HOURS) {
-      for (const court of courts) {
-        const rData = reservaMap.get(`${court.id}|${hour}`) ?? null;
-        const isOpenMatch = rData?.tipo_reserva === "abierta" && Number(rData?.plazas_ocupadas || 0) > 0;
-        const isOpenWithSeats = isOpenMatch && rData?.estado === "abierta";
+    return HOURS.map((hour) => courts.map((court) => {
+      const rData = reservaMap.get(`${court.id}|${hour}`) ?? null;
+      const isOpenWithSeats = rData?.tipo_reserva === "abierta" && rData?.estado === "abierta";
+      const mine = Boolean(rData) && me?.id != null && (String(rData.usuario_id) === String(me.id) || rData.motivo_no_unirse === ALREADY_IN);
+      return {
+        id: `${selectedDateISO}|${court.id}|${hour}`,
+        dateISO: selectedDateISO,
+        courtId: court.id,
+        courtName: court.nombre,
+        start: hour,
+        end: horaFin(hour, DURATION),
+        status: rData ? (isOpenWithSeats ? "abierta" : "ocupada") : "disponible",
+        pasada: esPasada(selectedDateISO, hour),
+        mia: mine,
+        esCreador: Boolean(rData) && me?.id != null && String(rData.usuario_id) === String(me.id),
+        reservaId: rData?.id ?? null,
+        reservaNombreCliente: rData?.nombre_cliente ?? null,
+        tipoReserva: rData?.tipo_reserva ?? null,
+        plazasOcupadas: rData?.plazas_ocupadas ?? 0,
+        maxJugadores: rData?.max_jugadores ?? 4,
+        nivelMin: rData?.nivel_min ?? null,
+        nivelMax: rData?.nivel_max ?? null,
+        participantes: rData?.participantes ?? [],
+        notas: rData?.notas ?? null,
+        puedeUnirse: Boolean(rData?.puede_unirse),
+        motivoNoUnirse: rData?.motivo_no_unirse ?? null,
+      };
+    }));
+  }, [courts, reservas, selectedDateISO, me?.id]);
 
-        result.push({
-          id: `${selectedDateISO}|${court.id}|${hour}`,
-          dateISO: selectedDateISO,
-          courtId: court.id,
-          courtName: court.nombre,
-          start: hour,
-          end: nextHour(hour),
-          status: rData ? (isOpenWithSeats ? "abierta" : "ocupada") : "disponible",
-          reservaId: rData?.id ?? null,
-          reservaUserId: rData?.usuario_id ?? null,
-          reservaNombreCliente: rData?.nombre_cliente ?? null,
-          tipoReserva: rData?.tipo_reserva ?? null,
-          reservaEstado: rData?.estado ?? null,
-          plazasOcupadas: rData?.plazas_ocupadas ?? 0,
-          maxJugadores: rData?.max_jugadores ?? 4,
-          nivelMin: rData?.nivel_min ?? null,
-          nivelMax: rData?.nivel_max ?? null,
-          participantes: rData?.participantes ?? [],
-          notas: rData?.notas ?? null,
-          puedeUnirse: Boolean(rData?.puede_unirse),
-          motivoNoUnirse: rData?.motivo_no_unirse ?? null,
-          timeOfDay: getTimeOfDay(hour),
-          price: 10,
-        });
-      }
+  const pastRows = slots.filter((row) => row[0]?.pasada).length;
+  const visibleRows = showPast ? slots : slots.filter((row) => !row[0]?.pasada);
+  const freeCount = slots.flat().filter((slot) => slot.status === "disponible" && !slot.pasada).length;
+
+  const showMessage = useCallback((texto, tipo = "ok") => setToast({ texto, tipo, id: Date.now() }), []);
+
+  const goToLogin = (slot) => {
+    const volver = `/reservas?fecha=${slot.dateISO}&pista=${slot.courtId}&hora=${slot.start}`;
+    const motivo = `Entra con tu cuenta para reservar la ${slot.courtName} el ${fechaLarga(slot.dateISO, { capital: false })} a las ${slot.start}. Después volverás aquí.`;
+    navigate(`/login?volver=${encodeURIComponent(volver)}&motivo=${encodeURIComponent(motivo)}`);
+  };
+
+  const openReserve = (slot) => {
+    if (!isLogged()) { goToLogin(slot); return; }
+    setConfirmSlot(slot);
+  };
+
+  // Vuelta del login: se abre directamente la confirmación de la hora elegida.
+  useEffect(() => {
+    const hora = searchParams.get("hora");
+    const pista = searchParams.get("pista");
+    if (!hora || !pista || loading || !slots.length) return;
+    if (searchParams.get("fecha") && searchParams.get("fecha") !== selectedDateISO) return;
+    const slot = slots.flat().find((item) => String(item.courtId) === pista && item.start === hora);
+    setSearchParams({}, { replace: true });
+    if (!slot || !isLogged()) return;
+    if (slot.status === "disponible" && !slot.pasada) setConfirmSlot(slot);
+    else showMessage(`La ${slot.courtName} a las ${slot.start} ya no está libre. Elige otra hora.`, "error");
+  }, [searchParams, setSearchParams, slots, loading, selectedDateISO, showMessage]);
+
+  const otherDay = !days.includes(selectedDateISO);
+
+  return (
+    <section className="rs">
+      <header className="rsHead">
+        <h1>Reservar pista</h1>
+        <p>Elige el día y toca una hora libre. Cada partido dura {DURATION} minutos y cuesta {PRICE} €.</p>
+      </header>
+
+      {logged && <MisReservas recarga={misKey} onCambio={loadReservas} mostrarVacio={false} />}
+
+      <div className="rsDias" role="group" aria-label="Elige el día">
+        {days.map((iso, index) => (
+          <button
+            key={iso}
+            type="button"
+            className={`rsDia${iso === selectedDateISO ? " isActivo" : ""}`}
+            aria-pressed={iso === selectedDateISO}
+            onClick={() => { setSelectedDateISO(iso); setShowPast(false); }}
+          >
+            <strong>{index === 0 ? "Hoy" : index === 1 ? "Mañana" : fechaCorta(iso, { capital: true }).split(" ")[0]}</strong>
+            <span>{fechaCorta(iso).split(" ").slice(1).join(" ")}</span>
+          </button>
+        ))}
+        <label className={`rsDia rsOtroDia${otherDay ? " isActivo" : ""}`}>
+          {IconCalendar}
+          <span>Otro día</span>
+          <input
+            type="date"
+            min={todayISO}
+            value={selectedDateISO}
+            onChange={(e) => { const value = validDate(e.target.value, todayISO); if (value) setSelectedDateISO(value); }}
+            aria-label="Elegir otro día"
+          />
+        </label>
+      </div>
+
+      <div className="rsDiaTitulo">
+        <h2>{fechaLarga(selectedDateISO)}</h2>
+        {!loading && !loadError && (
+          <span className={freeCount ? "isHay" : "isNo"}>
+            {freeCount ? plural(freeCount, "hora libre", "horas libres") : "No quedan horas libres"}
+          </span>
+        )}
+      </div>
+
+      {loadError ? (
+        <div className="mensajeCaja isError" role="alert">
+          <span>{loadError}</span>
+          <button type="button" className="rsReintentar" onClick={loadReservas}>Reintentar</button>
+        </div>
+      ) : loading ? (
+        <div className="rsCargando" aria-label="Cargando horas">
+          {Array.from({ length: 5 }).map((_, i) => <span key={i} />)}
+        </div>
+      ) : (
+        <>
+          {pastRows > 0 && (
+            <button type="button" className="rsPasadas" aria-expanded={showPast} onClick={() => setShowPast((v) => !v)}>
+              {showPast ? "Ocultar las horas que ya han pasado" : `Ver las horas que ya han pasado (${pastRows})`}
+            </button>
+          )}
+
+          {visibleRows.length === 0 ? (
+            <div className="rsVacio">
+              <strong>Hoy ya no quedan horas.</strong>
+              <button type="button" className="btnGrande isPrincipal" onClick={() => setSelectedDateISO(sumarDias(todayISO, 1))}>Ver mañana</button>
+            </div>
+          ) : (
+            <div className="rsTablaWrap" style={{ "--pistas": courts.length }}>
+              <table className="rsTabla">
+                <thead>
+                  <tr>
+                    <th scope="col">Hora</th>
+                    {courts.map((court) => <th scope="col" key={court.id}>{court.nombre}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleRows.map((row) => (
+                    <tr key={row[0].start}>
+                      <th scope="row">
+                        <strong>{row[0].start}</strong>
+                        <span>a {row[0].end}</span>
+                      </th>
+                      {row.map((slot) => (
+                        <td key={slot.id}>
+                          <SlotCell slot={slot} onReserve={openReserve} onDetail={setDetailSlot} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
+      <Toast mensaje={toast} onCerrar={() => setToast(null)} />
+
+      {confirmSlot && (
+        <ConfirmSheet
+          slot={confirmSlot}
+          contact={contact}
+          setContact={setContact}
+          onClose={() => setConfirmSlot(null)}
+          onDone={refreshAll}
+        />
+      )}
+
+      {detailSlot && (
+        <DetailSheet
+          slot={detailSlot}
+          onClose={() => setDetailSlot(null)}
+          onJoin={(slot) => { if (!isLogged()) { goToLogin(slot); return; } setDetailSlot(null); setJoinSlot(slot); }}
+          onCancel={(slot) => { setDetailSlot(null); setCancelSlot(slot); }}
+          onShared={(texto) => showMessage(texto)}
+        />
+      )}
+
+      {joinSlot && (
+        <JoinSheet
+          slot={joinSlot}
+          onClose={() => setJoinSlot(null)}
+          onDone={(texto) => { setJoinSlot(null); showMessage(texto); refreshAll(); }}
+        />
+      )}
+
+      {cancelSlot && (
+        <CancelSheet
+          slot={cancelSlot}
+          onClose={() => setCancelSlot(null)}
+          onDone={(texto) => { setCancelSlot(null); showMessage(texto); refreshAll(); }}
+        />
+      )}
+    </section>
+  );
+}
+
+function SlotSummary({ slot }) {
+  return (
+    <div className="rsResumen">
+      <strong>{slot.courtName}</strong>
+      <span>{fechaLarga(slot.dateISO)}</span>
+      <span>De {slot.start} a {slot.end} · {DURATION} minutos · {PRICE} €</span>
+    </div>
+  );
+}
+
+function ConfirmSheet({ slot, contact, setContact, onClose, onDone }) {
+  const user = getUser();
+  const userLevel = Number(user?.nivel_juego);
+  const hasLevel = user?.nivel_juego !== null && user?.nivel_juego !== undefined && user?.nivel_juego !== "" && Number.isInteger(userLevel);
+  const [editing, setEditing] = useState(!contact.nombre.trim() || !contact.telefono.trim());
+  const [openMatch, setOpenMatch] = useState(false);
+  const [levelMin, setLevelMin] = useState(hasLevel ? Math.max(0, userLevel - 1) : 0);
+  const [levelMax, setLevelMax] = useState(hasLevel ? Math.min(6, userLevel + 1) : 6);
+  const [guests, setGuests] = useState(0);
+  const [showNote, setShowNote] = useState(false);
+  const [note, setNote] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const submit = async () => {
+    setError("");
+    const errors = {};
+    if (!openMatch && !contact.nombre.trim()) errors.nombre = "Escribe tu nombre.";
+    if (!openMatch && !contact.telefono.trim()) errors.telefono = "Escribe un teléfono para que el club pueda avisarte.";
+    if (openMatch && Number(levelMin) > Number(levelMax)) errors.nivel = "El nivel mínimo no puede ser mayor que el máximo.";
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      if (errors.nombre || errors.telefono) setEditing(true);
+      setError("Revisa los datos marcados en rojo.");
+      return;
     }
-
-    return result;
-  }, [courts, reservas, selectedDateISO]);
-
-  const filteredSlots = useMemo(() => slots.filter((slot) => {
-    if (courtFilter !== "all" && String(slot.courtId) !== courtFilter) return false;
-    if (onlyAvailable && slot.status !== "disponible") return false;
-    if (searchHour.trim() && !slot.start.includes(searchHour.trim())) return false;
-    return true;
-  }), [slots, courtFilter, onlyAvailable, searchHour]);
-
-  const counts = useMemo(() => {
-    const disponibles = slots.filter((slot) => slot.status === "disponible").length;
-    const abiertas = slots.filter((slot) => slot.status === "abierta").length;
-    const mias = slots.filter((slot) => slot.reservaUserId === getUser()?.id).length;
-    return { total: slots.length, disponibles, abiertas, mias, ocupadas: slots.length - disponibles };
-  }, [slots]);
-
-  const showToast = useCallback((msg, type = "success") => {
-    setToast({ msg, type });
-    window.clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = window.setTimeout(() => setToast({ msg: "", type: "" }), 3500);
-  }, []);
-
-  const openReservationModal = (slot) => {
-    const userLevel = Number(getUser()?.nivel_juego);
-    if (Number.isInteger(userLevel)) {
-      setLevelMin(Math.max(0, userLevel - 1));
-      setLevelMax(Math.min(6, userLevel + 1));
-    } else {
-      setLevelMin(0);
-      setLevelMax(6);
-    }
-    setOpenMatchGuests(0);
-    setReserveType("completa");
-    setSelectedSlot(slot);
-  };
-
-  const openJoinGuestModal = (slot) => {
-    if (!isLogged()) { navigate("/login"); return; }
-    setDetailSlot(null);
-    setJoinGuests(0);
-    setJoinSlot(slot);
-  };
-
-  const closeJoinGuestModal = () => {
-    setJoinSlot(null);
-    setJoinGuests(0);
-  };
-
-  const openDetailModal = (slot) => {
-    setDetailSlot(slot);
-  };
-
-  const closeDetailModal = () => {
-    setDetailSlot(null);
-  };
-
-  const closeModal = () => {
-    setSelectedSlot(null);
-    setReserveType("completa");
-    setReserveName("");
-    setReservePhone("");
-    setReserveNote("");
-    setOpenMatchGuests(0);
-  };
-
-  const handleReserve = async () => {
-    if (reserveType === "completa" && !reserveName.trim()) { showToast("Escribe tu nombre para completar la reserva.", "error"); return; }
-    if (reserveType === "completa" && !reservePhone.trim()) { showToast("Escribe un teléfono de contacto.", "error"); return; }
-    if (reserveType === "abierta" && Number(levelMin) > Number(levelMax)) { showToast("El nivel minimo no puede ser mayor que el maximo.", "error"); return; }
 
     setSubmitting(true);
     try {
       const data = await apiPost("/api/reservas", {
-        tipo_reserva: reserveType,
-        nombre_cliente: reserveType === "completa" ? reserveName.trim() : getUser()?.nombre,
-        telefono_cliente: reserveType === "completa" ? reservePhone.trim() : null,
-        pista_id: selectedSlot.courtId,
-        fecha: selectedSlot.dateISO,
-        hora_inicio: selectedSlot.start,
-        duracion_min: 90,
-        nivel_min: reserveType === "abierta" ? Number(levelMin) : null,
-        nivel_max: reserveType === "abierta" ? Number(levelMax) : null,
-        num_invitados: reserveType === "abierta" ? Number(openMatchGuests) : 0,
-        notas: reserveNote.trim() || null,
+        tipo_reserva: openMatch ? "abierta" : "completa",
+        nombre_cliente: openMatch ? user?.nombre : contact.nombre.trim(),
+        telefono_cliente: openMatch ? null : contact.telefono.trim(),
+        pista_id: slot.courtId,
+        fecha: slot.dateISO,
+        hora_inicio: slot.start,
+        duracion_min: DURATION,
+        nivel_min: openMatch ? Number(levelMin) : null,
+        nivel_max: openMatch ? Number(levelMax) : null,
+        num_invitados: openMatch ? Number(guests) : 0,
+        notas: note.trim() || null,
       });
-
-      if (!data.ok) { showToast(data.message || "No hemos podido crear la reserva.", "error"); return; }
-      showToast(reserveType === "abierta" ? "Partida abierta creada. Otros jugadores ya pueden apuntarse." : `Reserva confirmada: ${selectedSlot.courtName} · ${selectedSlot.start}-${selectedSlot.end}`);
-      closeModal();
-      loadReservas();
-      requestNotificationsRefresh();
+      if (!data.ok) { setError(data.message || "No hemos podido hacer la reserva."); return; }
+      setDone(true);
+      onDone();
     } catch (e) {
-      showToast(e.message || "No hemos podido conectar con el club. Inténtalo de nuevo.", "error");
+      setError(e.message || "No hemos podido conectar con el club. Inténtalo de nuevo.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleJoinOpenMatch = async (slot, numInvitados = 0) => {
-    if (!isLogged()) { navigate("/login"); return; }
-    try {
-      await apiPost(`/api/reservas/${slot.reservaId}/unirse`, {
-        num_invitados: Number(numInvitados),
-      });
-      showToast(Number(numInvitados) ? `Ya estáis apuntados a la partida (${Number(numInvitados) + 1} plazas).` : "Ya estás apuntado a la partida.");
-      closeJoinGuestModal();
-      loadReservas();
-      requestNotificationsRefresh();
-    } catch (e) {
-      showToast(e.message || "Ahora mismo no puedes unirte a esta partida.", "error");
-    }
-  };
+  if (done) {
+    return (
+      <Hoja
+        titulo={openMatch ? "Partida abierta creada" : "Reserva hecha"}
+        onCerrar={onClose}
+        pie={(close) => <button type="button" className="btnGrande isPrincipal" onClick={close} data-autofocus>Hecho</button>}
+      >
+        <div className="rsHecho" role="status">
+          <span className="rsHechoCheck" aria-hidden="true">{IconCheck}</span>
+          <p>
+            {openMatch
+              ? "Ya estás apuntado. Otros jugadores del club pueden unirse a las plazas libres."
+              : "Te esperamos en la pista."}
+          </p>
+        </div>
+        <SlotSummary slot={slot} />
+        <p className="rsNota">Si no puedes venir, cancélala en «Tus próximas reservas», arriba en esta página.</p>
+      </Hoja>
+    );
+  }
 
-  const handleLeaveOpenMatch = async (slot) => {
-    if (!window.confirm("¿Quieres salir de esta partida?")) return;
-    try {
-      const data = await apiDelete(`/api/reservas/${slot.reservaId}/participantes/me`);
-      showToast(data.invitados_cancelados > 0 ? "Has salido de la partida junto con tus invitados." : (data.message || "Has salido de la partida."));
-      loadReservas();
-      requestNotificationsRefresh();
-    } catch (e) {
-      showToast(e.message || "No hemos podido sacarte de la partida.", "error");
-    }
-  };
-
-  const handleCancel = async (slot) => {
-    if (!window.confirm("¿Quieres cancelar esta reserva?")) return;
-    try {
-      const data = await apiPatch(`/api/reservas/${slot.reservaId}/cancelar`);
-      if (data.ok) { showToast("Reserva cancelada"); loadReservas(); requestNotificationsRefresh(); }
-      else showToast(data.message || "No hemos podido cancelar la reserva.", "error");
-    } catch (e) {
-      showToast(e.message || "No hemos podido conectar con el club.", "error");
-    }
-  };
-
-  const handleShareSlot = async (slot) => {
-    const text = `${slotStateLabel(slot)} en ${slot.courtName}: ${prettyDate(slot.dateISO)} de ${slot.start} a ${slot.end}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "NaniPadel", text, url: window.location.href });
-      } else if (navigator.clipboard) {
-        await navigator.clipboard.writeText(`${text} - ${window.location.href}`);
-        showToast("Enlace de la partida copiado");
+  return (
+    <Hoja
+      titulo="Confirmar reserva"
+      onCerrar={onClose}
+      pie={
+        <button type="button" className="btnGrande isPrincipal" onClick={submit} disabled={submitting}>
+          {submitting ? "Reservando…" : openMatch ? "Crear partida abierta" : "Confirmar reserva"}
+        </button>
       }
+    >
+      {error && <div className="mensajeCaja isError" role="alert">{error}</div>}
+
+      <SlotSummary slot={slot} />
+
+      {!openMatch && (
+        editing ? (
+          <div className="rsCampos">
+            <label className="rsCampo">
+              <span>Nombre</span>
+              <input
+                value={contact.nombre}
+                onChange={(e) => setContact((c) => ({ ...c, nombre: e.target.value }))}
+                autoComplete="name"
+                aria-invalid={Boolean(fieldErrors.nombre)}
+                aria-describedby={fieldErrors.nombre ? "rs-err-nombre" : undefined}
+              />
+              {fieldErrors.nombre && <small id="rs-err-nombre" className="rsCampoError">{fieldErrors.nombre}</small>}
+            </label>
+            <label className="rsCampo">
+              <span>Teléfono</span>
+              <input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                value={contact.telefono}
+                onChange={(e) => setContact((c) => ({ ...c, telefono: e.target.value }))}
+                placeholder="Ej: 600 123 456"
+                aria-invalid={Boolean(fieldErrors.telefono)}
+                aria-describedby={fieldErrors.telefono ? "rs-err-tel" : undefined}
+              />
+              {fieldErrors.telefono && <small id="rs-err-tel" className="rsCampoError">{fieldErrors.telefono}</small>}
+            </label>
+          </div>
+        ) : (
+          <div className="rsDatos">
+            <div>
+              <span>A nombre de</span>
+              <strong>{contact.nombre}</strong>
+              <span>{contact.telefono}</span>
+            </div>
+            <button type="button" className="rsEnlace" onClick={() => setEditing(true)}>Cambiar</button>
+          </div>
+        )
+      )}
+
+      <div className={`rsAbierta${openMatch ? " isAbierta" : ""}`}>
+        <button type="button" className="rsEnlace rsAbiertaToggle" aria-expanded={openMatch} onClick={() => setOpenMatch((v) => !v)}>
+          {openMatch ? "Prefiero reservar la pista completa" : "¿Te faltan jugadores? Crear partida abierta"}
+        </button>
+        {openMatch && (
+          <div className="rsAbiertaCuerpo">
+            <p>Te apuntas tú y las demás plazas quedan libres para otros jugadores del club de tu nivel.</p>
+            {!hasLevel && (
+              <p className="mensajeCaja isInfo">Para crear una partida abierta primero tienes que indicar tu nivel en tu perfil.</p>
+            )}
+            <div className="rsCampos rsCamposFila">
+              <label className="rsCampo">
+                <span>Nivel mínimo</span>
+                <select value={levelMin} onChange={(e) => setLevelMin(Number(e.target.value))} aria-invalid={Boolean(fieldErrors.nivel)}>
+                  {GAME_LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}
+                </select>
+              </label>
+              <label className="rsCampo">
+                <span>Nivel máximo</span>
+                <select value={levelMax} onChange={(e) => setLevelMax(Number(e.target.value))} aria-invalid={Boolean(fieldErrors.nivel)}>
+                  {GAME_LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}
+                </select>
+              </label>
+            </div>
+            {fieldErrors.nivel && <small className="rsCampoError">{fieldErrors.nivel}</small>}
+            <label className="rsCampo">
+              <span>¿Llevas a alguien contigo?</span>
+              <select value={guests} onChange={(e) => setGuests(Number(e.target.value))}>
+                {[0, 1, 2, 3].map((value) => <option key={value} value={value}>{value === 0 ? "No, voy solo" : plural(value, "invitado", "invitados")}</option>)}
+              </select>
+            </label>
+          </div>
+        )}
+      </div>
+
+      {showNote ? (
+        <label className="rsCampo">
+          <span>Nota (opcional)</span>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder={openMatch ? "Ej: buscamos gente para pelotear" : "Ej: traigo bolas nuevas"} />
+        </label>
+      ) : (
+        <button type="button" className="rsEnlace" onClick={() => setShowNote(true)}>Añadir una nota</button>
+      )}
+    </Hoja>
+  );
+}
+
+function DetailSheet({ slot, onClose, onJoin, onCancel, onShared }) {
+  const isOpen = slot.tipoReserva === "abierta";
+  const seats = freeSeats(slot);
+  const players = isOpen ? slot.participantes : [];
+
+  const share = async () => {
+    const text = `Partida abierta en ${slot.courtName}: ${slotWhen(slot)}. Quedan ${plural(seats, "plaza", "plazas")}.`;
+    try {
+      if (navigator.share) await navigator.share({ title: "NaniPadel", text, url: window.location.href });
+      else if (navigator.clipboard) { await navigator.clipboard.writeText(`${text} ${window.location.href}`); onShared("Texto de la partida copiado. Pégalo donde quieras."); }
     } catch {
-      showToast("No hemos podido compartir la partida.", "error");
+      /* El usuario ha cerrado el menú de compartir. */
     }
   };
 
   return (
-    <section className="reservas">
-      <header className="reservasHeader">
-        <div className="headerText">
-          <span className="reservasEyebrow">Club NaniPadel</span>
-          <h2 className="reservasTitle">Reserva pista</h2>
-          <p className="reservasIntro">Consulta huecos disponibles y reserva en segundos.</p>
-        </div>
-        <div className="summary">
-          <div className="summaryItem summaryGreen"><strong>{counts.disponibles}</strong><span>Disponibles</span></div>
-          <div className="summaryItem summaryBlue"><strong>{counts.abiertas}</strong><span>Abiertas</span></div>
-          <div className="summaryItem summaryRed"><strong>{counts.ocupadas}</strong><span>Ocupadas</span></div>
-          <a
-            className="summaryWhatsapp"
-            href={buildClubWhatsappUrl("Hola, quiero información sobre disponibilidad de pista")}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Hablar por WhatsApp
-          </a>
-        </div>
-      </header>
-
-      <div className="toolbar">
-        <div className="datePills">
-          <button className={`pillBtn${selectedDateISO === todayISO ? " active" : ""}`} onClick={() => setSelectedDateISO(todayISO)}>Hoy</button>
-          <button className={`pillBtn${selectedDateISO === tomorrowISO ? " active" : ""}`} onClick={() => setSelectedDateISO(tomorrowISO)}>Mañana</button>
-          <button className={`pillBtn${selectedDateISO === weekendISO ? " active" : ""}`} onClick={() => setSelectedDateISO(weekendISO)}>Este finde</button>
-          <label className="datePicker">
-            <span className="datePickerIcon" aria-hidden="true">□</span>
-            <input type="date" value={selectedDateISO} onChange={(e) => setSelectedDateISO(e.target.value)} aria-label="Seleccionar fecha" />
-          </label>
-        </div>
-
-        <div className="filters">
-          <select value={courtFilter} onChange={(e) => setCourtFilter(e.target.value)} aria-label="Filtrar por pista">
-            <option value="all">Todas las pistas</option>
-            {courts.map((court) => <option key={court.id} value={String(court.id)}>{court.nombre}</option>)}
-          </select>
-          <input className="searchHour" value={searchHour} onChange={(e) => setSearchHour(e.target.value)} placeholder="Hora (ej: 18)" aria-label="Filtrar por hora" />
-          <label className="check">
-            <input type="checkbox" checked={onlyAvailable} onChange={(e) => setOnlyAvailable(e.target.checked)} />
-            <span>Solo disponibles</span>
-          </label>
-        </div>
-      </div>
-
-      <div className="dayTitle">
-        <div>
-          <strong>{prettyDate(selectedDateISO)}</strong>
-          <span>{counts.disponibles} huecos disponibles</span>
-        </div>
-        <div className="bookingLegend" aria-label="Leyenda de estados">
-          <span><i className="legendDot legendAvailable" />Disponible</span>
-          <span><i className="legendDot legendBusy" />Ocupada</span>
-          <span><i className="legendDot legendMine" />Mi reserva</span>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="loadingSlots">
-          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="slotSkeleton" style={{ "--i": i }} />)}
-        </div>
+    <Hoja
+      titulo={slot.mia && !isOpen ? "Tu reserva" : isOpen ? "Partida abierta" : "Reserva"}
+      subtitulo={`${slot.courtName} · ${slotWhen(slot)}`}
+      onCerrar={onClose}
+      pie={
+        <>
+          {isOpen && slot.puedeUnirse && <button type="button" className="btnGrande isPrincipal" onClick={() => onJoin(slot)}>Apuntarme a la partida</button>}
+          {isOpen && slot.motivoNoUnirse === ALREADY_IN && !slot.esCreador && (
+            <button type="button" className="btnGrande isPeligroSuave" onClick={() => onCancel({ ...slot, salir: true })}>Salir de la partida</button>
+          )}
+          {slot.esCreador && (
+            <button type="button" className="btnGrande isPeligroSuave" onClick={() => onCancel(slot)}>{isOpen ? "Cancelar la partida" : "Cancelar la reserva"}</button>
+          )}
+          {isOpen && seats > 0 && <button type="button" className="btnGrande isSecundario" onClick={share}>Compartir partida</button>}
+        </>
+      }
+    >
+      {isOpen ? (
+        <>
+          <div className={`mensajeCaja ${slot.puedeUnirse || slot.motivoNoUnirse === ALREADY_IN ? "isOk" : "isInfo"}`}>
+            <span>
+              {plural(seats, "plaza libre", "plazas libres")}
+              {slot.nivelMin !== null && ` · Nivel ${slot.nivelMin} a ${slot.nivelMax}`}
+              <br />
+              {slot.motivoNoUnirse === ALREADY_IN
+                ? "Ya juegas en esta partida."
+                : slot.puedeUnirse
+                  ? "Tu nivel encaja: puedes apuntarte."
+                  : slot.motivoNoUnirse || "Entra con tu cuenta para apuntarte."}
+            </span>
+          </div>
+          <h3 className="rsSubtitulo">Jugadores</h3>
+          <ul className="rsJugadores">
+            {Array.from({ length: Number(slot.maxJugadores || 4) }).map((_, index) => {
+              const player = players[index];
+              const name = player ? participantName(player) : "";
+              const isGuest = player?.tipo_participante === "invitado";
+              return (
+                <li key={index} className={player ? "" : "isLibre"}>
+                  <span className="rsAvatar" style={{ "--avatar-bg": player ? getAvatarColor(name) : "#cbd5d0" }} aria-hidden="true">
+                    {player ? getInitials(name) : "+"}
+                  </span>
+                  <span>
+                    <strong>{player ? name : "Plaza libre"}</strong>
+                    <small>
+                      {!player
+                        ? "Esperando jugador"
+                        : isGuest
+                          ? "Invitado"
+                          : player.nivel_juego !== null && player.nivel_juego !== undefined
+                            ? `Nivel ${player.nivel_juego} · ${levelLabel(player.nivel_juego)}`
+                            : "Sin nivel indicado"}
+                      {player?.es_creador ? " · Organiza" : ""}
+                    </small>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       ) : (
-        <div className="courtsColumns">
-          {courts.map((court) => {
-            const courtSlots = filteredSlots.filter((slot) => slot.courtId === court.id);
-            const availableInCourt = courtSlots.filter((slot) => slot.status === "disponible").length;
-            return (
-              <div key={court.id} className="courtColumn">
-                <div className="courtHeader">
-                  <span className="courtName">{court.nombre}</span>
-                  <span className="courtCount">{availableInCourt} libres</span>
-                </div>
-
-                <div className="courtSlots">
-                  {courtSlots.map((slot, idx) => (
-                    <article
-                      key={slot.id}
-                      className={`reservaCard ${slot.status} tod${cap(slot.timeOfDay)}${slot.reservaUserId === getUser()?.id ? " mine" : ""}`}
-                      style={{ "--i": idx }}
-                      aria-label={`${slot.courtName} ${slot.start}-${slot.end} ${slot.status}`}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => openDetailModal(slot)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          openDetailModal(slot);
-                        }
-                      }}
-                    >
-                      <div className={`cardStripe stripe${cap(slot.timeOfDay)}`} aria-hidden="true" />
-                      <div className="cardTop">
-                        <span className={`timeTag tag${cap(slot.timeOfDay)}`}>{TIME_LABELS[slot.timeOfDay]}</span>
-                        <span className={`statusBadge badge${cap(slot.status)}`}>
-                          {slot.reservaUserId === getUser()?.id ? "Mi reserva" : slot.status === "disponible" ? "Disponible" : slot.tipoReserva === "abierta" ? (slot.plazasOcupadas >= slot.maxJugadores ? "Partida completa" : "Partida abierta") : "Ocupada"}
-                        </span>
-                      </div>
-
-                      <div className="timeDisplay">
-                        <span className="timeVal">{slot.start}</span>
-                        <span className="timeDash">→</span>
-                        <span className="timeVal">{slot.end}</span>
-                      </div>
-
-                      <div className="metaRow">
-                        <span className="chip">{slot.price}€</span>
-                        <span className="chip">90 min</span>
-                        {slot.tipoReserva === "abierta" && <span className="chip chipLevel">Nivel {slot.nivelMin} - {slot.nivelMax}</span>}
-                      </div>
-
-                      <PlayerAvatars
-                        nombreCliente={slot.reservaNombreCliente}
-                        status={slot.status}
-                        participantes={slot.participantes}
-                        maxJugadores={slot.maxJugadores}
-                        tipoReserva={slot.tipoReserva}
-                      />
-
-                      {slot.status === "disponible" ? (
-                        <button
-                          className="reserveBtn btnDisponible"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            if (!isLogged()) { navigate("/login"); return; }
-                            openReservationModal(slot);
-                          }}
-                        >
-                          Reservar ahora
-                        </button>
-                      ) : slot.tipoReserva === "abierta" ? (
-                        <div className="openMatchActions">
-                          {slot.puedeUnirse ? (
-                            <button className="reserveBtn btnJoin" onClick={(event) => { event.stopPropagation(); openJoinGuestModal(slot); }}>Unirme</button>
-                          ) : slot.motivoNoUnirse === "Ya estás en esta partida." ? (
-                            <button className="reserveBtn btnCancel" onClick={(event) => { event.stopPropagation(); handleLeaveOpenMatch(slot); }}>Salir de partida</button>
-                          ) : (
-                            <button className="reserveBtn btnOcupada" disabled>{slot.motivoNoUnirse || "No disponible"}</button>
-                          )}
-                        </div>
-                      ) : slot.reservaUserId === getUser()?.id ? (
-                        <button className="reserveBtn btnCancel" onClick={(event) => { event.stopPropagation(); handleCancel(slot); }}>Cancelar mi reserva</button>
-                      ) : (
-                        <button className="reserveBtn btnOcupada" disabled>No disponible</button>
-                      )}
-                    </article>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+        <div className="rsResumen">
+          <strong>{slot.reservaNombreCliente ? `A nombre de ${slot.reservaNombreCliente}` : "Pista reservada"}</strong>
+          <span>De {slot.start} a {slot.end} · {DURATION} minutos · {PRICE} €</span>
         </div>
       )}
-
-      {toast.msg && <div className={`toast toast${cap(toast.type)}`} role="status" aria-live="polite">{toast.msg}</div>}
-
-      {detailSlot && (
-        <div className="modalBackdrop" onClick={closeDetailModal}>
-          <aside className="reservationDetail" onClick={(event) => event.stopPropagation()} aria-label="Detalle de reserva">
-            <div className="detailHero">
-              <div>
-                <span className={`detailState detailState${cap(detailSlot.status)}`}>{slotStateLabel(detailSlot)}</span>
-                <h3>{detailSlot.courtName}</h3>
-                <p>{prettyDate(detailSlot.dateISO)} · {detailSlot.start} - {detailSlot.end} · 90 min</p>
-              </div>
-              <button className="closeBtn" onClick={closeDetailModal} aria-label="Cerrar">x</button>
-            </div>
-
-            <div className="detailSummary">
-              <div><span>Precio</span><strong>{detailSlot.price}€</strong></div>
-              <div><span>Tipo</span><strong>{detailSlot.tipoReserva === "abierta" ? "Partida abierta" : detailSlot.status === "disponible" ? "Libre" : "Reserva privada"}</strong></div>
-              <div><span>Plazas</span><strong>{detailSlot.status === "disponible" ? "4 libres" : `${detailSlot.plazasOcupadas || 4}/${detailSlot.maxJugadores || 4}`}</strong></div>
-              <div><span>Nivel</span><strong>{detailSlot.tipoReserva === "abierta" ? `${detailSlot.nivelMin} - ${detailSlot.nivelMax}` : "Sin rango"}</strong></div>
-            </div>
-
-            {detailSlot.tipoReserva === "abierta" && (
-              <div className={`compatibilityBox ${detailSlot.puedeUnirse ? "ok" : "warn"}`}>
-                <strong>{Number(detailSlot.maxJugadores) - Number(detailSlot.plazasOcupadas)} plazas disponibles</strong>
-                <span>{compatibilityText(detailSlot)}</span>
-              </div>
-            )}
-
-            <section className="detailSection">
-              <div className="detailSectionHead">
-                <h4>Jugadores</h4>
-                <span>{detailSlot.tipoReserva === "abierta" ? "Partida normal" : "Reserva privada"}</span>
-              </div>
-              <div className="detailPlayers">
-                {Array.from({ length: Number(detailSlot.maxJugadores || 4) }).map((_, index) => {
-                  const player = detailSlot.tipoReserva === "abierta" ? detailSlot.participantes[index] : index === 0 ? { nombre: detailSlot.reservaNombreCliente || "Reserva privada" } : null;
-                  const name = player ? participantName(player) : playerName(player);
-                  const isGuest = player?.tipo_participante === "invitado";
-                  return (
-                    <article key={index} className={player ? `detailPlayer filled${isGuest ? " guest" : ""}` : "detailPlayer empty"}>
-                      {player?.foto_perfil_url ? (
-                        <img src={player.foto_perfil_url} alt="" className="detailAvatarImg" />
-                      ) : (
-                        <div className="detailAvatar" style={{ "--avatar-bg": getAvatarColor(name) }}>
-                          {player ? getInitials(name) : PlayerIcon}
-                        </div>
-                      )}
-                      <div>
-                        <strong>{player ? name : "Plaza libre"}</strong>
-                        {player ? (
-                          <>
-                            <span>{isGuest ? "Invitado de la partida" : player.nivel_juego !== null && player.nivel_juego !== undefined ? `Nivel ${player.nivel_juego} · ${levelLabel(player.nivel_juego)}` : "Nivel no configurado"}</span>
-                            {!isGuest && (player.mano_dominante || player.lado_preferido || player.club_habitual) && (
-                              <small>
-                                {[player.mano_dominante, player.lado_preferido, player.club_habitual].filter(Boolean).join(" · ")}
-                              </small>
-                            )}
-                          </>
-                        ) : (
-                          <span>Disponible para otro jugador</span>
-                        )}
-                      </div>
-                      {player?.es_creador ? <em>Creador</em> : null}
-                      {isGuest ? <em className="guestBadge">Invitado</em> : null}
-                    </article>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="detailSection">
-              <div className="detailSectionHead">
-                <h4>Notas</h4>
-                <span>{detailSlot.tipoReserva === "abierta" ? "Mensaje del creador" : "Informacion"}</span>
-              </div>
-              <p className="detailNotes">
-                {detailSlot.notas || (detailSlot.status === "disponible" ? "Hora libre para reservar pista completa o abrir partida." : "Sin notas anadidas.")}
-              </p>
-            </section>
-
-            <div className="detailActions">
-              {detailSlot.status === "disponible" ? (
-                <button className="btnPrimary" onClick={() => { closeDetailModal(); if (!isLogged()) { navigate("/login"); return; } openReservationModal(detailSlot); }}>Reservar esta hora</button>
-              ) : detailSlot.tipoReserva === "abierta" ? (
-                <>
-                  {detailSlot.puedeUnirse && <button className="btnPrimary" onClick={() => openJoinGuestModal(detailSlot)}>Unirme</button>}
-                  {detailSlot.motivoNoUnirse === "Ya estás en esta partida." && <button className="btnGhost" onClick={() => handleLeaveOpenMatch(detailSlot)}>Salir de la partida</button>}
-                  {detailSlot.reservaUserId === getUser()?.id && <button className="btnDanger" onClick={() => handleCancel(detailSlot)}>Cancelar partida</button>}
-                </>
-              ) : detailSlot.reservaUserId === getUser()?.id ? (
-                <button className="btnDanger" onClick={() => handleCancel(detailSlot)}>Cancelar reserva</button>
-              ) : null}
-              <button className="btnGhost" onClick={() => handleShareSlot(detailSlot)}>Compartir partida</button>
-              <button className="btnGhost" onClick={closeDetailModal}>Cerrar</button>
-            </div>
-          </aside>
-        </div>
+      {slot.notas && (
+        <>
+          <h3 className="rsSubtitulo">Nota</h3>
+          <p className="rsNota">{slot.notas}</p>
+        </>
       )}
+    </Hoja>
+  );
+}
 
-      {selectedSlot && (
-        <div className="modalBackdrop" onClick={closeModal}>
-          <div className="modal" onClick={(event) => event.stopPropagation()}>
-            <div className="modalHead">
-              <div>
-                <h3>Confirmar reserva</h3>
-                <p className="modalSubtitle">{selectedSlot.courtName} · {selectedSlot.start}-{selectedSlot.end}</p>
-              </div>
-              <button className="closeBtn" onClick={closeModal} aria-label="Cerrar">x</button>
-            </div>
+function JoinSheet({ slot, onClose, onDone }) {
+  const [guests, setGuests] = useState(0);
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const maxGuests = Math.max(freeSeats(slot) - 1, 0);
 
-            <div className="modalInfo">
-              <div className="modalInfoRow"><span className="modalInfoLabel">Fecha</span><strong>{prettyDate(selectedSlot.dateISO)}</strong></div>
-              <div className="modalInfoRow"><span className="modalInfoLabel">Hora</span><strong>{selectedSlot.start} - {selectedSlot.end}</strong></div>
-              <div className="modalInfoRow"><span className="modalInfoLabel">Precio</span><strong className="modalPrice">{selectedSlot.price}€</strong></div>
-            </div>
+  const submit = async () => {
+    setSubmitting(true);
+    setError("");
+    try {
+      await apiPost(`/api/reservas/${slot.reservaId}/unirse`, { num_invitados: Number(guests) });
+      onDone(guests ? `Apuntados a la partida: tú y ${plural(guests, "invitado", "invitados")}.` : "Ya estás apuntado a la partida.");
+    } catch (e) {
+      setError(e.message || "Ahora mismo no puedes unirte a esta partida.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-            <div className="reservationTypeGrid" role="radiogroup" aria-label="Tipo de reserva">
-              <button type="button" className={reserveType === "completa" ? "reservationType active" : "reservationType"} onClick={() => setReserveType("completa")}>
-                <strong>Reservar pista completa</strong>
-                <span>Reserva las 4 plazas para ti.</span>
-              </button>
-              <button type="button" className={reserveType === "abierta" ? "reservationType active" : "reservationType"} onClick={() => setReserveType("abierta")}>
-                <strong>Crear partida abierta</strong>
-                <span>Te apuntas tu y dejas plazas libres para otros jugadores.</span>
-              </button>
-            </div>
-
-            <div className="form">
-              {reserveType === "completa" ? (
-                <>
-                  <label>Nombre<input value={reserveName} onChange={(e) => setReserveName(e.target.value)} placeholder="Ej: Nani Garcia" autoComplete="name" /></label>
-                  <label>Teléfono<input value={reservePhone} onChange={(e) => setReservePhone(e.target.value)} placeholder="Ej: 600 123 456" autoComplete="tel" inputMode="tel" /></label>
-                </>
-              ) : (
-                <div className="levelRangeGrid">
-                  <label>Nivel minimo<select value={levelMin} onChange={(e) => setLevelMin(Number(e.target.value))}>{GAME_LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}</select></label>
-                  <label>Nivel maximo<select value={levelMax} onChange={(e) => setLevelMax(Number(e.target.value))}>{GAME_LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}</select></label>
-                  <label>Invitados<select value={openMatchGuests} onChange={(e) => setOpenMatchGuests(Number(e.target.value))}>{[0, 1, 2, 3].map((value) => <option key={value} value={value}>{value} {value === 1 ? "invitado" : "invitados"}</option>)}</select></label>
-                  <p className="levelHelp">Rango recomendado: nivel {levelMin} - {levelMax} ({levelLabel(levelMin)} - {levelLabel(levelMax)}).</p>
-                  <p className="guestHelp">Tu plaza cuenta como jugador. Si llevas invitados, cada uno ocupa una plaza adicional.</p>
-                </div>
-              )}
-
-              <label>Nota (opcional)<textarea value={reserveNote} onChange={(e) => setReserveNote(e.target.value)} placeholder="Ej: preferencia de pista o comentario para los jugadores..." rows={3} /></label>
-
-              <div className="modalActions">
-                <button className="btnGhost" onClick={closeModal}>Cancelar</button>
-                <button className="btnPrimary" onClick={handleReserve} disabled={submitting}>{submitting ? "Reservando..." : reserveType === "abierta" ? "Crear partida abierta" : "Confirmar reserva"}</button>
-              </div>
-            </div>
-          </div>
-        </div>
+  return (
+    <Hoja
+      titulo="Apuntarme a la partida"
+      onCerrar={onClose}
+      pie={<button type="button" className="btnGrande isPrincipal" onClick={submit} disabled={submitting}>{submitting ? "Apuntando…" : "Confirmar y apuntarme"}</button>}
+    >
+      {error && <div className="mensajeCaja isError" role="alert">{error}</div>}
+      <SlotSummary slot={slot} />
+      {maxGuests > 0 && (
+        <label className="rsCampo">
+          <span>¿Llevas a alguien contigo?</span>
+          <select value={guests} onChange={(e) => setGuests(Number(e.target.value))}>
+            {Array.from({ length: maxGuests + 1 }).map((_, value) => (
+              <option key={value} value={value}>{value === 0 ? "No, voy solo" : plural(value, "invitado", "invitados")}</option>
+            ))}
+          </select>
+        </label>
       )}
+      <p className="rsNota">Ocuparéis {plural(Number(guests) + 1, "plaza", "plazas")} de las {freeSeats(slot)} libres.</p>
+    </Hoja>
+  );
+}
 
-      {joinSlot && (
-        <div className="modalBackdrop" onClick={closeJoinGuestModal}>
-          <div className="modal joinModal" onClick={(event) => event.stopPropagation()}>
-            <div className="modalHead">
-              <div>
-                <h3>Unirte a la partida</h3>
-                <p className="modalSubtitle">{joinSlot.courtName} · {joinSlot.start}-{joinSlot.end}</p>
-              </div>
-              <button className="closeBtn" onClick={closeJoinGuestModal} aria-label="Cerrar">x</button>
-            </div>
+function CancelSheet({ slot, onClose, onDone }) {
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const leaving = Boolean(slot.salir);
 
-            <div className="modalInfo">
-              <div className="modalInfoRow"><span className="modalInfoLabel">Plazas libres</span><strong>{freeSeats(joinSlot)}</strong></div>
-              <div className="modalInfoRow"><span className="modalInfoLabel">Tu plaza</span><strong>1 jugador</strong></div>
-              <div className="modalInfoRow"><span className="modalInfoLabel">Invitados max.</span><strong>{Math.max(freeSeats(joinSlot) - 1, 0)}</strong></div>
-            </div>
+  const submit = async () => {
+    setSubmitting(true);
+    setError("");
+    try {
+      if (leaving) {
+        const data = await apiDelete(`/api/reservas/${slot.reservaId}/participantes/me`);
+        onDone(data.invitados_cancelados > 0 ? "Has salido de la partida junto con tus invitados." : "Has salido de la partida.");
+      } else {
+        await apiPatch(`/api/reservas/${slot.reservaId}/cancelar`);
+        onDone(`Reserva cancelada: ${slot.courtName}, ${slotWhen(slot)}.`);
+      }
+    } catch (e) {
+      setError(e.message || "No hemos podido cancelar. Inténtalo otra vez o llama al club.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-            <div className="form joinGuestForm">
-              <label>Invitados que llevas
-                <select value={joinGuests} onChange={(e) => setJoinGuests(Number(e.target.value))}>
-                  {Array.from({ length: Math.max(freeSeats(joinSlot) - 1, 0) + 1 }).map((_, value) => (
-                    <option key={value} value={value}>{value} {value === 1 ? "invitado" : "invitados"}</option>
-                  ))}
-                </select>
-              </label>
-              <p className="guestHelp">Se reservaran {Number(joinGuests) + 1} plaza{Number(joinGuests) === 0 ? "" : "s"}: la tuya y {Number(joinGuests)} invitado{Number(joinGuests) === 1 ? "" : "s"}.</p>
-              <div className="modalActions">
-                <button className="btnGhost" onClick={closeJoinGuestModal}>Cancelar</button>
-                <button className="btnPrimary" onClick={() => handleJoinOpenMatch(joinSlot, joinGuests)}>Confirmar union</button>
-              </div>
-            </div>
-          </div>
-        </div>
+  return (
+    <Hoja
+      titulo={leaving ? "¿Salir de la partida?" : `¿Cancelar la reserva del ${fechaLarga(slot.dateISO, { capital: false })} a las ${slot.start}?`}
+      onCerrar={onClose}
+      pie={(close) => (
+        <>
+          <button type="button" className="btnGrande isPeligro" onClick={submit} disabled={submitting}>
+            {submitting ? "Cancelando…" : leaving ? "Sí, salir" : "Sí, cancelar"}
+          </button>
+          <button type="button" className="btnGrande isSecundario" onClick={close}>No, mantenerla</button>
+        </>
       )}
-    </section>
+    >
+      {error && <div className="mensajeCaja isError" role="alert">{error}</div>}
+      <SlotSummary slot={slot} />
+      {leaving && <p className="rsNota">Si llevas invitados, también dejarán su plaza.</p>}
+    </Hoja>
   );
 }
 
