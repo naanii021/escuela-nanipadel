@@ -1,0 +1,74 @@
+.contactoClub {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.contactoBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 52px;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: left;
+  text-decoration: none;
+  transition: transform 120ms var(--ease-out), background-color 120ms ease;
+}
+
+.contactoBtn svg {
+  flex-shrink: 0;
+}
+
+.contactoBtn span {
+  display: grid;
+}
+
+.contactoBtn small {
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.contactoBtn.isWhatsapp {
+  background: #166534;
+  color: #ffffff;
+}
+
+.contactoBtn.isLlamar {
+  border-color: #b9c9be;
+  background: #ffffff;
+  color: var(--color-text);
+}
+
+.contactoBtn:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .contactoBtn.isWhatsapp:hover {
+    background: #14532d;
+  }
+
+  .contactoBtn.isLlamar:hover {
+    background: #f4f7f3;
+  }
+}
+
+@media (max-width: 380px) {
+  .contactoClub:not(.isCompacto) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contactoBtn:active {
+    transform: none;
+  }
+}

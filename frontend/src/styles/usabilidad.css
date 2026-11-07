@@ -1,0 +1,800 @@
+/* Usabilidad para personas poco habituadas al móvil.
+   Se carga la última (App.js): corrige choques entre premium.css, redesign.css y las hojas de cada página.
+   Mínimos: letra de 15-16 px en móvil, objetivos de 44-48 px, contraste 4,5:1 y campos de 16 px. */
+
+/* ---------- Cabecera: menú plegable (≤1360 px) ---------- */
+
+/* Con viewport-fit=cover la página llega bajo el notch: la cabecera se aparta de él. */
+.headerWrap,
+.headerWrap.scrolled {
+  background: #ffffff;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.headerWrap.scrolled {
+  box-shadow: 0 1px 0 var(--color-border), 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.headerWrap {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+.mobileMenuText {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+@media (max-width: 1360px) {
+  .header {
+    min-height: 64px;
+    padding: 0.5rem 0;
+  }
+
+  .mobileMenuBtn {
+    display: inline-flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    width: auto;
+    height: 46px;
+    padding: 0 0.95rem 0 0.85rem;
+    border-radius: 12px;
+  }
+
+  .mobileMenuBtn:focus-visible {
+    transform: none;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+
+  .mobileMenuBtn:hover {
+    transform: none;
+  }
+  }
+
+  /* Logo y botón Cerrar quedan por encima del fondo oscuro. */
+  .header > .brand,
+  .header > .mobileMenuBtn {
+    position: relative;
+    z-index: 91;
+  }
+
+  .menuFondo {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    border: 0;
+    background: rgba(15, 23, 42, 0.4);
+    animation: menuFondoEntra 160ms var(--ease-out) backwards;
+  }
+
+  .headerRight,
+  .headerRight.isOpen {
+    position: fixed;
+    top: calc(64px + env(safe-area-inset-top, 0px));
+    left: 0;
+    right: 0;
+    z-index: 300;
+    display: none;
+    width: auto;
+    max-height: calc(100dvh - 64px - env(safe-area-inset-top, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.9rem;
+    padding: 0.9rem 1rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    border: 0;
+    border-top: 1px solid var(--color-border);
+    border-radius: 0 0 18px 18px;
+    background: #ffffff;
+    box-shadow: var(--shadow-2);
+    color: var(--color-text);
+    transform: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .headerRight.isOpen {
+    display: flex;
+    transform-origin: top right;
+    animation: menuEntra 180ms var(--ease-out) backwards;
+  }
+
+  .nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+    width: 100%;
+  }
+
+  .nav a,
+  .nav a:focus-visible {
+    display: flex;
+    align-items: center;
+    min-height: 50px;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: #ffffff;
+    color: var(--color-text);
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+
+  .nav a:hover {
+    display: flex;
+    align-items: center;
+    min-height: 50px;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: #ffffff;
+    color: var(--color-text);
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+  }
+
+  .nav a.active {
+    border-color: #9bc3a8;
+    background: var(--lime-soft, #eff9dc);
+    color: #1d5235;
+    font-weight: 700;
+  }
+
+  .headerActions {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.5rem;
+    align-items: center;
+    width: 100%;
+    margin: 0;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .headerActions:has(.loginBtn) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .headerRight .notificationBellBtn {
+    width: 50px;
+    height: 50px;
+    border: 1px solid var(--color-border);
+    background: #ffffff;
+    color: var(--color-text);
+  }
+
+  .headerRight .navUserInfo,
+  .headerRight .navUserInfo.active {
+    min-height: 50px;
+    border: 1px solid var(--color-border);
+    background: #f4f7f3;
+    color: var(--color-text);
+    transform: none;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+
+  .headerRight .navUserInfo:hover {
+    min-height: 50px;
+    border: 1px solid var(--color-border);
+    background: #f4f7f3;
+    color: var(--color-text);
+    transform: none;
+  }
+  }
+
+  .headerRight .navUser {
+    max-width: none;
+    color: var(--color-text);
+    font-size: 1.05rem;
+  }
+
+  .headerRight .logoutBtn {
+    grid-column: 1 / -1;
+    justify-content: center;
+    width: 100%;
+    min-height: 50px;
+    border: 1px solid #f0c6c6;
+    background: #ffffff;
+    color: #b91c1c;
+    font-size: 1.05rem;
+    transform: none;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+
+  .headerRight .logoutBtn:hover {
+    grid-column: 1 / -1;
+    justify-content: center;
+    width: 100%;
+    min-height: 50px;
+    border: 1px solid #f0c6c6;
+    background: #ffffff;
+    color: #b91c1c;
+    font-size: 1.05rem;
+    transform: none;
+  }
+  }
+
+  .headerRight .loginBtn {
+    justify-content: center;
+    width: 100%;
+    min-height: 52px;
+    font-size: 1.05rem;
+  }
+
+  .menuContacto {
+    display: grid;
+    gap: 0.5rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .menuContacto > strong {
+    font-size: 1rem;
+  }
+}
+
+/* Con el menú abierto no se ven el botón de ayuda ni la barra inferior por encima. */
+html.menuAbierto .clubAssistant,
+html.menuAbierto .mobileBottomNav {
+  visibility: hidden;
+}
+
+@media (min-width: 1361px) {
+  .menuContacto,
+  .menuFondo {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  /* El nombre del club sigue visible junto al logo. */
+  .brandText {
+    display: flex;
+  }
+
+  .brandText strong {
+    font-size: 1rem;
+  }
+
+  .nav {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@keyframes menuEntra {
+  from { opacity: 0; transform: scale(0.97); }
+}
+
+@keyframes menuFondoEntra {
+  from { opacity: 0; }
+}
+
+/* Botón Entrar: sin brillo continuo. */
+.loginBtnShimmer {
+  display: none;
+}
+
+/* ---------- Formularios: bordes visibles y sin zoom en iOS ---------- */
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+select,
+textarea {
+  border-color: #b9c9be;
+}
+
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* ---------- Mis clases: cabecera verde con texto claro ---------- */
+
+.clasesHero.studentHero,
+.clasesHero.staffHero {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.clasesHero.studentHero .heroTitle,
+.clasesHero.staffHero .heroTitle {
+  color: #ffffff;
+}
+
+.clasesHero.studentHero .heroSub,
+.clasesHero.staffHero .heroSub {
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 1.05rem;
+}
+
+.clasesHero.studentHero .statCard,
+.clasesHero.staffHero .statCard {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.clasesHero.studentHero .statCard strong,
+.clasesHero.staffHero .statCard strong {
+  color: #ffffff;
+}
+
+.clasesHero.studentHero .statCard span,
+.clasesHero.staffHero .statCard span {
+  color: #d6e6dc;
+  font-size: 0.9rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.studentMiniRow {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.studentMiniRow strong {
+  font-size: 1.05rem;
+}
+
+.studentMiniRow span {
+  font-size: 1rem;
+}
+
+.estadoInsignia {
+  justify-self: start;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.875rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.estadoInsignia.estado-presente,
+.estadoInsignia.estado-recuperada,
+.estadoInsignia.estado-dada {
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.estadoInsignia.estado-falta,
+.estadoInsignia.estado-cancelada,
+.estadoInsignia.estado-suspendida {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.estadoInsignia.estado-justificada,
+.estadoInsignia.estado-pendiente,
+.estadoInsignia.estado-asignada {
+  background: #fef3c7;
+  color: #7c2d12;
+}
+
+/* Rótulos pequeños sobre fondo claro con contraste suficiente. */
+.publicEyebrow,
+.studentSectionEyebrow,
+.sectionHeaderStack .publicEyebrow,
+.torneosEyebrow:not(.torneosHero .torneosEyebrow) {
+  color: #1f6b45;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+}
+
+.publicHero .publicEyebrow {
+  color: #bbf7d0;
+}
+
+/* Clases (público): "Encuentra tu grupo" y la información plegada. */
+.encuentraGrupo {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1.1rem, 3vw, 1.75rem);
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: var(--shadow-1);
+}
+
+.encuentraGrupo h2 {
+  margin: 0;
+  font-size: clamp(1.4rem, 4vw, 1.9rem);
+}
+
+.encuentraGrupo > p {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 1.05rem;
+}
+
+.encuentraPregunta {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.encuentraPregunta legend {
+  margin-bottom: 0.5rem;
+  padding: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.encuentraPregunta > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.encuentraPregunta button {
+  min-height: 48px;
+  padding: 0 1rem;
+  border: 1px solid #b9c9be;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 120ms var(--ease-out), background-color 120ms ease;
+}
+
+.encuentraPregunta button[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.encuentraPregunta button[aria-pressed="true"]::before {
+  content: "";
+  display: inline-block;
+  width: 0.45em;
+  height: 0.8em;
+  margin-right: 0.5em;
+  border: solid currentColor;
+  border-width: 0 2.5px 2.5px 0;
+  transform: translateY(-0.1em) rotate(45deg);
+}
+
+.encuentraPregunta button:active {
+  transform: scale(0.97);
+}
+
+.publicMas {
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.publicMas > summary {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  padding: 0.75rem 1.1rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.publicMas[open] > summary {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.publicMas > .publicSection {
+  margin: 1rem;
+}
+
+/* ---------- Estado de pista: botón principal que parece botón ---------- */
+
+.estadoHeroActions .btn-primary {
+  min-height: 52px;
+  border-color: var(--lime, #b8ee58);
+  background: var(--lime, #b8ee58);
+  color: #142119;
+  font-size: 1.05rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+
+.estadoHeroActions .btn-primary:hover {
+  min-height: 52px;
+  border-color: var(--lime, #b8ee58);
+  background: var(--lime, #b8ee58);
+  color: #142119;
+  font-size: 1.05rem;
+}
+}
+
+.estadoHeroActions .estadoGhostBtn {
+  min-height: 52px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: transparent;
+  color: #ffffff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+
+.estadoHeroActions .estadoGhostBtn:hover {
+  min-height: 52px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: transparent;
+  color: #ffffff;
+}
+}
+
+/* ---------- Galería y otros cierres pequeños ---------- */
+
+.uploadModalHeader .galleryUploadClose {
+  width: auto;
+  height: auto;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+/* ---------- Letra mínima en móvil ---------- */
+
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+
+  .assistantActionChip small,
+  .assistantSummaryGrid span,
+  .assistantReplyTag,
+  .assistantEyebrow,
+  .notificationItem small,
+  .notificationItem time,
+  .notificationItem em,
+  .statCard span,
+  .studentNextMeta span,
+  .studentInfoGrid span,
+  .tiendaBadge,
+  .shopCard span,
+  .avisoCard time,
+  .avisoCard em,
+  .avisoCardTop span,
+  .avisoCardTop i,
+  .homeAlertCard span,
+  .homeAlertCard small,
+  .profileCardHeader p,
+  .estadoChip,
+  .estadoUpdated {
+    font-size: 0.875rem;
+  }
+
+  .assistantActionChip strong,
+  .assistantSummaryGrid strong,
+  .assistantReplyCard p,
+  .assistantBubble p {
+    font-size: 0.95rem;
+  }
+}
+
+/* ---------- Respuesta al pulsar ---------- */
+
+.btn,
+.btnPrimary,
+.btnGhost,
+.heroCtaBtn,
+.heroSecondaryBtn,
+.newsMoreBtn,
+.tiendaFilter,
+.galleryFilterBtn,
+.galleryUploadBtn,
+.avisosPrimaryBtn,
+.avisosGhostBtn,
+.avisosFilters button,
+.avisoCard button,
+.assistantActionChip,
+.assistantSummaryGrid button,
+.btnTorneo {
+  transition-property: transform, background-color, border-color, color;
+  transition-duration: 120ms;
+  transition-timing-function: var(--ease-out);
+}
+
+.btn:active,
+.btnPrimary:active:not(:disabled),
+.btnGhost:active,
+.heroCtaBtn:active,
+.heroSecondaryBtn:active,
+.newsMoreBtn:active,
+.tiendaFilter:active,
+.galleryFilterBtn:active,
+.galleryUploadBtn:active,
+.avisosPrimaryBtn:active,
+.avisosGhostBtn:active,
+.avisosFilters button:active,
+.avisoCard button:active,
+.assistantActionChip:active,
+.assistantSummaryGrid button:active,
+.btnTorneo:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .headerRight.isOpen,
+  .menuFondo {
+    animation: none;
+  }
+
+  .btn:active,
+  .btnPrimary:active,
+  .btnGhost:active,
+  .heroCtaBtn:active,
+  .heroSecondaryBtn:active,
+  .newsMoreBtn:active,
+  .tiendaFilter:active,
+  .galleryFilterBtn:active,
+  .galleryUploadBtn:active,
+  .avisosPrimaryBtn:active,
+  .avisosGhostBtn:active,
+  .avisosFilters button:active,
+  .avisoCard button:active,
+  .assistantActionChip:active,
+  .assistantSummaryGrid button:active,
+  .btnTorneo:active,
+  .encuentraPregunta button:active {
+    transform: none;
+  }
+}
+
+.shopModalClose {
+  width: auto;
+  height: auto;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+/* ---------- Botones y rótulos que seguían pequeños ---------- */
+
+.clases .heroCtaBtn,
+.clases .heroSecondaryBtn,
+.clases .cardLoginCta {
+  min-height: 48px;
+  font-size: 1rem;
+}
+
+.publicHeroBadges span,
+.publicCardBadge,
+.publicInfoCard > span,
+.inicioNewsCard span,
+.estadoEyebrow,
+.estadoNowLabel,
+.estadoBadge,
+.estadoSectionEyebrow,
+.estadoPistaPage article span,
+.profileEyebrow,
+.profilePreferenceGrid small,
+.profileWhatsappBox label,
+.profileWhatsappLegal,
+.avisosHero span,
+.avisosSectionHead span,
+.staffPanelHead span,
+.miniMetric span,
+.metaLabel,
+.codeTag,
+.occStatus,
+.occCount,
+.panelHint {
+  font-size: 0.875rem;
+  letter-spacing: 0.01em;
+}
+
+@media (min-width: 1361px) {
+  .nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: 0.95rem;
+  }
+
+  .headerActions .loginBtn,
+  .headerActions .logoutBtn,
+  .headerActions .navUserInfo {
+    min-height: 44px;
+  }
+
+  .brandText span {
+    font-size: 0.8125rem;
+  }
+}
+
+/* Tienda, galería y torneos: filtros e insignias legibles. */
+.tiendaFilter,
+.galleryFilterBtn,
+.filterTab {
+  min-height: 44px;
+}
+
+.shopBadge,
+.tiendaEyebrow,
+.tiendaSectionEyebrow,
+.tiendaHeroCopy span,
+.galeriaEyebrow,
+.heroPanelTag,
+.galleryCategory,
+.galleryMeta,
+.torneosEyebrow,
+.torneosSectionEyebrow,
+.torneosMetricCard span,
+.filterTabBadge {
+  font-size: 0.875rem;
+}
+
+.shopBadge {
+  color: #1d5235;
+}
+
+.navAvatar {
+  font-size: 0.875rem;
+}
+
+@media (min-width: 1361px) {
+  .notificationBellBtn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Mis clases: rótulos de la tarjeta oscura "Próxima clase" con contraste. */
+.studentNextClassCard .studentSectionEyebrow {
+  color: #bbf7d0;
+}
+
+.studentNextClassCard .studentNextMeta span {
+  color: #cbd5e1;
+}
+
+.studentNextClassCard p {
+  color: #e2e8f0;
+}
+
+@media (max-width: 720px) {
+  .estadoHeroMain h1 {
+    font-size: clamp(2rem, 9vw, 2.6rem);
+  }
+}
+
+/* Escritorio: la marca nunca queda tapada por los enlaces. "Pasar lista" vive en la portada y en el panel. */
+@media (min-width: 1361px) {
+  .header > .brand {
+    flex-shrink: 0;
+  }
+
+  .nav a {
+    padding-inline: 0.6rem;
+  }
+
+  .nav .navPasarLista {
+    display: none;
+  }
+}
+
+@media (min-width: 1361px) and (max-width: 1600px) {
+  .brandText span {
+    display: none;
+  }
+}

@@ -26,7 +26,7 @@
   padding: 0.92rem 0;
 }
 
-.badge {
+.brand .badge {
   background: var(--color-primary);
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.28);
 }
@@ -43,13 +43,19 @@
   color: rgba(255, 255, 255, 0.72);
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .brand:hover .brandText strong,
 .nav a:hover {
   color: #ffffff;
 }
+}
+
+@media (hover: hover) and (pointer: fine) {
 
 .nav a:hover {
   background: hsl(145 45% 45% / 0.12);
+}
 }
 
 .nav a::after {
@@ -85,6 +91,8 @@
   box-shadow: 0 12px 26px hsl(145 45% 45% / 0.24);
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .loginBtn:hover,
 .heroCtaBtn:hover,
 .cardLoginCta:hover,
@@ -99,6 +107,7 @@
   transform: translateY(-2px);
   box-shadow: 0 16px 34px hsl(145 45% 45% / 0.32);
   filter: none;
+}
 }
 
 .loginBtnShimmer {
@@ -225,6 +234,8 @@
   box-shadow: var(--shadow);
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .claseCard:hover,
 .platformItem:hover,
 .quickItem:hover,
@@ -237,6 +248,7 @@
 .reservaCard.disponible:hover {
   border-color: color-mix(in srgb, var(--color-secondary) 34%, var(--color-border));
   box-shadow: var(--shadow-hover);
+}
 }
 
 /* Dark page headers */
@@ -388,9 +400,12 @@
   box-shadow: 0 14px 30px hsl(145 45% 45% / 0.35);
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .heroLeft .btn-primary:hover {
   background: linear-gradient(135deg, var(--color-secondary-dark), hsl(152 38% 34%));
   box-shadow: 0 18px 38px hsl(145 45% 45% / 0.42);
+}
 }
 
 .heroLeft .btn-ghost,
@@ -401,8 +416,11 @@
   color: #ffffff;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .weatherBoxClickable:hover {
   border-color: hsl(145 45% 45% / 0.38);
+}
 }
 
 .weatherTemp {
@@ -483,6 +501,7 @@ textarea,
   border-radius: 14px;
 }
 
+
 input:focus,
 select:focus,
 textarea:focus,
@@ -522,6 +541,8 @@ textarea::placeholder,
   color: var(--color-primary);
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .btnGhost:hover,
 .staffSecondaryBtn:hover,
 .modalActions button[type="button"]:hover,
@@ -533,6 +554,7 @@ textarea::placeholder,
   background: hsl(145 45% 45% / 0.08);
   border-color: hsl(145 45% 45% / 0.28);
   color: var(--color-primary);
+}
 }
 
 .staffDangerBtn,
@@ -668,11 +690,19 @@ textarea::placeholder,
   color: var(--color-primary);
 }
 
-.pillBtn:hover,
 .pillBtn.active {
   background: var(--color-secondary);
   border-color: var(--color-secondary);
   color: #ffffff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+
+.pillBtn:hover {
+  background: var(--color-secondary);
+  border-color: var(--color-secondary);
+  color: #ffffff;
+}
 }
 
 .datePickerIcon,
@@ -718,9 +748,12 @@ textarea::placeholder,
   box-shadow: var(--shadow);
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .reservaCard.disponible:hover {
   transform: translateY(-2px);
   border-color: hsl(145 45% 45% / 0.38);
+}
 }
 
 .reservaCard.ocupada {
@@ -883,10 +916,16 @@ textarea::placeholder,
   background: #ffffff;
 }
 
+.groupListItem.active {
+  border-color: hsl(145 45% 45% / 0.34);
+}
+
+@media (hover: hover) and (pointer: fine) {
+
 .groupListItem:hover,
-.groupListItem.active,
 .studentRow:hover {
   border-color: hsl(145 45% 45% / 0.34);
+}
 }
 
 .groupListItem[data-level="avanzado"]::before {
@@ -1010,44 +1049,7 @@ textarea::placeholder,
   color: hsl(40 85% 32%);
 }
 
-/* Login and assistant */
-.loginPage {
-  padding: 2rem 0 4rem;
-}
-
-.loginCard {
-  max-width: 460px;
-  padding: 1.8rem;
-  border-radius: 24px;
-  box-shadow: var(--shadow-hover);
-}
-
-.loginCard h2 {
-  margin-top: 0;
-  font-size: clamp(2rem, 6vw, 3rem);
-}
-
-.loginPage .loginBtn {
-  width: 100%;
-}
-
-.switchBtn {
-  color: var(--color-secondary-dark);
-}
-
 @media (max-width: 720px) {
-  .headerRight {
-    gap: 0.7rem;
-  }
-
-  .nav {
-    width: 100%;
-  }
-
-  .nav a {
-    padding: 0.5rem 0.66rem;
-  }
-
   .heroLeft h2,
   .reservasTitle,
   .galeria h1,
