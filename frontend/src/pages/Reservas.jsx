@@ -1,6 +1,6 @@
 import "./reservas.css";
 import "./reservar.css";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../services/api";
 import { getUser, isLogged } from "../services/auth";
@@ -9,6 +9,7 @@ import { requestNotificationsRefresh } from "../services/notificationEvents";
 import Hoja from "../components/Hoja";
 import Toast from "../components/Toast";
 import MisReservas from "../components/MisReservas";
+import CuadranteReservas, { Leyenda, esLibre, plazasLibres as freeSeats } from "../components/CuadranteReservas";
 
 const HOURS = ["09:00", "10:30", "12:00", "13:30", "15:00", "16:30", "18:00", "19:30", "21:00", "22:30"];
 const PRICE = 10;
@@ -50,10 +51,6 @@ function participantName(player) {
   return `${player.nombre || "Jugador"} ${player.apellidos || ""}`.trim();
 }
 
-function freeSeats(slot) {
-  return Math.max(Number(slot?.maxJugadores || 4) - Number(slot?.plazasOcupadas || 0), 0);
-}
-
 function plural(n, uno, varios) {
   return `${n} ${n === 1 ? uno : varios}`;
 }
@@ -79,40 +76,6 @@ const IconCalendar = (
   </svg>
 );
 
-function SlotCell({ slot, onReserve, onDetail }) {
-  const label = `${slot.courtName}, de ${slot.start} a ${slot.end}`;
-
-  if (slot.pasada) {
-    return <div className="rsCelda isPasada">Ya ha pasado</div>;
-  }
-  if (slot.mia) {
-    return (
-      <button type="button" className="rsCelda isMia" onClick={() => onDetail(slot)} aria-label={`${label}: tu reserva. Ver o cancelar`}>
-        <strong>Tu reserva</strong>
-        <span>Ver o cancelar</span>
-      </button>
-    );
-  }
-  if (slot.status === "disponible") {
-    return (
-      <button type="button" className="rsCelda isLibre" onClick={() => onReserve(slot)} aria-label={`${label}: libre. Reservar`}>
-        <strong>{IconCheck} Libre</strong>
-        <span>Reservar</span>
-      </button>
-    );
-  }
-  if (slot.status === "abierta") {
-    const seats = freeSeats(slot);
-    return (
-      <button type="button" className="rsCelda isAbierta" onClick={() => onDetail(slot)} aria-label={`${label}: partida abierta, ${plural(seats, "plaza libre", "plazas libres")}`}>
-        <strong>Partida abierta</strong>
-        <span>{plural(seats, "plaza libre", "plazas libres")}</span>
-      </button>
-    );
-  }
-  return <div className="rsCelda isOcupada">Ocupada</div>;
-}
-
 function Reservas() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -122,8 +85,12 @@ function Reservas() {
 
   const [selectedDateISO, setSelectedDateISO] = useState(() => validDate(searchParams.get("fecha"), todayISO) || todayISO);
   const [courts, setCourts] = useState([]);
-  const [reservas, setReservas] = useState([]);
+  // Reservas del último día cargado. Mientras llega otro día se sigue viendo el anterior, atenuado.
+  const [datos, setDatos] = useState({ fecha: null, reservas: [] });
   const [loading, setLoading] = useState(true);
+  const [ahora, setAhora] = useState(() => ahoraMadrid().hora);
+  const pedido = useRef(null);
+  const raiz = useRef(null);
   const [loadError, setLoadError] = useState("");
   const [showPast, setShowPast] = useState(false);
   const [toast, setToast] = useState(null);
@@ -159,13 +126,36 @@ function Reservas() {
   }, [logged]);
 
   const loadReservas = useCallback(() => {
+    const fecha = selectedDateISO;
+    pedido.current = fecha;
     setLoading(true);
     setLoadError("");
-    apiGet(`/api/reservas?fecha=${selectedDateISO}`)
-      .then((data) => { if (data.ok) setReservas(data.reservas); })
-      .catch(() => setLoadError("No hemos podido cargar las horas de este día."))
-      .finally(() => setLoading(false));
+    apiGet(`/api/reservas?fecha=${fecha}`)
+      .then((data) => {
+        if (pedido.current !== fecha) return;
+        setDatos({ fecha, reservas: data.ok && Array.isArray(data.reservas) ? data.reservas : [] });
+      })
+      .catch(() => { if (pedido.current === fecha) setLoadError("No hemos podido cargar las horas de este día."); })
+      .finally(() => { if (pedido.current === fecha) setLoading(false); });
   }, [selectedDateISO]);
+
+  // La hora de "ahora" (y qué horas han pasado) se actualiza cada minuto, sin animaciones.
+  useEffect(() => {
+    const id = window.setInterval(() => setAhora(ahoraMadrid().hora), 60 * 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  // Altura de la cabecera del sitio, para que la fila de pistas se quede pegada justo debajo.
+  useEffect(() => {
+    const cabecera = document.querySelector(".headerWrap");
+    const nodo = raiz.current;
+    if (!cabecera || !nodo || typeof ResizeObserver === "undefined") return undefined;
+    const medir = () => nodo.style.setProperty("--rs-arriba", `${cabecera.offsetHeight}px`);
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(cabecera);
+    return () => observador.disconnect();
+  }, []);
 
   useEffect(() => { loadReservas(); }, [loadReservas]);
 
@@ -175,10 +165,11 @@ function Reservas() {
     requestNotificationsRefresh();
   }, [loadReservas]);
 
+  const dataDate = datos.fecha;
   const slots = useMemo(() => {
-    if (!courts.length) return [];
+    if (!courts.length || !dataDate) return [];
     const reservaMap = new Map(
-      reservas
+      datos.reservas
         .filter((r) => r.estado !== "cancelada")
         .filter((r) => r.tipo_reserva !== "abierta" || Number(r.plazas_ocupadas || 0) > 0)
         .map((r) => [`${r.pista_id}|${String(r.hora_inicio).slice(0, 5)}`, r])
@@ -189,14 +180,14 @@ function Reservas() {
       const isOpenWithSeats = rData?.tipo_reserva === "abierta" && rData?.estado === "abierta";
       const mine = Boolean(rData) && me?.id != null && (String(rData.usuario_id) === String(me.id) || rData.motivo_no_unirse === ALREADY_IN);
       return {
-        id: `${selectedDateISO}|${court.id}|${hour}`,
-        dateISO: selectedDateISO,
+        id: `${dataDate}|${court.id}|${hour}`,
+        dateISO: dataDate,
         courtId: court.id,
         courtName: court.nombre,
         start: hour,
         end: horaFin(hour, DURATION),
         status: rData ? (isOpenWithSeats ? "abierta" : "ocupada") : "disponible",
-        pasada: esPasada(selectedDateISO, hour),
+        pasada: esPasada(dataDate, hour),
         mia: mine,
         esCreador: Boolean(rData) && me?.id != null && String(rData.usuario_id) === String(me.id),
         reservaId: rData?.id ?? null,
@@ -212,11 +203,17 @@ function Reservas() {
         motivoNoUnirse: rData?.motivo_no_unirse ?? null,
       };
     }));
-  }, [courts, reservas, selectedDateISO, me?.id]);
+    // "ahora" se incluye para recalcular las horas pasadas cada minuto.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courts, datos, dataDate, me?.id, ahora]);
 
   const pastRows = slots.filter((row) => row[0]?.pasada).length;
   const visibleRows = showPast ? slots : slots.filter((row) => !row[0]?.pasada);
-  const freeCount = slots.flat().filter((slot) => slot.status === "disponible" && !slot.pasada).length;
+  const freeSlots = slots.flat().filter(esLibre);
+  const freeCount = freeSlots.length;
+  const firstFree = freeSlots[0];
+  const isToday = dataDate === todayISO;
+  const dayWord = selectedDateISO === todayISO ? "Hoy" : selectedDateISO === sumarDias(todayISO, 1) ? "Mañana" : "Este día";
 
   const showMessage = useCallback((texto, tipo = "ok") => setToast({ texto, tipo, id: Date.now() }), []);
 
@@ -235,25 +232,33 @@ function Reservas() {
   useEffect(() => {
     const hora = searchParams.get("hora");
     const pista = searchParams.get("pista");
-    if (!hora || !pista || loading || !slots.length) return;
+    if (!hora || !pista || loading || !slots.length || dataDate !== selectedDateISO) return;
     if (searchParams.get("fecha") && searchParams.get("fecha") !== selectedDateISO) return;
     const slot = slots.flat().find((item) => String(item.courtId) === pista && item.start === hora);
     setSearchParams({}, { replace: true });
     if (!slot || !isLogged()) return;
     if (slot.status === "disponible" && !slot.pasada) setConfirmSlot(slot);
     else showMessage(`La ${slot.courtName} a las ${slot.start} ya no está libre. Elige otra hora.`, "error");
-  }, [searchParams, setSearchParams, slots, loading, selectedDateISO, showMessage]);
+  }, [searchParams, setSearchParams, slots, loading, selectedDateISO, dataDate, showMessage]);
 
   const otherDay = !days.includes(selectedDateISO);
 
   return (
-    <section className="rs">
+    <section className={`rs${logged ? " conLateral" : ""}`} ref={raiz}>
       <header className="rsHead">
         <h1>Reservar pista</h1>
         <p>Elige el día y toca una hora libre. Cada partido dura {DURATION} minutos y cuesta {PRICE} €.</p>
       </header>
 
-      {logged && <MisReservas recarga={misKey} onCambio={loadReservas} mostrarVacio={false} />}
+      {logged && (
+        <aside className="rsLateral" aria-label="Tus reservas">
+          <MisReservas recarga={misKey} onCambio={loadReservas} mostrarVacio={false} />
+          <div className="rsLeyendaCaja">
+            <h2>Colores del cuadrante</h2>
+            <Leyenda precio={PRICE} />
+          </div>
+        </aside>
+      )}
 
       <div className="rsDias" role="group" aria-label="Elige el día">
         {days.map((iso, index) => (
@@ -262,85 +267,84 @@ function Reservas() {
             type="button"
             className={`rsDia${iso === selectedDateISO ? " isActivo" : ""}`}
             aria-pressed={iso === selectedDateISO}
+            aria-label={`${index === 0 ? "Hoy, " : index === 1 ? "Mañana, " : ""}${fechaLarga(iso, { capital: false })}`}
             onClick={() => { setSelectedDateISO(iso); setShowPast(false); }}
           >
-            <strong>{index === 0 ? "Hoy" : index === 1 ? "Mañana" : fechaCorta(iso, { capital: true }).split(" ")[0]}</strong>
-            <span>{fechaCorta(iso).split(" ").slice(1).join(" ")}</span>
+            <span className="rsDiaNombre">{index === 0 ? "Hoy" : index === 1 ? "Mañana" : fechaCorta(iso, { capital: true }).split(" ")[0]}</span>
+            <strong className="rsDiaNumero">{fechaCorta(iso).split(" ")[1]}</strong>
+            <span className="rsDiaMes">{fechaCorta(iso).split(" ")[2]}</span>
           </button>
         ))}
         <label className={`rsDia rsOtroDia${otherDay ? " isActivo" : ""}`}>
           {IconCalendar}
-          <span>Otro día</span>
+          <span className="rsDiaNombre">{otherDay ? fechaCorta(selectedDateISO, { capital: true }) : "Otro día"}</span>
           <input
             type="date"
             min={todayISO}
             value={selectedDateISO}
-            onChange={(e) => { const value = validDate(e.target.value, todayISO); if (value) setSelectedDateISO(value); }}
+            onChange={(e) => { const value = validDate(e.target.value, todayISO); if (value) { setSelectedDateISO(value); setShowPast(false); } }}
             aria-label="Elegir otro día"
           />
         </label>
       </div>
 
-      <div className="rsDiaTitulo">
-        <h2>{fechaLarga(selectedDateISO)}</h2>
-        {!loading && !loadError && (
-          <span className={freeCount ? "isHay" : "isNo"}>
-            {freeCount ? plural(freeCount, "hora libre", "horas libres") : "No quedan horas libres"}
-          </span>
+      <div className="rsPrincipal">
+        <div className="rsDiaTitulo">
+          <h2>{fechaLarga(selectedDateISO)}</h2>
+          {!loadError && dataDate === selectedDateISO && (
+            <p className={freeCount ? "isHay" : "isNo"} aria-live="polite">
+              {freeCount ? (
+                <>
+                  <strong>{dayWord} {freeCount === 1 ? "queda 1 hora libre" : `quedan ${freeCount} horas libres`}</strong>
+                  {firstFree && <span>La primera, a las {firstFree.start} en la {firstFree.courtName}.</span>}
+                </>
+              ) : (
+                <strong>{dayWord} no quedan horas libres</strong>
+              )}
+            </p>
+          )}
+        </div>
+
+        <Leyenda precio={PRICE} className={logged ? "isSoloMovil" : ""} />
+
+        {loadError ? (
+          <div className="mensajeCaja isError" role="alert">
+            <span>{loadError}</span>
+            <button type="button" className="rsReintentar" onClick={loadReservas}>Reintentar</button>
+          </div>
+        ) : !dataDate ? (
+          <div className="rsCargando" aria-label="Cargando horas">
+            {Array.from({ length: 5 }).map((_, i) => <span key={i} />)}
+          </div>
+        ) : (
+          <>
+            {pastRows > 0 && (
+              <button type="button" className="rsPasadas" aria-expanded={showPast} onClick={() => setShowPast((v) => !v)}>
+                {showPast ? "Ocultar las horas que ya han pasado" : `Ver las horas que ya han pasado (${pastRows})`}
+              </button>
+            )}
+
+            {visibleRows.length === 0 ? (
+              <div className="rsVacio">
+                <strong>Hoy ya no quedan horas.</strong>
+                <button type="button" className="btnGrande isPrincipal" onClick={() => setSelectedDateISO(sumarDias(todayISO, 1))}>Ver mañana</button>
+              </div>
+            ) : (
+              <div className="rsCuadro" key={dataDate}>
+                <CuadranteReservas
+                  pistas={courts}
+                  filas={visibleRows}
+                  ahora={isToday ? ahora : null}
+                  precio={PRICE}
+                  ocupado={loading}
+                  onReservar={openReserve}
+                  onDetalle={setDetailSlot}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
-
-      {loadError ? (
-        <div className="mensajeCaja isError" role="alert">
-          <span>{loadError}</span>
-          <button type="button" className="rsReintentar" onClick={loadReservas}>Reintentar</button>
-        </div>
-      ) : loading ? (
-        <div className="rsCargando" aria-label="Cargando horas">
-          {Array.from({ length: 5 }).map((_, i) => <span key={i} />)}
-        </div>
-      ) : (
-        <>
-          {pastRows > 0 && (
-            <button type="button" className="rsPasadas" aria-expanded={showPast} onClick={() => setShowPast((v) => !v)}>
-              {showPast ? "Ocultar las horas que ya han pasado" : `Ver las horas que ya han pasado (${pastRows})`}
-            </button>
-          )}
-
-          {visibleRows.length === 0 ? (
-            <div className="rsVacio">
-              <strong>Hoy ya no quedan horas.</strong>
-              <button type="button" className="btnGrande isPrincipal" onClick={() => setSelectedDateISO(sumarDias(todayISO, 1))}>Ver mañana</button>
-            </div>
-          ) : (
-            <div className="rsTablaWrap" style={{ "--pistas": courts.length }}>
-              <table className="rsTabla">
-                <thead>
-                  <tr>
-                    <th scope="col">Hora</th>
-                    {courts.map((court) => <th scope="col" key={court.id}>{court.nombre}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleRows.map((row) => (
-                    <tr key={row[0].start}>
-                      <th scope="row">
-                        <strong>{row[0].start}</strong>
-                        <span>a {row[0].end}</span>
-                      </th>
-                      {row.map((slot) => (
-                        <td key={slot.id}>
-                          <SlotCell slot={slot} onReserve={openReserve} onDetail={setDetailSlot} />
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
-      )}
 
       <Toast mensaje={toast} onCerrar={() => setToast(null)} />
 
