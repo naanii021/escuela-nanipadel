@@ -174,15 +174,18 @@
 }
 
 .weatherCourt3dCourt {
-  --court-rx: 58deg;
-  --court-rz: -28deg;
+  /* Inclinación base (cada pantalla puede cambiarla) más el giro suave que da el ratón. */
+  --rx-base: 58deg;
+  --rz-base: -28deg;
+  --court-rx: calc(var(--rx-base) + var(--tilt-x, 0deg));
+  --court-rz: calc(var(--rz-base) + var(--tilt-z, 0deg));
   --court-scale: 0.9;
   position: absolute;
   left: 50%;
-  top: 54%;
+  top: 50%;
   width: 300px;
   height: 600px;
-  transform: translate(-50%, -50%) rotateX(var(--court-rx)) rotateZ(var(--court-rz)) scale(var(--court-scale));
+  transform: translate(-50%, -50%) translate(var(--court-dx, 0px), var(--court-dy, 0px)) rotateX(var(--court-rx)) rotateZ(var(--court-rz)) scale3d(var(--court-scale), var(--court-scale), var(--court-scale));
   transform-style: preserve-3d;
   transition: transform 260ms ease-out;
 }
@@ -403,7 +406,8 @@
 .weatherCourt3d.isNight .beam-lightThree { transition-delay: 160ms; }
 .weatherCourt3d.isNight .beam-lightFour { transition-delay: 240ms; }
 
-/* Jugadores: figuras verticales que miran siempre a la cámara (contragiran la inclinación de la pista). */
+/* Figuras (profe, alumnos, carro): SVG de pie que miran siempre a la cámara
+   (contragiran la inclinación de la pista). Tamaño y punto de apoyo vienen del JSX. */
 .weatherCourtPlayer,
 .weatherCourtPlayerShade {
   position: absolute;
@@ -411,15 +415,14 @@
   left: 0;
   display: block;
   pointer-events: none;
-  will-change: transform;
 }
 
 .weatherCourtPlayer {
   z-index: 6;
-  width: 48px;
-  height: 78px;
-  margin: -78px 0 0 -17px;
-  transform-origin: 17px 78px;
+  width: calc(var(--fw) * var(--fig-escala, 1));
+  height: calc(var(--fh) * var(--fig-escala, 1));
+  margin: calc(var(--fy) * var(--fig-escala, 1) * -1) 0 0 calc(var(--fx) * var(--fig-escala, 1) * -1);
+  transform-origin: calc(var(--fx) * var(--fig-escala, 1)) calc(var(--fy) * var(--fig-escala, 1));
   transform: translate3d(var(--px), var(--py), 0) rotateZ(calc(var(--court-rz) * -1)) rotateX(calc(var(--court-rx) * -1));
 }
 
@@ -427,29 +430,62 @@
   display: block;
   width: 100%;
   height: 100%;
-  transform: translateY(var(--bob, 0px));
-  stroke: rgba(255, 255, 255, 0.35);
-  stroke-width: 0.6;
-  stroke-linejoin: round;
+  overflow: visible;
 }
 
-.weatherCourtPlayer.isFar svg { fill: #243a66; }
-.weatherCourtPlayer.isNear svg { fill: #0d1730; }
+/* Brazo de la pala (o del lanzamiento): gira desde el hombro según la postura. */
+.weatherCourtPlayer .brazo {
+  transform-box: view-box;
+  transform-origin: 38.5px 34px;
+  transition: transform 260ms var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
 
-.weatherCourtPlayer .racket {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.7);
-  stroke-width: 1.5;
+.weatherCourtPlayer .bolaMano {
+  transition: opacity 120ms ease-out;
+}
+
+/* Alumnos: se preparan con la pala atrás y golpean cruzando por delante. */
+.weatherCourtPlayer[data-pose="prepara"] .brazo {
+  transform: rotate(55deg);
+}
+
+.weatherCourtPlayer[data-pose="golpe"] .brazo {
+  transform: rotate(-70deg);
+  transition-duration: 140ms;
+}
+
+/* Profe: coge bola del carro, sube el brazo y la suelta en alto. */
+.weatherCourtPlayer.is-profe[data-pose="coge"] .brazo {
+  transform: rotate(-38deg);
+}
+
+.weatherCourtPlayer.is-profe[data-pose="lanza"] .brazo {
+  transform: rotate(-140deg);
+  transition-duration: 340ms;
+}
+
+.weatherCourtPlayer.is-profe[data-pose="suelta"] .brazo {
+  transform: rotate(-150deg);
+  transition-duration: 120ms;
+}
+
+.weatherCourtPlayer.is-profe[data-pose="suelta"] .bolaMano,
+.weatherCourtPlayer.is-profe[data-pose="coge"] .bolaMano {
+  opacity: 0;
 }
 
 .weatherCourtPlayerShade {
-  width: 36px;
-  height: 16px;
-  margin: -8px 0 0 -18px;
+  width: calc(40px * var(--fig-escala, 1));
+  height: calc(18px * var(--fig-escala, 1));
+  margin: calc(-9px * var(--fig-escala, 1)) 0 0 calc(-20px * var(--fig-escala, 1));
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.38);
-  filter: blur(1px);
+  background: rgba(0, 0, 0, 0.34);
   transform: translate3d(var(--px), var(--py), 1px);
+}
+
+.weatherCourtPlayerShade.isCarro {
+  width: calc(52px * var(--fig-escala, 1));
+  margin-left: calc(-26px * var(--fig-escala, 1));
 }
 
 .weatherCourtBall,
@@ -457,21 +493,26 @@
   position: absolute;
   left: 0;
   top: 0;
-  width: 12px;
-  height: 12px;
-  margin: -6px;
   border-radius: 50%;
-  will-change: transform;
+  opacity: 0;
+  will-change: transform, opacity;
 }
 
+/* Bola algo exagerada (como las figuras) para que se siga bien en el móvil. */
 .weatherCourtBall {
   z-index: 8;
+  width: calc(15px * var(--fig-escala, 1));
+  height: calc(15px * var(--fig-escala, 1));
+  margin: calc(-7.5px * var(--fig-escala, 1));
   background: radial-gradient(circle at 35% 35%, #f4ffb0, #d4f12a 55%, #9fbf00);
+  box-shadow: 0 0 0 1px rgba(60, 80, 0, 0.35);
 }
 
 .weatherCourtBallShadow {
+  width: 13px;
+  height: 13px;
+  margin: -6.5px;
   background: rgba(0, 0, 0, 0.4);
-  filter: blur(1px);
 }
 
 .weatherCourtRain {
@@ -498,12 +539,10 @@
     left: 10%;
   }
 
-  .weatherCourtBall {
-    transform: translate3d(150px, 300px, 8px);
-  }
-
-  .weatherCourtBallShadow {
-    transform: translate3d(153px, 302px, 2px);
+  /* La escena queda fija en una postura: sin giros de brazo animados. */
+  .weatherCourtPlayer .brazo,
+  .weatherCourtPlayer .bolaMano {
+    transition: none;
   }
 }
 
