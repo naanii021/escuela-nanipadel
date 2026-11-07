@@ -1,0 +1,486 @@
+/* Cuadrante de reservas (CuadranteReservas.jsx): pistas en columnas, horas en filas.
+   Colores de estado con contraste ≥ 4,5:1 y siempre acompañados de texto. */
+
+.cuMarco {
+  --cu-hora: 4.75rem;
+  --cu-celda: 76px;
+  --cu-libre-fondo: hsl(145 52% 93%);
+  --cu-libre-borde: hsl(145 42% 62%);
+  --cu-libre-texto: hsl(150 62% 18%);
+  --cu-mia-fondo: var(--color-primary);
+  --cu-abierta-fondo: hsl(43 96% 90%);
+  --cu-abierta-borde: hsl(38 86% 58%);
+  --cu-abierta-texto: hsl(22 80% 24%);
+  --cu-ocupada-fondo: hsl(220 16% 94%);
+  --cu-ocupada-texto: hsl(220 12% 34%);
+
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: var(--shadow-1);
+  transition: opacity 160ms ease;
+}
+
+/* Mientras llega otro día se ve el anterior atenuado y sin poder tocarlo. */
+.cuMarco.isOcupado {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.cuTabla {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.cuTabla th,
+.cuTabla td {
+  padding: 0;
+}
+
+/* ---------- Cabecera de pistas (fija al bajar) ---------- */
+
+.cuTabla thead th {
+  position: sticky;
+  top: var(--rs-arriba, 64px);
+  z-index: 2;
+  padding: 0.7rem 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--color-border);
+  background: #ffffff;
+  text-align: center;
+  vertical-align: bottom;
+}
+
+.cuTabla thead th:first-child {
+  border-top-left-radius: 18px;
+}
+
+.cuTabla thead th:last-child {
+  border-top-right-radius: 18px;
+}
+
+.cuTabla thead .cuEsquina {
+  width: var(--cu-hora);
+  padding-left: 0.9rem;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.cuPista {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-text);
+}
+
+.cuPista strong {
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.cuPistaIcono {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--color-secondary-light);
+  color: hsl(152 45% 26%);
+}
+
+.cuTabla thead small {
+  display: block;
+  margin-top: 0.1rem;
+  color: hsl(150 62% 22%);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.cuTabla thead small.isNinguna {
+  color: var(--color-muted);
+}
+
+/* ---------- Franjas: Mañana, Tarde, Noche ---------- */
+
+.cuFranjaTitulo th {
+  padding: 1.1rem 0.9rem 0.45rem;
+  text-align: left;
+}
+
+.cuFranja:first-of-type .cuFranjaTitulo th {
+  padding-top: 0.8rem;
+}
+
+.cuFranjaTexto {
+  display: inline-block;
+}
+
+.cuFranjaTexto > span {
+  margin-right: 0.6rem;
+  color: var(--color-text);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.cuFranjaTitulo small {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* ---------- Filas ---------- */
+
+.cuTabla tbody td {
+  padding: 0.3rem 0.3rem;
+}
+
+.cuTabla tbody td:last-child {
+  padding-right: 0.6rem;
+}
+
+.cuTabla tbody tr:not(.cuFranjaTitulo):not(.cuAhora):last-child td,
+.cuTabla tbody tr:not(.cuFranjaTitulo):not(.cuAhora):last-child th {
+  padding-bottom: 0.6rem;
+}
+
+.cuHora {
+  padding: 0 0.3rem 0 0.9rem !important;
+  text-align: left;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+
+.cuHora strong {
+  display: block;
+  color: var(--color-text);
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.cuHora span {
+  display: block;
+  white-space: nowrap;
+  margin-top: 0.1rem;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+tr.isPasada .cuHora strong {
+  color: var(--color-muted);
+}
+
+/* ---------- Celdas ---------- */
+
+.cuCelda {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.15rem;
+  width: 100%;
+  min-height: var(--cu-celda);
+  padding: 0.45rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  font: inherit;
+  line-height: 1.2;
+  text-align: center;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.cuCelda strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.cuCelda > span {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+button.cuCelda {
+  cursor: pointer;
+  -webkit-touch-callout: none;
+  transition: transform 120ms var(--ease-out), background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+button.cuCelda:active {
+  transform: scale(0.97);
+}
+
+button.cuCelda:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.cuCelda.isLibre {
+  border-color: var(--cu-libre-borde);
+  background: var(--cu-libre-fondo);
+  color: var(--cu-libre-texto);
+}
+
+.cuCelda.isLibre b {
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.cuCelda.isMia {
+  border-color: var(--cu-mia-fondo);
+  background: var(--cu-mia-fondo);
+  color: #ffffff;
+  box-shadow: var(--shadow-2);
+}
+
+.cuCelda.isMia > span {
+  color: hsl(145 60% 82%);
+}
+
+.cuCelda.isAbierta {
+  border-color: var(--cu-abierta-borde);
+  background: var(--cu-abierta-fondo);
+  color: var(--cu-abierta-texto);
+}
+
+.cuCelda.isAbierta > span {
+  font-weight: 800;
+}
+
+.cuCelda.isOcupada {
+  background: var(--cu-ocupada-fondo);
+  color: var(--cu-ocupada-texto);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.cuCelda.isPasada {
+  border: 1px dashed hsl(220 14% 82%);
+  background: transparent;
+  color: hsl(220 10% 40%);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cuCelda.isLibre:hover {
+    border-color: hsl(145 50% 38%);
+    background: hsl(145 55% 86%);
+  }
+
+  .cuCelda.isMia:hover {
+    background: var(--color-primary-soft);
+  }
+
+  .cuCelda.isAbierta:hover {
+    border-color: hsl(32 90% 44%);
+    background: hsl(43 96% 84%);
+  }
+}
+
+/* ---------- Línea de "ahora" (solo hoy) ---------- */
+
+.cuAhora td {
+  position: relative;
+  height: 28px;
+  padding: 0 0.6rem 0 0.6rem !important;
+}
+
+.cuAhora td::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0.6rem;
+  right: 0.6rem;
+  height: 2px;
+  border-radius: 2px;
+  background: hsl(4 72% 50%);
+}
+
+.cuAhoraMarca {
+  position: relative;
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: hsl(4 72% 44%);
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Leyenda ---------- */
+
+.cuLeyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1.1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.cuLeyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.cuMuestra {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+}
+
+.cuMuestra.isLibre {
+  border-color: hsl(145 42% 62%);
+  background: hsl(145 52% 93%);
+}
+
+.cuMuestra.isMia {
+  background: var(--color-primary);
+}
+
+.cuMuestra.isAbierta {
+  border-color: hsl(38 86% 58%);
+  background: hsl(43 96% 90%);
+}
+
+.cuMuestra.isOcupada {
+  border-color: hsl(220 14% 84%);
+  background: hsl(220 16% 94%);
+}
+
+.cuOculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Más de 2 pistas: desplazamiento lateral con la columna de horas fija ---------- */
+
+@media (max-width: 760px) {
+  .cuMarco.isAncho {
+    max-height: calc(100dvh - var(--rs-arriba, 64px) - 6rem);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .cuMarco.isAncho .cuTabla {
+    min-width: calc(var(--cu-hora) + var(--pistas) * 8.5rem);
+  }
+
+  .cuMarco.isAncho .cuTabla thead th {
+    top: 0;
+  }
+
+  .cuMarco.isAncho .cuHora,
+  .cuMarco.isAncho .cuEsquina {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: #ffffff;
+  }
+
+  .cuMarco.isAncho .cuEsquina {
+    z-index: 3;
+  }
+
+  /* Los títulos de franja y la marca de "ahora" se quedan a la vista al desplazar a un lado. */
+  .cuMarco.isAncho .cuFranjaTexto,
+  .cuMarco.isAncho .cuAhoraMarca {
+    position: sticky;
+    left: 0.65rem;
+  }
+}
+
+/* ---------- Móvil: dos pistas en dos columnas, sin desplazamiento lateral ---------- */
+
+@media (max-width: 560px) {
+  .cuMarco {
+    --cu-hora: 4rem;
+    --cu-celda: 70px;
+    border-radius: 16px;
+  }
+
+  .cuTabla thead th:first-child {
+    border-top-left-radius: 16px;
+  }
+
+  .cuTabla thead th:last-child {
+    border-top-right-radius: 16px;
+  }
+
+  .cuTabla thead .cuEsquina,
+  .cuHora,
+  .cuFranjaTitulo th {
+    padding-left: 0.65rem !important;
+  }
+
+  .cuPistaIcono {
+    display: none;
+  }
+
+  .cuTabla tbody td {
+    padding: 0.25rem 0.2rem;
+  }
+
+  .cuTabla tbody td:last-child {
+    padding-right: 0.45rem;
+  }
+
+  .cuHora {
+    padding-right: 0.1rem !important;
+  }
+
+  .cuHora strong {
+    font-size: 1.1rem;
+  }
+
+  .cuHora span {
+    font-size: 0.8125rem;
+  }
+
+  .cuLeyenda {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem 0.75rem;
+  }
+
+  .cuCelda {
+    padding: 0.4rem 0.25rem;
+    border-radius: 12px;
+  }
+
+  .cuCelda strong {
+    font-size: 1rem;
+  }
+
+  .cuCelda > span {
+    font-size: 0.875rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.cuCelda:active {
+    transform: none;
+  }
+}
