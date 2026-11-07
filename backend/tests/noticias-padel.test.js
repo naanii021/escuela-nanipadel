@@ -121,6 +121,20 @@ test("une las fuentes ordenadas por fecha, sin repetidas y con máximo", () => {
   assert.equal(diez[0].titulo, "N29");
 });
 
+test("un medio que publica mucho no tapa a los demás", () => {
+  const dia = (d) => new Date(Date.UTC(2026, 10, d)).toISOString();
+  const md = Array.from({ length: 12 }, (_, i) => ({ titulo: `MD${i}`, enlace: `https://md.es/${i}`, fecha: dia(20 - i), fuente: "Mundo Deportivo" }));
+  const marca = Array.from({ length: 5 }, (_, i) => ({ titulo: `M${i}`, enlace: `https://marca.com/${i}`, fecha: dia(5 - i), fuente: "Marca" }));
+  const unidas = unirNoticias([md, marca]);
+  assert.equal(unidas.length, 10);
+  assert.deepEqual(unidas.filter((n) => n.fuente === "Marca").map((n) => n.titulo), ["M0", "M1", "M2"]);
+  assert.deepEqual(unidas.slice(0, 7).map((n) => n.titulo), ["MD0", "MD1", "MD2", "MD3", "MD4", "MD5", "MD6"]);
+  // Sigue ordenado por fecha.
+  assert.deepEqual(unidas.map((n) => n.fecha), [...unidas.map((n) => n.fecha)].sort().reverse());
+  // Si una fuente solo tiene uno, se queda con ese.
+  assert.equal(unirNoticias([md, marca.slice(0, 1)]).filter((n) => n.fuente === "Marca").length, 1);
+});
+
 test("lee ambas fuentes y guarda la caché 30 minutos", async () => {
   reiniciarCacheNoticias();
   let ahora = 1_000_000;

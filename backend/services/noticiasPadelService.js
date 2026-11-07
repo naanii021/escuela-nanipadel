@@ -122,9 +122,12 @@ export function parsearRss(xml, fuente) {
 }
 
 // Une las fuentes, quita repetidas y deja las más recientes primero (sin fecha, al final).
-export function unirNoticias(listas, max = MAX_NOTICIAS) {
+// Para que un medio que publica mucho no tape a los demás, cada fuente conserva al menos
+// `minPorFuente` titulares (si los tiene), a costa de los más antiguos de las otras.
+export function unirNoticias(listas, max = MAX_NOTICIAS, minPorFuente = 3) {
   const vistas = new Set();
-  return listas
+  const marca = (noticia) => (noticia.fecha ? Date.parse(noticia.fecha) : 0);
+  const todas = listas
     .flat()
     .filter((noticia) => {
       const clave = noticia.enlace.replace(/[?#].*$/, "");
@@ -132,8 +135,21 @@ export function unirNoticias(listas, max = MAX_NOTICIAS) {
       vistas.add(clave);
       return true;
     })
-    .sort((a, b) => (b.fecha ? Date.parse(b.fecha) : 0) - (a.fecha ? Date.parse(a.fecha) : 0))
-    .slice(0, max);
+    .sort((a, b) => marca(b) - marca(a));
+
+  const elegidas = todas.slice(0, max);
+  const cuenta = (fuente) => elegidas.filter((n) => n.fuente === fuente).length;
+  for (const fuente of new Set(todas.map((n) => n.fuente))) {
+    const reserva = todas.filter((n) => n.fuente === fuente && !elegidas.includes(n));
+    while (cuenta(fuente) < minPorFuente && reserva.length) {
+      // Sale la más antigua de una fuente que va sobrada.
+      const sobrante = [...elegidas].reverse().find((n) => n.fuente !== fuente && cuenta(n.fuente) > minPorFuente);
+      if (!sobrante && elegidas.length >= max) break;
+      if (sobrante) elegidas.splice(elegidas.indexOf(sobrante), 1);
+      elegidas.push(reserva.shift());
+    }
+  }
+  return elegidas.sort((a, b) => marca(b) - marca(a));
 }
 
 async function leerFuente({ nombre, url }, fetchImpl) {
