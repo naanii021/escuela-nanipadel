@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { apiGet } from "../services/api";
 import { getUser, isLogged } from "../services/auth";
 import { buildClubWhatsappUrl } from "../services/whatsappLinks";
+import { fechaLarga } from "../services/fechas";
+import ContactoClub from "../components/ContactoClub";
 
 const DAY_LABELS = { L: "Lunes", M: "Martes", X: "Miércoles", J: "Jueves", V: "Viernes", S: "Sábado", D: "Domingo" };
 const STAFF_ROLES = ["admin", "profesor", "profe"];
@@ -59,6 +61,44 @@ function formatHora(horaInicio, duracionMin) {
   const end = new Date(start.getTime() + Number(duracionMin || 60) * 60000);
   const pad = (n) => String(n).padStart(2, "0");
   return `${pad(start.getHours())}:${pad(start.getMinutes())} - ${pad(end.getHours())}:${pad(end.getMinutes())}`;
+}
+
+// Estados de la base de datos traducidos a frases normales.
+const ESTADO_TEXTO = {
+  programada: "Programada",
+  dada: "Dada",
+  cancelada: "Cancelada",
+  suspendida: "Suspendida",
+  presente: "Asististe",
+  falta: "Faltaste",
+  justificada: "Falta justificada",
+  pendiente: "Pendiente",
+  asignada: "Con fecha",
+  recuperada: "Recuperada",
+};
+
+const MOTIVO_TEXTO = {
+  falta_justificada: "Falta justificada",
+  lluvia: "Clase suspendida por lluvia",
+  suspendida: "Clase suspendida",
+};
+
+function estadoTexto(estado, porDefecto = "") {
+  if (!estado) return porDefecto;
+  return ESTADO_TEXTO[estado] || String(estado).charAt(0).toUpperCase() + String(estado).slice(1).replace(/_/g, " ");
+}
+
+function motivoTexto(motivo) {
+  if (!motivo) return "Recuperación";
+  return MOTIVO_TEXTO[motivo] || String(motivo).charAt(0).toUpperCase() + String(motivo).slice(1).replace(/_/g, " ");
+}
+
+function fechaClase(valor) {
+  return fechaLarga(valor) || "Fecha pendiente";
+}
+
+function horaClase(horaInicio, duracionMin) {
+  return formatHora(horaInicio, duracionMin).replace(" - ", " a ");
 }
 
 function nivelLabel(nivel) {
@@ -184,6 +224,44 @@ function StudentGroupCard({ grupo }) {
   );
 }
 
+const PREGUNTAS_GRUPO = [
+  { key: "quien", titulo: "¿Para quién es la clase?", opciones: ["Para un niño o niña", "Para un adulto"] },
+  { key: "nivel", titulo: "¿Qué nivel tiene?", opciones: ["Empieza de cero", "Ya juega", "Compite"] },
+  { key: "dias", titulo: "¿Cuándo le viene bien?", opciones: ["Tardes entre semana", "Mañanas", "Fines de semana"] },
+];
+
+// Tres preguntas con botones y un único botón de WhatsApp con el mensaje ya escrito.
+function EncuentraGrupo() {
+  const [respuestas, setRespuestas] = useState({});
+  const partes = PREGUNTAS_GRUPO.filter((p) => respuestas[p.key]).map((p) => `${p.titulo.replace(/[¿?]/g, "")}: ${respuestas[p.key].toLowerCase()}`);
+  const mensaje = `Hola, quiero información sobre las clases de pádel.${partes.length ? ` ${partes.join(". ")}.` : ""}`;
+
+  return (
+    <section className="encuentraGrupo" aria-labelledby="encuentra-grupo-titulo">
+      <h2 id="encuentra-grupo-titulo">Encuentra tu grupo</h2>
+      <p>Responde con un toque y te escribimos con los grupos que encajan. No hace falta rellenar nada más.</p>
+      {PREGUNTAS_GRUPO.map((pregunta) => (
+        <fieldset key={pregunta.key} className="encuentraPregunta">
+          <legend>{pregunta.titulo}</legend>
+          <div>
+            {pregunta.opciones.map((opcion) => (
+              <button
+                key={opcion}
+                type="button"
+                aria-pressed={respuestas[pregunta.key] === opcion}
+                onClick={() => setRespuestas((r) => ({ ...r, [pregunta.key]: r[pregunta.key] === opcion ? undefined : opcion }))}
+              >
+                {opcion}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      ))}
+      <ContactoClub mensaje={mensaje} />
+    </section>
+  );
+}
+
 function PublicClassesLanding({ notice }) {
   return (
     <section className="clases clasesPublicas">
@@ -194,8 +272,8 @@ function PublicClassesLanding({ notice }) {
             <h1 className="heroTitle">Clases de pádel para todos los niveles</h1>
             <p className="heroSub">Entrena en grupos reducidos, mejora tu juego y encuentra el horario que mejor encaje contigo.</p>
             <div className="heroActions">
-              <a href={CONTACT_HREF} className="heroCtaBtn" target="_blank" rel="noopener noreferrer">Solicitar información <IcArrow /></a>
-              <a href="#niveles" className="heroSecondaryBtn">Ver niveles</a>
+              <a href="#encuentra-grupo-titulo" className="heroCtaBtn">Encontrar mi grupo <IcArrow /></a>
+              <Link to="/login" className="heroSecondaryBtn">Ya soy alumno: entrar</Link>
             </div>
             <div className="publicHeroBadges" aria-label="Tipos de clases disponibles">
               <span>Niños y adultos</span>
@@ -224,6 +302,26 @@ function PublicClassesLanding({ notice }) {
         </div>
       )}
 
+      <EncuentraGrupo />
+
+      <section className="publicSection" id="niveles">
+        <div className="sectionHeaderStack">
+          <span className="publicEyebrow">Niveles</span>
+          <h2 className="sectionTitle">Entrena con alumnos de tu nivel</h2>
+          <p>Si no tienes claro dónde encajas, cuéntanos cómo juegas y te ayudamos a encontrar el grupo adecuado.</p>
+        </div>
+        <div className="publicGrid levelGrid">
+          {PUBLIC_LEVELS.map((item) => (
+            <article className="publicInfoCard" key={item.title}>
+              <span>{item.title}</span>
+              <p>{item.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <details className="publicMas">
+        <summary>Más información: tipos de clase, cómo trabajamos, precios y horarios</summary>
       <section className="publicSection">
         <div className="sectionHeaderStack">
           <span className="publicEyebrow">Formatos</span>
@@ -237,23 +335,6 @@ function PublicClassesLanding({ notice }) {
               <span className="publicCardBadge">{item.badge}</span>
               <h3>{item.title}</h3>
               <p>{item.text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="publicSection" id="niveles">
-        <div className="sectionHeaderStack">
-          <span className="publicEyebrow">Niveles</span>
-          <h2 className="sectionTitle">Entrena con alumnos de tu nivel</h2>
-          <p>Si no tienes claro dónde encajas, cuéntanos cómo juegas y te ayudamos a encontrar el grupo adecuado.</p>
-        </div>
-        <div className="publicGrid levelGrid">
-          {PUBLIC_LEVELS.map((item) => (
-            <article className="publicInfoCard" key={item.title}>
-              <span>{item.title}</span>
-              <p>{item.text}</p>
-              <a href={CONTACT_HREF} target="_blank" rel="noopener noreferrer">Consultar</a>
             </article>
           ))}
         </div>
@@ -312,15 +393,7 @@ function PublicClassesLanding({ notice }) {
         </div>
       </section>
 
-      <section className="clasesCta">
-        <span className="publicEyebrow">Contacto</span>
-        <h2>¿Quieres encontrar tu grupo?</h2>
-        <p>Cuéntanos tu nivel, disponibilidad y edad, y te ayudamos a buscar la mejor opción dentro de la escuela.</p>
-        <div className="heroActions">
-          <a href={CONTACT_HREF} className="heroCtaBtn" target="_blank" rel="noopener noreferrer">Solicitar información</a>
-          <a href={CONTACT_HREF} className="heroSecondaryBtn" target="_blank" rel="noopener noreferrer">Contactar con el club</a>
-        </div>
-      </section>
+      </details>
 
       <section className="publicLoginBox">
         <div>
@@ -494,7 +567,7 @@ function StudentClassesDashboard({ classData, user, loading }) {
           <h2>{nextGroup?.nombre || "Aún sin clase programada"}</h2>
           <p>
             {nextSession
-              ? `${nextSession.fecha || "Fecha pendiente"} - ${formatHora(nextSession.hora_inicio, nextSession.duracion_min || nextGroup?.duracion_min || 60)}`
+              ? `${fechaClase(nextSession.fecha)} · de ${horaClase(nextSession.hora_inicio, nextSession.duracion_min || nextGroup?.duracion_min || 60)}`
               : "Aún no tienes una próxima clase registrada."}
           </p>
         </div>
@@ -546,8 +619,9 @@ function StudentClassesDashboard({ classData, user, loading }) {
           <h2>Próximas clases</h2>
           {proximasSesiones.length ? proximasSesiones.map((sesion) => (
             <article className="studentMiniRow" key={sesion.id}>
-              <strong>{sesion.fecha || "Fecha pendiente"}</strong>
-              <span>{formatHora(sesion.hora_inicio, sesion.duracion_min || grupo?.duracion_min || 60)} - {sesion.pista_habitual || grupo?.pista_habitual || "Pista pendiente"} - {sesion.estado || "programada"}</span>
+              <strong>{fechaClase(sesion.fecha)}</strong>
+              <span>De {horaClase(sesion.hora_inicio, sesion.duracion_min || grupo?.duracion_min || 60)} · {sesion.pista_habitual || grupo?.pista_habitual || "Pista por confirmar"}</span>
+              {sesion.estado && sesion.estado !== "programada" && <em className={`estadoInsignia estado-${sesion.estado}`}>{estadoTexto(sesion.estado)}</em>}
             </article>
           )) : <p className="softEmpty">Todavía no hay próximas clases registradas.</p>}
         </div>
@@ -564,8 +638,13 @@ function StudentClassesDashboard({ classData, user, loading }) {
           <h2>Recuperaciones pendientes</h2>
           {recuperaciones.length ? recuperaciones.map((recuperacion) => (
             <article className="studentMiniRow" key={recuperacion.id}>
-              <strong>{recuperacion.motivo || "Recuperación"}</strong>
-              <span>{recuperacion.fecha_original || "Fecha pendiente"} - {recuperacion.estado || "pendiente"}</span>
+              <strong>{motivoTexto(recuperacion.motivo)}</strong>
+              <span>Clase del {fechaLarga(recuperacion.fecha_original, { capital: false }) || "día pendiente"}</span>
+              <em className={`estadoInsignia estado-${recuperacion.estado || "pendiente"}`}>
+                {recuperacion.fecha_recuperacion
+                  ? `Recuperas el ${fechaLarga(recuperacion.fecha_recuperacion, { capital: false })}`
+                  : estadoTexto(recuperacion.estado, "Pendiente")}
+              </em>
             </article>
           )) : <p className="positiveEmpty">No tienes clases pendientes de recuperar.</p>}
         </div>
@@ -573,8 +652,9 @@ function StudentClassesDashboard({ classData, user, loading }) {
           <h2>Asistencia reciente</h2>
           {asistenciaReciente.length ? asistenciaReciente.map((asistencia) => (
             <article className="studentMiniRow" key={asistencia.id}>
-              <strong>{asistencia.grupo || "Clase"}</strong>
-              <span>{asistencia.fecha || "Fecha pendiente"} - {asistencia.estado || "sin estado"}</span>
+              <strong>{fechaClase(asistencia.fecha)}</strong>
+              <span>{asistencia.grupo || "Clase"}</span>
+              <em className={`estadoInsignia estado-${asistencia.estado || "pendiente"}`}>{estadoTexto(asistencia.estado, "Sin pasar lista")}</em>
             </article>
           )) : <p className="softEmpty">Todavía no hay asistencia registrada.</p>}
         </div>
@@ -585,10 +665,7 @@ function StudentClassesDashboard({ classData, user, loading }) {
           <h2>¿Necesitas ayuda con tus clases?</h2>
           <p>Contacta con el club o consulta con tu profesor para cambios de grupo, recuperaciones o dudas de horario.</p>
         </div>
-        <div className="heroActions">
-          <a href={CONTACT_HREF} className="heroCtaBtn" target="_blank" rel="noopener noreferrer">Contactar con el club</a>
-          <a href={CONTACT_HREF} className="heroSecondaryBtn" target="_blank" rel="noopener noreferrer">Necesito ayuda con mis clases</a>
-        </div>
+        <ContactoClub mensaje="Hola, tengo una duda sobre mis clases de pádel" />
       </section>
     </section>
   );

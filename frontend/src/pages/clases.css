@@ -71,10 +71,13 @@
   box-shadow: 0 2px 10px rgba(22, 163, 74, 0.28);
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .heroCtaBtn:hover {
   background: var(--brand-600);
   transform: translateY(-1px);
   box-shadow: 0 4px 16px rgba(22, 163, 74, 0.35);
+}
 }
 
 .heroActions {
@@ -250,9 +253,12 @@
   transition: transform 0.15s ease, background 0.15s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .miClaseCard:hover {
   transform: translateY(-2px);
   background: rgba(255, 255, 255, 0.15);
+}
 }
 
 /* Badges y codes sobre fondo verde */
@@ -562,6 +568,8 @@
   transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .publicFormatCard:hover,
 .publicInfoCard:hover,
 .priceCard:hover,
@@ -569,6 +577,7 @@
   transform: translateY(-3px);
   border-color: rgba(22, 163, 74, 0.24);
   box-shadow: 0 14px 32px rgba(15, 23, 42, 0.09);
+}
 }
 
 .publicFormatCard {
@@ -673,8 +682,11 @@
   text-decoration: none;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .publicInfoCard a:hover {
   color: #166534;
+}
 }
 
 .publicInfoCard small {
@@ -1256,9 +1268,12 @@
   transition: color 0.1s, background 0.1s;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .searchClear:hover {
   color: var(--text);
   background: rgba(0, 0, 0, 0.05);
+}
 }
 
 .select {
@@ -1297,10 +1312,13 @@
   transition: border-color 0.15s, color 0.15s, transform 0.12s;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .btnClear:hover {
   border-color: rgba(220, 38, 38, 0.3);
   color: #dc2626;
   transform: translateY(-1px);
+}
 }
 
 /* ─── Estado: cargando ───────────────────────────────────── */
@@ -1410,11 +1428,14 @@
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .claseCard:hover {
   transform: translateY(-4px);
   box-shadow:
     0 2px 6px rgba(15, 23, 42, 0.07),
     0 16px 40px rgba(15, 23, 42, 0.11);
+}
 }
 
 /* ─── Card: top row (cabecera tintada por nivel) ─────────── */
@@ -1621,10 +1642,13 @@
   white-space: nowrap;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .cardLoginCta:hover {
   background: var(--brand-600);
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
+}
 }
 
 /* ─── Responsive: tablet ─────────────────────────────────── */
@@ -2206,8 +2230,11 @@
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.055);
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .clasesStaff .claseCard:hover {
   transform: translateY(-2px);
+}
 }
 
 .clasesStaff .cardTop {
