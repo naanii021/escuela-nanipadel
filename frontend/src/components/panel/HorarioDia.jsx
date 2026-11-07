@@ -1,8 +1,5 @@
 import { useMemo, useState } from "react";
-import {
-  DIAS_SEMANA, diaHoy, diasDelGrupo, formatFecha, formatHorario, grupoActivo, minutosDe,
-  nivelClass, nivelLabel, nombreCompleto, nombrePista, plural, ultimaFechaDelDia,
-} from "./panelUtils";
+import { DIAS_SEMANA, diaHoy, diasDelGrupo, formatFecha, formatHorario, grupoActivo, minutosDe, nivelClass, nivelLabel, nombreCompleto, nombreGrupo, nombrePista, plural, ultimaFechaDelDia } from "./panelUtils";
 
 const DIAS_CON_CLASE = DIAS_SEMANA.filter((item) => item.key !== "D");
 
@@ -62,7 +59,7 @@ export default function HorarioDia({ grupos, onPasarLista, onVerGrupo }) {
               <li className="ppScheduleItem" key={grupo.id}>
                 <div className="ppScheduleTime">{formatHorario(grupo.hora_inicio, grupo.duracion_min)}</div>
                 <div className="ppScheduleBody">
-                  <strong>{grupo.nombre}</strong>
+                  <strong>{nombreGrupo(grupo)}</strong>
                   <span className="ppMetaLine">
                     {grupo.nivel && <span className={nivelClass(grupo.nivel)}>{nivelLabel(grupo.nivel)}</span>}
                     <span>{nombrePista(grupo.pista_habitual)}</span>

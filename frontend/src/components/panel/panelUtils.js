@@ -79,6 +79,11 @@ export function opcionesNivel(items = [], actual = "") {
 }
 
 // ---------- Nombres y contacto ----------
+// Muchos grupos llevan la hora en el nombre ("Adultos avanzado · 19:30"); donde ya se muestra la hora, se quita.
+export function nombreGrupo(grupo) {
+  return String(grupo?.nombre || "").replace(/\s*·\s*\d{1,2}:\d{2}\s*$/, "");
+}
+
 export function nombreCompleto(persona) {
   return [persona?.nombre, persona?.apellidos].map((part) => String(part ?? "").trim()).filter(Boolean).join(" ") || "Sin nombre";
 }

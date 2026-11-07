@@ -390,7 +390,8 @@
   --pp-shadow-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 1px rgba(15, 23, 42, 0.04);
   --pp-shadow-2: 0 8px 24px rgba(15, 23, 42, 0.10);
   --pp-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --pp-header-h: 72px;
+  /* Altura de la cabecera fija (header.css): 64 px hasta 1360 px de ancho y 70 px por encima, más la zona segura del iPhone. */
+  --pp-header-h: calc(64px + env(safe-area-inset-top, 0px));
   --pp-bottom-nav: 0px;
   --pp-radius: 14px;
 
@@ -1466,4 +1467,10 @@
   .ppSkeleton { animation: none; }
   .ppPanel .ppBtn:active:not(:disabled),
   .ppPickItem:active:not(:disabled) { transform: none; }
+}
+
+@media (min-width: 1361px) {
+  .ppPanel {
+    --pp-header-h: calc(70px + env(safe-area-inset-top, 0px));
+  }
 }

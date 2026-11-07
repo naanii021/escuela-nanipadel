@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { apiGet, apiPost, apiPut } from "../../services/api";
 import { IcCheck, IcNota, IcX } from "./Iconos";
-import {
-  claseMasProxima, diaDeFecha, momentoClase, diasDelGrupo, formatDias, formatFecha, formatHorario, hora, hoyISO,
-  iniciales, minutosDe, nivelLabel, nombreCompleto, nombrePista, plural,
-} from "./panelUtils";
+import { claseMasProxima, diaDeFecha, diasDelGrupo, formatDias, formatFecha, formatHorario, hora, hoyISO, iniciales, minutosDe, momentoClase, nivelLabel, nombreCompleto, nombreGrupo, nombrePista, plural } from "./panelUtils";
 
 const ASISTENCIA = [
   { key: "presente", label: "Vino", Icon: IcCheck },
@@ -246,7 +243,7 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
                     onClick={() => { setGrupoId(String(item.id)); setFecha(hoy); setCambiarAbierto(false); }}
                   >
                     <span className="ppTodayCardTime">{hora(item.hora_inicio)}</span>
-                    <span className="ppTodayCardName">{item.nombre}</span>
+                    <span className="ppTodayCardName">{nombreGrupo(item)}</span>
                     <span className="ppTodayCardState">
                       {hecha ? <><IcCheck /> Lista pasada</> : momento === "ahora" ? "Ahora" : momento === "pasada" ? "Sin lista" : "Más tarde"}
                     </span>
@@ -258,7 +255,7 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
 
           <div className="ppClassBar">
             <div className="ppClassBarText">
-              <strong>{grupo.nombre}</strong>
+              <strong>{nombreGrupo(grupo)}</strong>
               <span>{fechaTexto} · {formatHorario(grupo.hora_inicio, grupo.duracion_min)} · {nombrePista(grupo.pista_habitual)}</span>
               <span>Da la clase: {profesorTexto}</span>
             </div>
@@ -273,7 +270,7 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
                 <span>Grupo</span>
                 <select value={grupo.id} onChange={(e) => setGrupoId(e.target.value)}>
                   {gruposOrdenados.map((item) => (
-                    <option key={item.id} value={item.id}>{item.nombre} ({formatDias(item.dia1, item.dia2)}, {hora(item.hora_inicio)})</option>
+                    <option key={item.id} value={item.id}>{nombreGrupo(item)} ({formatDias(item.dia1, item.dia2)}, {hora(item.hora_inicio)})</option>
                   ))}
                 </select>
               </label>
@@ -287,7 +284,7 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
 
           {!hayClase && (
             <p className="ppEmpty">
-              {grupo.nombre} no tiene clase el {formatFecha(fecha)}. Tiene clase los {formatDias(grupo.dia1, grupo.dia2).toLowerCase()}.
+              {nombreGrupo(grupo)} no tiene clase el {formatFecha(fecha)}. Tiene clase los {formatDias(grupo.dia1, grupo.dia2).toLowerCase()}.
               {clasesDeHoy.length === 0 && fecha === hoy ? " Hoy no hay ninguna clase." : ""}
             </p>
           )}
