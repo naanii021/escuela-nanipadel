@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiGet, apiPut } from "../services/api";
-import { getToken, updateStoredUser } from "../services/auth";
+import { getToken, logout, updateStoredUser } from "../services/auth";
+import MisReservas from "../components/MisReservas";
 import "./perfil.css";
 
 const GAME_LEVELS = [
@@ -161,7 +162,7 @@ export default function Perfil() {
 
   const showNotice = (message) => {
     setNotice(message);
-    window.setTimeout(() => setNotice(""), 2600);
+    window.setTimeout(() => setNotice(""), 6000);
   };
 
   const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }));
@@ -275,20 +276,22 @@ export default function Perfil() {
         </button>
       </header>
 
-      {notice && <div className="profileNotice">{notice}</div>}
-      {error && <div className="profileError">{error}</div>}
+      {notice && <div className="profileNotice" role="status">{notice}</div>}
+      {error && <div className="profileError" role="alert">{error}</div>}
+
+      {!isProfessional && <MisReservas enlaceReservar />}
 
       <form className="profileGrid" onSubmit={savePersonal}>
         <article className="profileCard">
           <div className="profileCardHeader">
             <span>01</span>
-            <div><h2>Datos personales</h2><p>Informacion basica para que el club pueda identificarte.</p></div>
+            <div><h2>Datos personales</h2><p>Información básica para que el club pueda identificarte.</p></div>
           </div>
           <div className="profileFormGrid">
             <label>Nombre<input value={form.nombre || ""} onChange={(e) => updateForm("nombre", e.target.value)} required /></label>
             <label>Apellidos<input value={form.apellidos || ""} onChange={(e) => updateForm("apellidos", e.target.value)} /></label>
             <label>Email<input type="email" value={form.email || ""} onChange={(e) => updateForm("email", e.target.value)} required /></label>
-            <label>Teléfono<input value={form.telefono || ""} onChange={(e) => updateForm("telefono", e.target.value)} /></label>
+            <label>Teléfono<input type="tel" inputMode="tel" autoComplete="tel" value={form.telefono || ""} onChange={(e) => updateForm("telefono", e.target.value)} /></label>
             <label>Ciudad<input value={form.ciudad || ""} onChange={(e) => updateForm("ciudad", e.target.value)} /></label>
             <label>Club habitual<input value={form.club_habitual || ""} onChange={(e) => updateForm("club_habitual", e.target.value)} /></label>
           </div>
@@ -304,7 +307,7 @@ export default function Perfil() {
             <label>Mano dominante<select value={form.mano_dominante || ""} onChange={(e) => updateForm("mano_dominante", e.target.value)}><option value="">Sin indicar</option><option value="derecha">Derecha</option><option value="izquierda">Izquierda</option></select></label>
             <label>Lado preferido<select value={form.lado_preferido || ""} onChange={(e) => updateForm("lado_preferido", e.target.value)}><option value="">Sin indicar</option><option value="drive">Drive</option><option value="reves">Reves</option><option value="ambos">Ambos</option></select></label>
             <label>Disponibilidad<select value={form.disponibilidad_general || ""} onChange={(e) => updateForm("disponibilidad_general", e.target.value)}><option value="">Sin indicar</option><option value="mananas">Mañanas</option><option value="tardes">Tardes</option><option value="noches">Noches</option><option value="fines_semana">Fines de semana</option><option value="variable">Variable</option></select></label>
-            <label>Buscar partidas abiertas<select value={Number(form.buscar_partidas_abiertas ?? 1)} onChange={(e) => updateForm("buscar_partidas_abiertas", Number(e.target.value))}><option value={1}>Si</option><option value={0}>No</option></select></label>
+            <label>Buscar partidas abiertas<select value={Number(form.buscar_partidas_abiertas ?? 1)} onChange={(e) => updateForm("buscar_partidas_abiertas", Number(e.target.value))}><option value={1}>Sí</option><option value={0}>No</option></select></label>
             <label>Notificaciones<input value={form.preferencias_notificacion || ""} onChange={(e) => updateForm("preferencias_notificacion", e.target.value)} placeholder="Email, avisos web, partidas..." /></label>
           </div>
         </article>
@@ -404,7 +407,7 @@ export default function Perfil() {
             <label>Ciudad base<input value={professionalForm.ciudad_base || ""} onChange={(e) => updateProfessional("ciudad_base", e.target.value)} /></label>
             <label>Club principal<input value={professionalForm.club_principal || ""} onChange={(e) => updateProfessional("club_principal", e.target.value)} /></label>
             <label>Teléfono profesional<input value={professionalForm.telefono_profesional || ""} onChange={(e) => updateProfessional("telefono_profesional", e.target.value)} /></label>
-            <label>Tiene club propio<select value={Number(professionalForm.tiene_club_propio ?? 0)} onChange={(e) => updateProfessional("tiene_club_propio", Number(e.target.value))}><option value={0}>No</option><option value={1}>Si</option></select></label>
+            <label>Tiene club propio<select value={Number(professionalForm.tiene_club_propio ?? 0)} onChange={(e) => updateProfessional("tiene_club_propio", Number(e.target.value))}><option value={0}>No</option><option value={1}>Sí</option></select></label>
             <label>Nombre club propio<input value={professionalForm.nombre_club_propio || ""} onChange={(e) => updateProfessional("nombre_club_propio", e.target.value)} /></label>
             <label>Años de experiencia<input type="number" min="0" max="80" value={professionalForm.anos_experiencia ?? ""} onChange={(e) => updateProfessional("anos_experiencia", e.target.value)} /></label>
             <label>Instagram profesional<input value={professionalForm.instagram_profesional || ""} onChange={(e) => updateProfessional("instagram_profesional", e.target.value)} placeholder="@usuario" /></label>
@@ -413,7 +416,7 @@ export default function Perfil() {
             <label className="profileWide">Especialidades<input value={professionalForm.especialidades || ""} onChange={(e) => updateProfessional("especialidades", e.target.value)} list="specialties-list" placeholder="Niños, competición, tecnificación..." /></label>
             <label>Niveles que entrena<input value={professionalForm.niveles_que_entrena || ""} onChange={(e) => updateProfessional("niveles_que_entrena", e.target.value)} /></label>
             <label className="profileWide">Disponibilidad laboral<textarea value={professionalForm.disponibilidad_laboral || ""} onChange={(e) => updateProfessional("disponibilidad_laboral", e.target.value)} /></label>
-            <label className="profileWide">Biografia profesional<textarea value={professionalForm.biografia_profesional || ""} onChange={(e) => updateProfessional("biografia_profesional", e.target.value)} /></label>
+            <label className="profileWide">Biografía profesional<textarea value={professionalForm.biografia_profesional || ""} onChange={(e) => updateProfessional("biografia_profesional", e.target.value)} /></label>
           </div>
           <datalist id="specialties-list">{SPECIALTIES.map((item) => <option key={item} value={item} />)}</datalist>
           <div className="profileActionsBar">
@@ -422,6 +425,20 @@ export default function Perfil() {
           </div>
         </form>
       )}
+
+      <section className="profileSession">
+        <div>
+          <h2>Sesión</h2>
+          <p>Si usas un móvil u ordenador compartido, cierra la sesión al terminar.</p>
+        </div>
+        <button
+          type="button"
+          className="profileLogoutBtn"
+          onClick={() => { logout(); navigate("/", { replace: true }); }}
+        >
+          Cerrar sesión
+        </button>
+      </section>
     </section>
   );
 }

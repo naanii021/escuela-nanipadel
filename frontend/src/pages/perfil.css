@@ -364,11 +364,19 @@
   box-shadow: 0 12px 24px rgba(21, 128, 61, 0.22);
 }
 
-.profilePrimaryBtn:hover:not(:disabled),
 .profilePrimaryBtn:focus-visible:not(:disabled) {
   filter: brightness(1.04);
   transform: translateY(-1px);
   outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+
+.profilePrimaryBtn:hover:not(:disabled) {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+  outline: none;
+}
 }
 
 .profileSecondaryBtn {
@@ -377,10 +385,17 @@
   color: #334155;
 }
 
-.profileSecondaryBtn:hover,
 .profileSecondaryBtn:focus-visible {
   background: #e2e8f0;
   outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+
+.profileSecondaryBtn:hover {
+  background: #e2e8f0;
+  outline: none;
+}
 }
 
 .profilePrimaryBtn:disabled {
@@ -703,5 +718,101 @@
   .profileProfessional {
     padding: 0.75rem;
     border-radius: 16px;
+  }
+}
+
+/* Usabilidad: la barra de guardar queda por encima de la barra inferior del móvil. */
+@media (max-width: 768px) {
+  .profileActionsBar {
+    position: sticky;
+    bottom: calc(4.9rem + env(safe-area-inset-bottom, 0px));
+    z-index: 3;
+    padding: 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: var(--shadow-2);
+    backdrop-filter: none;
+  }
+
+  .profileActionsBar button {
+    flex: 1;
+  }
+}
+
+.profileFormGrid label {
+  font-size: 0.95rem;
+}
+
+.profilePrimaryBtn,
+.profileSecondaryBtn {
+  min-height: 48px;
+  font-size: 1rem;
+  transition: transform 120ms var(--ease-out);
+}
+
+.profilePrimaryBtn:active:not(:disabled),
+.profileSecondaryBtn:active {
+  transform: scale(0.97);
+}
+
+.profileSession {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.profileSession h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.profileSession p {
+  margin: 0.25rem 0 0;
+  color: var(--color-muted);
+  font-size: 1rem;
+}
+
+.profileLogoutBtn {
+  min-height: 52px;
+  padding: 0 1.25rem;
+  border: 1px solid #f0c6c6;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #b91c1c;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms var(--ease-out), background-color 120ms ease;
+}
+
+.profileLogoutBtn:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .profileLogoutBtn:hover {
+    background: #fef2f2;
+  }
+}
+
+@media (max-width: 480px) {
+  .profileLogoutBtn {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profilePrimaryBtn:active:not(:disabled),
+  .profileSecondaryBtn:active,
+  .profileLogoutBtn:active {
+    transform: none;
   }
 }
