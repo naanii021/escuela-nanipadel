@@ -38,6 +38,14 @@
   --shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
   --shadow-hover: 0 18px 45px rgba(15, 23, 42, 0.12);
   --container: 1160px;
+
+  /* Movimiento y profundidad comunes */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-2: 0 4px 12px rgba(15, 23, 42, 0.1), 0 2px 4px rgba(15, 23, 42, 0.06);
+  --shadow-3: 0 -8px 32px rgba(15, 23, 42, 0.18);
+  --tap: 48px;
 }
 
 /* Reset básico para que todo se vea consistente */
@@ -45,10 +53,29 @@
   box-sizing: border-box;
 }
 
-html, body {
-  height: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
+/* El documento es el que se desplaza (no body): así funcionan window.scrollY, volver arriba
+   al cambiar de página y el toque en la barra de estado de iOS. El recorte horizontal lo hace #root. */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Controles: sin retardo de doble toque y sin seleccionar el texto al mantener pulsado. */
+button,
+a,
+[role="button"],
+summary,
+label:has(> input[type="date"]) {
+  touch-action: manipulation;
+}
+
+button,
+[role="button"],
+.pillBtn,
+.mobileNavItem,
+.tiendaFilter {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 body {
@@ -118,10 +145,12 @@ a {
   transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
 .card:hover {
   transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--color-secondary) 35%, var(--color-border));
   box-shadow: var(--shadow-hover);
+}
 }
 
 /* Botones */
@@ -148,10 +177,12 @@ a {
   box-shadow: 0 12px 24px hsl(145 45% 45% / 0.25);
 }
 
+@media (hover: hover) and (pointer: fine) {
 .btn-primary:hover {
   background: linear-gradient(135deg, var(--color-secondary-dark), hsl(152 38% 34%));
   transform: translateY(-1px);
   box-shadow: 0 16px 32px hsl(145 45% 45% / 0.32);
+}
 }
 
 .btn-ghost {
@@ -159,8 +190,10 @@ a {
   border-color: var(--border);
 }
 
+@media (hover: hover) and (pointer: fine) {
 .btn-ghost:hover {
   opacity: 0.92;
+}
 }
 
 /* Texto secundario */
@@ -173,8 +206,10 @@ a {
     width: min(var(--container), calc(100% - 1.2rem));
   }
 
+  @media (hover: hover) and (pointer: fine) {
   .card:hover {
     transform: none;
+  }
   }
 }
 

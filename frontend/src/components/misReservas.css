@@ -1,0 +1,111 @@
+.misReservas {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: var(--shadow-1);
+}
+
+.misReservas h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.misReservasLista {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.misReservasLista li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid #c7d8f5;
+  border-radius: 12px;
+  background: #eef4ff;
+}
+
+.misReservasLista li > div {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.misReservasLista strong {
+  color: #1e3a8a;
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+
+.misReservasLista span {
+  color: #334155;
+  font-size: 0.95rem;
+}
+
+.misReservasLista .btnGrande {
+  width: auto;
+  min-height: 48px;
+  min-width: 6.5rem;
+  font-size: 1rem;
+}
+
+.misReservasVacio {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 1rem;
+}
+
+.misReservasVacio a {
+  color: var(--color-secondary-dark);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.misReservasAviso {
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.misReservasAviso button {
+  min-height: 44px;
+  padding: 0 0.8rem;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.misReservasPregunta {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0 0 0.5rem;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  background: #f4f7f3;
+  font-size: 1.05rem;
+}
+
+@media (max-width: 420px) {
+  .misReservasLista li {
+    padding: 0.7rem;
+  }
+
+  .misReservasLista .btnGrande {
+    min-width: 5.6rem;
+    padding-inline: 0.7rem;
+  }
+}

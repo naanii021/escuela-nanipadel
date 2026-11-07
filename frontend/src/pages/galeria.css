@@ -141,10 +141,13 @@
   transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .galleryUploadBtn:hover {
   transform: translateY(-1px);
   filter: saturate(1.05);
   box-shadow: 0 18px 34px rgba(22, 163, 74, 0.34);
+}
 }
 
 .galleryUploadBtn:disabled {
@@ -252,9 +255,12 @@
   transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .galleryFilterBtn:hover {
   transform: translateY(-1px);
   box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+}
 }
 
 .galleryFilterBtn.active {
@@ -329,8 +335,11 @@
   font-weight: 900;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .featuredCard:hover img {
   transform: scale(1.05);
+}
 }
 
 .galleryGrid {
@@ -384,8 +393,11 @@
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.02), rgba(15, 23, 42, 0.32));
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .galleryCard:hover .galleryImageWrap img {
   transform: scale(1.04);
+}
 }
 
 .galleryCategory {
@@ -592,7 +604,7 @@
   display: grid;
   gap: 0.9rem;
   width: min(540px, 100%);
-  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
   overflow: auto;
   padding: 1.25rem;
   border-radius: 24px;
@@ -709,7 +721,7 @@
 .galleryLightboxDialog {
   position: relative;
   width: min(1100px, 100%);
-  max-height: calc(100vh - 2.5rem);
+  max-height: calc(100dvh - 2.5rem);
   overflow: hidden;
   border-radius: 28px;
   background: #08131f;

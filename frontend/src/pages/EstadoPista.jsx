@@ -120,18 +120,23 @@ function EstadoPista() {
     { label: "Batería", value: formatSensorValue(sensor?.bateria_porcentaje, "%") },
   ];
 
+  const playable = weather?.playability ? weather.playability.playable : null;
+  const verdict = playable === true ? "Hoy se puede jugar" : playable === false ? "Hoy mejor no jugar" : "¿Se puede jugar hoy?";
+
   return (
     <section className="estadoPistaPage">
       <section className="estadoHero">
         <div className="estadoHeroMain">
           <span className="estadoEyebrow">Tiempo y pista</span>
-          <h1>Consulta si es buen momento para jugar</h1>
+          <h1>{verdict}</h1>
           <p>
-            Revisa temperatura, viento, lluvia y recomendación antes de reservar o salir hacia el club.
+            {weather?.playability?.reason
+              ? `${weather.playability.reason}. Lluvia ${weather.precipitationProbability ?? "-"} %, viento ${Math.round(weather.windSpeed ?? 0)} km/h.`
+              : "Mira la lluvia, el viento y la recomendación antes de reservar o salir hacia el club."}
           </p>
           <div className="estadoHeroActions">
             <Link className="btn btn-primary" to="/reservas">
-              Reservar pista
+              {playable === false ? "Reservar otro día" : "Reservar pista"}
             </Link>
             <Link className="btn btn-ghost estadoGhostBtn" to="/">
               Volver al inicio
@@ -142,8 +147,8 @@ function EstadoPista() {
         <div className="estadoNowCard">
           <div className="estadoNowTop">
             <div>
-              <span className="estadoNowLabel">Lectura actual</span>
-              <h2>Norba Padel</h2>
+              <span className="estadoNowLabel">Ahora mismo</span>
+              <h2>En la pista</h2>
             </div>
             <span className={`estadoBadge ${weather?.pista === "RIESGO" ? "estadoBadgeRisk" : ""}`}>
             {weather?.pista || "Todavía no hay datos disponibles"}
@@ -189,14 +194,15 @@ function EstadoPista() {
         </div>
       </section>
 
+      {sensorConnected && (
       <section className="estadoSensorCard">
         <div className="estadoSensorHead">
           <div>
             <span className="estadoSectionEyebrow">Sensor del club</span>
-            <h2>Última lectura del XIAO</h2>
+            <h2>Medidas en la pista</h2>
           </div>
           <span className={`estadoSensorBadge ${sensorConnected ? "isConnected" : "isOffline"}`}>
-            {sensorConnected ? "Sensor conectado" : "Sensor sin conexión"}
+            Medido hace poco
           </span>
         </div>
 
@@ -227,14 +233,15 @@ function EstadoPista() {
             </div>
 
             <div className={`estadoAdvice ${sensorConnected ? "rec-bueno" : "rec-regular"}`}>
-              <strong>Recomendacion del sensor</strong>
+              <strong>Recomendación</strong>
               <p>{getSensorRecommendation(sensor)}</p>
             </div>
           </>
         ) : (
-          <p className="estadoEmpty">Aún no hay lecturas del sensor disponibles.</p>
+          <p className="estadoEmpty">Aún no hay medidas de la pista.</p>
         )}
       </section>
+      )}
 
       <section className="estadoPanel">
         <div className="estadoPanelHead">

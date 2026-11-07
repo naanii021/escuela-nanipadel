@@ -1,0 +1,667 @@
+/* Reservar pista: rejilla hora × pista y hojas de confirmación (Reservas.jsx). */
+
+.rs {
+  display: grid;
+  gap: 1.1rem;
+  max-width: 980px;
+  margin: 0 auto;
+  padding-bottom: 1rem;
+}
+
+.rsHead h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  line-height: 1.1;
+}
+
+.rsHead p {
+  max-width: 60ch;
+  margin: 0.4rem 0 0;
+  color: var(--color-muted);
+  font-size: 1.05rem;
+}
+
+/* ---------- Días ---------- */
+
+.rsDias {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.rsDia {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.05rem;
+  min-height: 60px;
+  padding: 0.4rem 0.25rem;
+  border: 1px solid #c9d6cd;
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--color-text);
+  font: inherit;
+  line-height: 1.15;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 120ms var(--ease-out), background-color 120ms ease, border-color 120ms ease;
+}
+
+.rsDia strong {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.rsDia span {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.rsDia.isActivo {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.rsDia.isActivo span {
+  color: #d6e6dc;
+}
+
+.rsDia:active {
+  transform: scale(0.97);
+}
+
+.rsOtroDia svg {
+  color: var(--color-secondary-dark);
+}
+
+.rsOtroDia.isActivo svg {
+  color: #ffffff;
+}
+
+/* El selector de fecha nativo ocupa toda la casilla, invisible, para que el toque lo abra. */
+.rsOtroDia input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.rsOtroDia:focus-within {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rsDia:not(.isActivo):hover {
+    border-color: #8fae9a;
+    background: #f4f7f3;
+  }
+}
+
+/* ---------- Título del día ---------- */
+
+.rsDiaTitulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+}
+
+.rsDiaTitulo h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.rsDiaTitulo span {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.rsDiaTitulo .isHay {
+  color: #166534;
+}
+
+.rsDiaTitulo .isNo {
+  color: #9a3412;
+}
+
+.rsPasadas {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 0.2rem;
+  border: 0;
+  background: none;
+  color: var(--color-secondary-dark);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+/* ---------- Rejilla hora × pista ---------- */
+
+.rsTablaWrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: var(--shadow-1);
+}
+
+.rsTabla {
+  width: 100%;
+  min-width: calc(4.6rem + var(--pistas, 2) * 7.5rem);
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.rsTabla th,
+.rsTabla td {
+  padding: 0.35rem;
+  border-bottom: 1px solid #edf1ee;
+  vertical-align: middle;
+}
+
+.rsTabla tbody tr:last-child th,
+.rsTabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.rsTabla thead th {
+  padding: 0.75rem 0.35rem;
+  background: #f4f7f3;
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.rsTabla thead th:first-child {
+  width: 4.6rem;
+  text-align: left;
+  padding-left: 0.85rem;
+}
+
+.rsTabla tbody th {
+  padding-left: 0.85rem;
+  text-align: left;
+}
+
+.rsTabla tbody th strong {
+  display: block;
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.rsTabla tbody th span {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.rsCelda {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.05rem;
+  width: 100%;
+  min-height: 58px;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+button.rsCelda {
+  cursor: pointer;
+  transition: transform 120ms var(--ease-out), background-color 120ms ease, border-color 120ms ease;
+}
+
+button.rsCelda:active {
+  transform: scale(0.97);
+}
+
+.rsCelda strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.rsCelda span {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.rsCelda.isLibre {
+  border-color: #86d39f;
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.rsCelda.isLibre span {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.rsCelda.isMia {
+  border-color: #93b4f0;
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+.rsCelda.isAbierta {
+  border-color: #f2c76b;
+  background: #fef3c7;
+  color: #7c2d12;
+}
+
+.rsCelda.isOcupada {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.rsCelda.isPasada {
+  background: repeating-linear-gradient(135deg, #f8fafc 0 8px, #f1f5f9 8px 16px);
+  color: #5b6675;
+  font-size: 0.875rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rsCelda.isLibre:hover {
+    border-color: #16a34a;
+    background: #bbf7d0;
+  }
+
+  .rsCelda.isMia:hover {
+    border-color: #2563eb;
+  }
+
+  .rsCelda.isAbierta:hover {
+    border-color: #d97706;
+  }
+}
+
+.rsCargando {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.rsCargando span {
+  height: 64px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #edf1ee, #f6f8f6, #edf1ee);
+  background-size: 200% 100%;
+  animation: rsCarga 1.4s linear infinite;
+}
+
+@keyframes rsCarga {
+  to { background-position: -200% 0; }
+}
+
+.rsVacio {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+  padding: 1.1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: #ffffff;
+  font-size: 1.05rem;
+}
+
+.rsVacio .btnGrande {
+  width: auto;
+}
+
+.rsReintentar {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 0.85rem;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rsAyuda {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 0.4rem;
+  padding: 1.1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.rsAyuda h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+}
+
+/* ---------- Dentro de las hojas ---------- */
+
+.rsResumen {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0 0 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  background: #f4f7f3;
+  font-size: 1.05rem;
+}
+
+.rsResumen strong {
+  font-size: 1.15rem;
+}
+
+.rsDatos {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.rsDatos div {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.rsDatos div span:first-child {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.rsDatos strong {
+  overflow-wrap: anywhere;
+}
+
+.rsEnlace {
+  min-height: 44px;
+  padding: 0 0.15rem;
+  border: 0;
+  background: none;
+  color: var(--color-secondary-dark);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.rsCampos {
+  display: grid;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.rsCamposFila {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rsCampo {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.rsCampos .rsCampo {
+  margin-bottom: 0;
+}
+
+.rsCampo > span {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.rsCampo input,
+.rsCampo select,
+.rsCampo textarea {
+  width: 100%;
+  min-height: 50px;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #b9c9be;
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 16px;
+}
+
+.rsCampo textarea {
+  min-height: 0;
+  resize: vertical;
+}
+
+.rsCampo [aria-invalid="true"] {
+  border-color: #b91c1c;
+  box-shadow: 0 0 0 1px #b91c1c;
+}
+
+.rsCampoError {
+  color: #b91c1c;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.rsAbierta {
+  margin-bottom: 0.5rem;
+}
+
+.rsAbierta.isAbierta {
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.9rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.rsAbiertaCuerpo {
+  display: grid;
+  gap: 0.75rem;
+  animation: rsDespliega 220ms var(--ease-out) backwards;
+}
+
+.rsAbiertaCuerpo p {
+  margin: 0;
+}
+
+.rsAbiertaCuerpo .rsCampos {
+  margin-bottom: 0;
+}
+
+@keyframes rsDespliega {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+.rsNota {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 1rem;
+}
+
+.rsSubtitulo {
+  margin: 0.25rem 0 0.5rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.rsJugadores {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.rsJugadores li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.rsJugadores li.isLibre {
+  border-style: dashed;
+}
+
+.rsJugadores li > span:last-child {
+  display: grid;
+  min-width: 0;
+}
+
+.rsJugadores strong {
+  overflow: hidden;
+  font-size: 0.95rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rsJugadores small {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.rsAvatar {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--avatar-bg);
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+/* Confirmación: el único momento con algo de alegría. */
+.rsHecho {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.rsHecho p {
+  margin: 0;
+}
+
+.rsHechoCheck {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #166534;
+  animation: rsCheck 260ms var(--ease-out) 80ms backwards;
+}
+
+.rsHechoCheck svg {
+  width: 34px;
+  height: 34px;
+}
+
+@keyframes rsCheck {
+  from { opacity: 0; transform: scale(0.8); }
+}
+
+/* ---------- Móvil ---------- */
+
+@media (max-width: 760px) {
+  .rsDias {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .rs {
+    gap: 0.9rem;
+  }
+
+  .rsHead p {
+    font-size: 1rem;
+  }
+
+  .rsTabla {
+    min-width: calc(4.2rem + var(--pistas, 2) * 6.6rem);
+  }
+
+  .rsTabla thead th:first-child {
+    width: 4.2rem;
+    padding-left: 0.6rem;
+  }
+
+  .rsTabla tbody th {
+    padding-left: 0.6rem;
+  }
+
+  .rsTabla th,
+  .rsTabla td {
+    padding: 0.3rem 0.25rem;
+  }
+
+  .rsCamposFila {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rsJugadores {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rsDia:active,
+  button.rsCelda:active {
+    transform: none;
+  }
+
+  .rsHechoCheck,
+  .rsAbiertaCuerpo {
+    animation: none;
+  }
+
+  .rsCargando span {
+    animation: none;
+  }
+}

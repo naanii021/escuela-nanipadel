@@ -258,7 +258,7 @@ export default function Avisos() {
 
   if (!logged) {
     return (
-      <main className="avisosPage">
+      <section className="avisosPage">
         <section className="avisosHero">
           <div>
             <span>Centro de avisos</span>
@@ -267,12 +267,12 @@ export default function Avisos() {
           </div>
           <Link className="avisosPrimaryBtn" to="/login">Entrar</Link>
         </section>
-      </main>
+      </section>
     );
   }
 
   return (
-    <main className="avisosPage">
+    <section className="avisosPage">
       <section className="avisosHero">
         <div>
           <span>Centro de avisos</span>
@@ -382,6 +382,6 @@ export default function Avisos() {
           ))}
         </div>
       </section>
-    </main>
+    </section>
   );
 }

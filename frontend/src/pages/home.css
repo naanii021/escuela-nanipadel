@@ -161,8 +161,11 @@
   place-items: center;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .weatherCloseBtn:hover {
   background: rgba(15, 23, 42, 0.08);
+}
 }
 
 .weatherCurrentBig {
@@ -361,8 +364,11 @@
   font-size: 0.85rem;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .forecastDay:hover {
   background: rgba(15, 23, 42, 0.08);
+}
 }
 
 .fDayName {

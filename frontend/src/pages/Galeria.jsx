@@ -145,7 +145,7 @@ function Galeria() {
 
   const openUpload = () => {
     if (!logged) {
-      setUploadStatus({ type: "info", message: "Inicia sesión para enviar fotos al club." });
+      setUploadStatus({ type: "", message: "" });
       setUploadOpen(true);
       return;
     }
@@ -391,13 +391,13 @@ function Galeria() {
                 <span className="galeriaEyebrow">NaniPadel</span>
                 <h2 id="gallery-upload-title">{logged ? "Enviar foto al club" : "Subir foto"}</h2>
               </div>
-              <button type="button" onClick={closeUpload} aria-label="Cerrar subida">x</button>
+              <button type="button" onClick={closeUpload} className="galleryUploadClose">Cerrar</button>
             </div>
 
             {!logged ? (
               <div className="uploadLoginBox">
-                <p>Inicia sesión para enviar fotos al club.</p>
-                <a href="/login" className="galleryUploadBtn">Entrar</a>
+                <p>Para enviar fotos al club tienes que entrar con tu cuenta.</p>
+                <a href="/login?volver=%2Fgaleria" className="galleryUploadBtn">Entrar</a>
               </div>
             ) : (
               <>

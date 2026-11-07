@@ -916,6 +916,7 @@ function Torneos() {
             </p>
           </div>
 
+          {stats.total > 0 && (
           <div className="torneosMetrics" role="list" aria-label="Resumen de torneos">
             <div className="torneosMetricCard" role="listitem">
               <span>Total publicados</span>
@@ -934,6 +935,7 @@ function Torneos() {
               <strong>{stats.plazas}</strong>
             </div>
           </div>
+          )}
         </section>
 
         {canManageAmericanos && (
@@ -1432,7 +1434,7 @@ function Torneos() {
           </section>
         )}
 
-        {!loading && !err && (
+        {!loading && !err && stats.total > 0 && (
           <section className="torneosControlBar">
             <div className="torneosControlHead">
               <div>

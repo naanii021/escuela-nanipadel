@@ -1,0 +1,381 @@
+/* Hoja / diálogo común (Hoja.jsx) y mensaje flotante (Toast.jsx). */
+
+html.hojaAbierta {
+  overflow: hidden;
+}
+
+.hojaFondo {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(15, 23, 42, 0.45);
+  overscroll-behavior: contain;
+  animation: hojaFondoEntra 200ms var(--ease-out) backwards;
+}
+
+.hojaFondo.isCerrando {
+  animation: hojaFondoSale 200ms var(--ease-out) forwards;
+}
+
+.hoja {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 100%);
+  max-height: min(860px, calc(100dvh - 2.5rem));
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: var(--shadow-3);
+  color: var(--color-text);
+  outline: none;
+  animation: hojaEntraCentro 220ms var(--ease-out) backwards;
+}
+
+.hoja.hoja-ancha {
+  width: min(720px, 100%);
+}
+
+.hoja.isCerrando {
+  animation: hojaSaleCentro 180ms var(--ease-out) forwards;
+}
+
+.hojaAsa {
+  display: none;
+}
+
+.hojaCabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1.1rem 1.1rem 0.85rem 1.35rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.hojaCabecera h2 {
+  margin: 0.35rem 0 0;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.hojaCabecera p {
+  margin: 0.3rem 0 0;
+  color: var(--color-muted);
+  font-size: 1rem;
+}
+
+.hojaCerrar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.hojaCuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.1rem 1.35rem 1.25rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.hojaPie {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.9rem 1.35rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--color-border);
+  background: #ffffff;
+}
+
+/* Botones de la hoja (también se usan fuera de ella). */
+.btnGrande {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 52px;
+  padding: 0.75rem 1.1rem;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 120ms var(--ease-out), background-color 120ms ease, border-color 120ms ease;
+}
+
+.btnGrande:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btnGrande.isPrincipal {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.btnGrande.isSecundario {
+  border-color: #b9c9be;
+  background: #ffffff;
+  color: var(--color-text);
+}
+
+.btnGrande.isPeligro {
+  border-color: #b91c1c;
+  background: #b91c1c;
+  color: #ffffff;
+}
+
+.btnGrande.isPeligroSuave {
+  border-color: #f0c6c6;
+  background: #ffffff;
+  color: #b91c1c;
+}
+
+.btnGrande.isWhatsapp {
+  background: #166534;
+  color: #ffffff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hojaCerrar:hover {
+    background: #edf3ef;
+  }
+
+  .btnGrande.isPrincipal:hover:not(:disabled) {
+    background: var(--color-primary-soft);
+  }
+
+  .btnGrande.isSecundario:hover:not(:disabled),
+  .btnGrande.isPeligroSuave:hover:not(:disabled) {
+    background: #f4f7f3;
+  }
+
+  .btnGrande.isWhatsapp:hover {
+    background: #14532d;
+  }
+}
+
+.btnGrande:active:not(:disabled),
+.hojaCerrar:active {
+  transform: scale(0.97);
+}
+
+/* Mensaje de error o resultado dentro de una hoja o formulario. */
+.mensajeCaja {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.mensajeCaja.isError {
+  border-color: #f0c6c6;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.mensajeCaja.isOk {
+  border-color: #bbe5c8;
+  background: #f0fdf4;
+  color: #14532d;
+}
+
+.mensajeCaja.isInfo {
+  border-color: #f2d27a;
+  background: #fff8e6;
+  color: #6b4e00;
+}
+
+/* ---------- Mensaje flotante ---------- */
+
+.toastNani {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: min(520px, calc(100% - 1.5rem));
+  padding: 0.8rem 0.8rem 0.8rem 1.1rem;
+  border: 1px solid;
+  border-radius: 14px;
+  box-shadow: var(--shadow-2);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  opacity: 0;
+  transform: translate(-50%, 16px);
+  transition: opacity 240ms var(--ease-out), transform 240ms var(--ease-out);
+}
+
+.toastNani.isVisible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.toastNani.isSaliendo {
+  transition-duration: 180ms;
+}
+
+.toastNani.isOk {
+  border-color: #bbe5c8;
+  background: #f0fdf4;
+  color: #14532d;
+}
+
+.toastNani.isError {
+  border-color: #f0c6c6;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.toastNani p {
+  flex: 1;
+  margin: 0;
+}
+
+.toastNani button {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 0.85rem;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .toastNani {
+    bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ---------- Móvil: hoja inferior ---------- */
+
+@media (max-width: 640px) {
+  .hojaFondo {
+    align-items: end;
+    padding: 0;
+  }
+
+  .hoja,
+  .hoja.hoja-ancha {
+    width: 100%;
+    max-height: calc(100dvh - 1.5rem);
+    border-bottom: 0;
+    border-radius: 20px 20px 0 0;
+    animation: hojaSube 320ms var(--ease-drawer) backwards;
+  }
+
+  .hoja.isCerrando {
+    animation: hojaBaja 220ms var(--ease-out) forwards;
+  }
+
+  .hojaAsa {
+    display: block;
+    width: 44px;
+    height: 5px;
+    margin: 0.5rem auto 0;
+    border-radius: 999px;
+    background: #cbd5d0;
+  }
+
+  .hojaCabecera {
+    padding: 0.5rem 0.9rem 0.8rem 1.1rem;
+  }
+
+  .hojaCuerpo {
+    padding: 1rem 1.1rem 1.1rem;
+  }
+
+  .hojaPie {
+    padding-inline: 1.1rem;
+  }
+}
+
+@keyframes hojaFondoEntra {
+  from { opacity: 0; }
+}
+
+@keyframes hojaFondoSale {
+  to { opacity: 0; }
+}
+
+@keyframes hojaEntraCentro {
+  from { opacity: 0; transform: scale(0.96); }
+}
+
+@keyframes hojaSaleCentro {
+  to { opacity: 0; transform: scale(0.96); }
+}
+
+@keyframes hojaSube {
+  from { transform: translateY(100%); }
+}
+
+@keyframes hojaBaja {
+  to { transform: translateY(100%); }
+}
+
+@keyframes hojaFundido {
+  from { opacity: 0; }
+}
+
+@keyframes hojaFundidoSale {
+  to { opacity: 0; }
+}
+
+/* Con movimiento reducido: solo fundido. */
+@media (prefers-reduced-motion: reduce) {
+  .hoja,
+  .hoja.hoja-ancha {
+    animation: hojaFundido 150ms ease backwards !important;
+  }
+
+  .hoja.isCerrando {
+    animation: hojaFundidoSale 150ms ease forwards !important;
+  }
+
+  .toastNani {
+    transform: translate(-50%, 0);
+    transition: opacity 150ms ease;
+  }
+
+  .btnGrande:active:not(:disabled),
+  .hojaCerrar:active {
+    transform: none;
+  }
+}

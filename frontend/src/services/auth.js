@@ -41,6 +41,18 @@ export function isLogged() {
   return !!getToken();
 }
 
+// Enlace a /login que, tras entrar, devuelve a la página indicada.
+export function loginHref(pathname) {
+  if (!pathname || pathname === "/login" || pathname === "/") return "/login";
+  return `/login?volver=${encodeURIComponent(pathname)}`;
+}
+
+// Solo se aceptan rutas internas ("/algo"), nunca otra web.
+export function safeReturnPath(value) {
+  const path = String(value || "");
+  return path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/login") ? path : "";
+}
+
 // Login
 export async function login(email, password) {
   const res = await fetch(buildApiUrl("/api/auth/login"), {

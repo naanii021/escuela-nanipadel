@@ -22,11 +22,19 @@
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
-.assistantFab:hover,
 .assistantFab.isOpen {
   transform: translateY(-3px);
   border-color: hsl(145 35% 48% / 0.42);
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.3), 0 0 0 6px hsl(145 35% 48% / 0.12);
+}
+
+@media (hover: hover) and (pointer: fine) {
+
+.assistantFab:hover {
+  transform: translateY(-3px);
+  border-color: hsl(145 35% 48% / 0.42);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.3), 0 0 0 6px hsl(145 35% 48% / 0.12);
+}
 }
 
 .assistantFabStatus {
@@ -170,10 +178,13 @@
   transition: background 0.16s ease, transform 0.16s ease, border-color 0.16s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .assistantCloseBtn:hover {
   transform: translateY(-1px);
   background: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 255, 255, 0.26);
+}
 }
 
 .assistantPanelScroll {
@@ -291,11 +302,19 @@
   transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, background 0.16s ease;
 }
 
-.assistantActionChip:hover,
 .assistantActionChip.isActive {
   transform: translateY(-2px);
   border-color: hsl(145 35% 48% / 0.34);
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+@media (hover: hover) and (pointer: fine) {
+
+.assistantActionChip:hover {
+  transform: translateY(-2px);
+  border-color: hsl(145 35% 48% / 0.34);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
 }
 
 .assistantActionChip.isActive {
@@ -615,5 +634,102 @@
     -webkit-line-clamp: 1;
     display: -webkit-box;
     -webkit-box-orient: vertical;
+  }
+}
+
+/* ---------- Usabilidad: botón "Ayuda" que se entiende y cierre grande ---------- */
+
+.assistantFab,
+.assistantFab.isOpen {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: auto;
+  height: 48px;
+  padding: 0 1rem 0 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: var(--color-primary);
+  box-shadow: var(--shadow-2);
+  transform: none;
+  transition: transform 120ms var(--ease-out);
+}
+
+.assistantFab:active {
+  transform: scale(0.97);
+}
+
+.assistantFabInner {
+  width: auto;
+  height: auto;
+  border: 0;
+  background: none;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.assistantCloseBtn {
+  width: auto;
+  height: auto;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.assistantContacto {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: #f4f7f3;
+}
+
+.assistantContacto > strong {
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.assistantContacto .contactoBtn {
+  min-height: 48px;
+  font-size: 0.95rem;
+}
+
+.assistantReplyWhatsapp {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-decoration: none;
+}
+
+@media (max-width: 768px) {
+  .assistantFab,
+  .assistantFab.isOpen {
+    width: auto;
+    height: 48px;
+  }
+
+  .assistantFabInner {
+    width: auto;
+    height: auto;
+    font-size: 0.95rem;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .assistantFab:hover {
+    transform: none;
+    background: var(--color-primary-soft);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistantFab:active {
+    transform: none;
   }
 }

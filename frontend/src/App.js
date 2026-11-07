@@ -17,6 +17,7 @@ import WhatsAppInbox from "./pages/WhatsAppInbox";
 import "./styles/premium.css";
 import "./styles/redesign.css";
 import "./styles/movil.css";
+import "./styles/usabilidad.css";
 
 
 function App() {

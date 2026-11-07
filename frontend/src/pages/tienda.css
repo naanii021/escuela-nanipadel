@@ -204,9 +204,12 @@
   transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .tiendaFilter:hover {
   color: #0f172a;
   border-color: rgba(15, 23, 42, 0.16);
+}
 }
 
 .tiendaFilter.isActive {
@@ -229,9 +232,12 @@
   transition: transform 0.22s ease, box-shadow 0.22s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .shopCard:hover {
   transform: translateY(-4px);
   box-shadow: 0 24px 42px rgba(15, 23, 42, 0.12);
+}
 }
 
 .shopCard-producto .shopCardMedia {
@@ -333,9 +339,12 @@
   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .shopPrimaryBtn:hover,
 .shopSecondaryBtn:hover {
   transform: translateY(-1px);
+}
 }
 
 .shopCardActions {
@@ -369,7 +378,7 @@
   display: grid;
   grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
   width: min(920px, calc(100vw - 2rem));
-  max-height: min(760px, calc(100vh - 2rem));
+  max-height: min(760px, calc(100dvh - 2rem));
   overflow: auto;
   border-radius: 26px;
   background: #ffffff;
@@ -531,7 +540,7 @@
 
   .shopModal {
     width: 100%;
-    max-height: calc(100vh - 1.4rem);
+    max-height: calc(100dvh - 1.4rem);
     border-radius: 20px;
   }
 

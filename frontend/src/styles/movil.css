@@ -1,22 +1,6 @@
 /* Correcciones de legibilidad. Se carga la última (index.js) porque premium.css y redesign.css
    cambiaron los fondos a claro/oscuro sin ajustar el color del texto de algunos componentes. */
 
-/* Barra inferior del móvil: fondo claro, así que las letras deben ser oscuras. */
-.mobileBottomNav {
-  border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.16);
-}
-
-.mobileNavItem {
-  color: var(--color-muted);
-}
-
-.mobileNavItem.isActive {
-  background: var(--color-secondary-soft);
-  color: var(--color-secondary-dark);
-}
-
 /* El pie no queda tapado por la barra inferior. */
 @media (max-width: 768px) {
   .footer {

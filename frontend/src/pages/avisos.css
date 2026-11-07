@@ -587,3 +587,50 @@
     font-size: 0.62rem;
   }
 }
+
+/* Usabilidad: la columna nunca se sale por la derecha y los filtros saltan de línea
+   en vez de esconderse en una fila con desplazamiento lateral. */
+.avisosPage {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.avisosHero,
+.avisosComposer,
+.avisosBoard,
+.avisoCard {
+  min-width: 0;
+}
+
+.avisoCard h3,
+.avisoCard p {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 768px) {
+  .avisosFilters {
+    flex-wrap: wrap;
+    margin: 0 0 0.75rem;
+    overflow: visible;
+  }
+
+  .avisosFilters button,
+  .avisosFilters select {
+    flex: 1 1 auto;
+    min-height: 44px;
+    font-size: 0.95rem;
+  }
+
+  .avisosHero p,
+  .avisosSectionHead p,
+  .avisoCard p {
+    font-size: 1rem;
+  }
+
+  .avisosHeroStats small {
+    font-size: 0.8125rem;
+  }
+
+  .avisoCard button {
+    min-height: 44px;
+  }
+}

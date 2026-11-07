@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAssistantSummary } from "../services/assistantService";
 import { getUser, isLogged } from "../services/auth";
+import { buildClubWhatsappUrl } from "../services/whatsappLinks";
+import ContactoClub from "./ContactoClub";
 import "./clubAssistant.css";
 
 const STAFF_ROLES = ["admin", "profesor", "profe"];
@@ -13,14 +15,14 @@ const ACTIONS_BY_ROLE = {
     { key: "alumnos", label: "Alumnos", icon: "user", description: "Gestión desde el panel.", to: "/panel" },
     { key: "avisos", label: "Avisos", icon: "bell", description: "Revisa comunicaciones recientes.", to: "/avisos" },
     { key: "reservas", label: "Reservas", icon: "calendar", description: "Consulta la agenda de pistas.", to: "/reservas" },
-    { key: "estado-pista", label: "Estado pista", icon: "weather", description: "Condiciones actuales.", to: "/estado-pista" },
+    { key: "estado-pista", label: "Tiempo y pista", icon: "weather", description: "Condiciones actuales.", to: "/estado-pista" },
     { key: "torneos", label: "Torneos", icon: "trophy", description: "Gestiona jornadas y formatos.", to: "/torneos" },
   ],
   profesor: [
     { key: "clases", label: "Mis clases", icon: "court", description: "Grupos y seguimiento.", to: "/clases" },
     { key: "reservas", label: "Reservas", icon: "calendar", description: "Agenda de pistas.", to: "/reservas" },
     { key: "avisos", label: "Avisos", icon: "bell", description: "Comunicaciones recientes.", to: "/avisos" },
-    { key: "estado-pista", label: "Estado pista", icon: "weather", description: "XIAO y condiciones.", to: "/estado-pista" },
+    { key: "estado-pista", label: "Tiempo y pista", icon: "weather", description: "Tiempo y estado de la pista.", to: "/estado-pista" },
     { key: "torneos", label: "Torneos", icon: "trophy", description: "Jornadas del club.", to: "/torneos" },
     { key: "perfil", label: "Perfil", icon: "user", description: "Datos y preferencias.", to: "/perfil" },
   ],
@@ -28,15 +30,15 @@ const ACTIONS_BY_ROLE = {
     { key: "reservas", label: "Reservar pista", icon: "calendar", description: "Elige día, hora y pista.", to: "/reservas" },
     { key: "clases", label: "Mis clases", icon: "court", description: "Consulta tu grupo.", to: "/clases" },
     { key: "torneos", label: "Torneos", icon: "trophy", description: "Competiciones abiertas.", to: "/torneos" },
-    { key: "estado-pista", label: "Estado pista", icon: "weather", description: "Antes de jugar.", to: "/estado-pista" },
+    { key: "estado-pista", label: "Tiempo y pista", icon: "weather", description: "¿Se puede jugar hoy?", to: "/estado-pista" },
     { key: "perfil", label: "Perfil", icon: "user", description: "Teléfono y preferencias.", to: "/perfil" },
-    { key: "avisos", label: "Notificaciones", icon: "bell", description: "Avisos del club.", to: "/avisos" },
+    { key: "avisos", label: "Avisos", icon: "bell", description: "Mensajes del club.", to: "/avisos" },
   ],
   visitante: [
     { key: "reservas", label: "Reservar pista", icon: "calendar", description: "Consulta disponibilidad.", to: "/reservas" },
     { key: "clases", label: "Clases", icon: "court", description: "Niveles y formatos.", to: "/clases" },
     { key: "torneos", label: "Torneos", icon: "trophy", description: "Jornadas publicadas.", to: "/torneos" },
-    { key: "estado-pista", label: "Estado pista", icon: "weather", description: "Condiciones de juego.", to: "/estado-pista" },
+    { key: "estado-pista", label: "Tiempo y pista", icon: "weather", description: "¿Se puede jugar hoy?", to: "/estado-pista" },
     { key: "perfil", label: "Entrar", icon: "user", description: "Accede a tu cuenta.", to: "/login" },
   ],
 };
@@ -96,48 +98,47 @@ function Icon({ type }) {
   return icons[type] || icons.help;
 }
 
-function getSummaryCards(summary) {
+function getSummaryCards(summary, logged) {
   const data = summary?.data || {};
   const personal = summary?.personal || {};
   const notifications = summary?.notifications || data.notificaciones || {};
   const reservas = data.reservas || personal.proximasReservas || [];
   const nextClass = data.claseProxima || personal.proximaClase;
-  const estadoPista = data.estadoPista || summary?.general?.estadoPista;
   const torneos = data.torneos?.proximos || summary?.general?.torneosAbiertos || [];
   const avisos = notifications.items || [];
 
-  return [
-    {
-      key: "reserva",
-      label: "Próxima reserva",
-      value: reservas[0] ? `${reservas[0].pista_nombre || "Pista"} · ${formatDateTime(reservas[0].fecha, reservas[0].hora_inicio)}` : "No tienes reservas próximas.",
-      action: "reservas",
-    },
-    {
-      key: "clase",
-      label: "Próxima clase",
-      value: nextClass ? `${nextClass.nombre || "Clase"} · ${formatClassDate(nextClass.nextDate)}` : "Aún no hay clases asignadas.",
-      action: "clases",
-    },
-    {
-      key: "estado",
-      label: "Estado de pista",
-      value: estadoPista ? `${estadoPista.estado || "Lectura disponible"}${estadoPista.temperatura != null ? ` · ${estadoPista.temperatura} C` : ""}` : "Sin lectura reciente.",
-      action: "estado-pista",
-    },
-    {
-      key: "torneos",
-      label: "Torneos",
-      value: torneos[0] ? `${torneos.length} publicado${torneos.length === 1 ? "" : "s"} · ${torneos[0].nombre}` : "No hay torneos abiertos ahora mismo.",
-      action: "torneos",
-    },
-    {
+  const cards = [];
+  if (logged) {
+    cards.push(
+      {
+        key: "reserva",
+        label: "Tu próxima reserva",
+        value: reservas[0] ? `${reservas[0].pista_nombre || "Pista"} · ${formatDateTime(String(reservas[0].fecha).slice(0, 10), reservas[0].hora_inicio)}` : "No tienes reservas próximas.",
+        action: "reservas",
+      },
+      {
+        key: "clase",
+        label: "Tu próxima clase",
+        value: nextClass ? `${nextClass.nombre || "Clase"} · ${formatClassDate(nextClass.nextDate)}` : "No tienes clases asignadas.",
+        action: "clases",
+      },
+    );
+  }
+  cards.push({
+    key: "torneos",
+    label: "Torneos",
+    value: torneos[0] ? `${torneos.length} publicado${torneos.length === 1 ? "" : "s"} · ${torneos[0].nombre}` : "No hay torneos abiertos ahora mismo.",
+    action: "torneos",
+  });
+  if (logged) {
+    cards.push({
       key: "avisos",
       label: "Avisos",
       value: avisos[0]?.titulo || avisos[0]?.mensaje || (Number(notifications.unread || 0) ? `${notifications.unread} aviso${notifications.unread === 1 ? "" : "s"} sin leer` : "No hay avisos recientes."),
       action: "avisos",
-    },
-  ];
+    });
+  }
+  return cards;
 }
 
 function buildCommandResponse(command, role) {
@@ -160,8 +161,11 @@ function buildCommandResponse(command, role) {
   if (/(aviso|mensaje|notificacion)/.test(text)) {
     return { title: "Avisos", text: "Abre los avisos y comunicaciones recientes del club.", action: "avisos" };
   }
-  if (/(estado|tiempo|xiao|mojada|humeda)/.test(text)) {
-    return { title: "Estado de pista", text: "Consulta el estado de pista y las condiciones antes de jugar.", action: "estado-pista" };
+  if (/(estado|tiempo|xiao|mojada|humeda|llueve|lluvia)/.test(text)) {
+    return { title: "Tiempo y pista", text: "Mira si hoy se puede jugar y la previsión de los próximos días.", action: "estado-pista" };
+  }
+  if (/(hora|abre|cierra|horario|telefono|llamar|direccion|donde|precio|cuota|cuanto)/.test(text)) {
+    return { title: "Eso te lo dice el club", text: "Para horarios, precios o cómo llegar, escribe al club por WhatsApp o llámalos.", action: "", contacto: true };
   }
   if (/(perfil|telefono|whatsapp)/.test(text)) {
     return { title: "Perfil", text: "Abre tu perfil para revisar teléfono y preferencias.", action: "perfil" };
@@ -171,9 +175,10 @@ function buildCommandResponse(command, role) {
   }
 
   return {
-    title: "No he encontrado esa opción",
-    text: "Prueba con reservas, clases, torneos, avisos o estado de pista.",
+    title: "No sé responder a eso",
+    text: "¿Te paso con el club? Te contestan por WhatsApp o por teléfono.",
     action: "",
+    contacto: true,
   };
 }
 
@@ -232,7 +237,9 @@ export default function ClubAssistant() {
   const role = useMemo(() => getRole(summary), [summary]);
   const actions = ACTIONS_BY_ROLE[role] || ACTIONS_BY_ROLE.visitante;
   const unreadCount = Number(summary?.notifications?.unread || summary?.data?.notificaciones?.unread || 0);
-  const summaryCards = useMemo(() => getSummaryCards(summary), [summary]);
+  const logged = isLogged();
+  const summaryCards = useMemo(() => getSummaryCards(summary, logged), [summary, logged]);
+  const [lastQuestion, setLastQuestion] = useState("");
   const selectedActionMeta = actions.find((action) => action.key === selectedAction);
   const activeResponse = commandResponse || (selectedActionMeta
     ? { title: selectedActionMeta.label, text: selectedActionMeta.description, action: selectedActionMeta.key }
@@ -265,6 +272,7 @@ export default function ClubAssistant() {
     if (!value) return;
 
     const response = buildCommandResponse(value, role);
+    setLastQuestion(value);
     setCommandResponse(response);
     setSelectedAction(response.action);
     setCommand("");
@@ -279,11 +287,11 @@ export default function ClubAssistant() {
               <div className="assistantAvatar" aria-hidden="true">NP</div>
               <div>
                 <h3>Asistente del club</h3>
-                <span className="assistantEyebrow">NaniPadel · Online</span>
+                <span className="assistantEyebrow">Respuestas automáticas</span>
               </div>
             </div>
-            <button className="assistantCloseBtn" onClick={() => setOpen(false)} aria-label="Cerrar asistente" type="button">
-              <span aria-hidden="true">x</span>
+            <button className="assistantCloseBtn" onClick={() => setOpen(false)} type="button">
+              Cerrar
             </button>
           </div>
 
@@ -293,6 +301,11 @@ export default function ClubAssistant() {
               <div className="assistantBubble">
                 <p>{getWelcomeText(role)}</p>
               </div>
+            </div>
+
+            <div className="assistantContacto">
+              <strong>Hablar con una persona del club</strong>
+              <ContactoClub compacto />
             </div>
 
             {loading && (
@@ -342,6 +355,16 @@ export default function ClubAssistant() {
                   Ir ahora
                 </button>
               )}
+              {activeResponse.contacto && (
+                <a
+                  className="assistantReplyLink assistantReplyWhatsapp"
+                  href={buildClubWhatsappUrl(lastQuestion ? `Hola, tengo una pregunta: ${lastQuestion}` : "Hola, tengo una pregunta sobre NaniPadel")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Preguntar al club por WhatsApp
+                </a>
+              )}
             </div>
 
             <div className="assistantSummaryGrid" aria-label="Resumen del club">
@@ -369,12 +392,17 @@ export default function ClubAssistant() {
       <button
         className={`assistantFab${open ? " isOpen" : ""}`}
         onClick={() => setOpen((value) => !value)}
-        aria-label="Abrir asistente del club"
+        aria-label={open ? "Cerrar la ayuda" : "Abrir la ayuda del club"}
+        aria-expanded={open}
         type="button"
       >
-        <span className="assistantFabStatus" aria-hidden="true" />
         {unreadCount > 0 && <span className="assistantFabBadge" aria-label={`${unreadCount} avisos sin leer`}>{unreadCount}</span>}
-        <span className="assistantFabInner">Club</span>
+        <svg className="assistantFabIcon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9.5" />
+          <path d="M9.2 9.3a2.9 2.9 0 1 1 4.3 2.5c-.9.5-1.5 1.1-1.5 2.1" />
+          <path d="M12 17.2h.01" />
+        </svg>
+        <span className="assistantFabInner">{open ? "Cerrar" : "Ayuda"}</span>
       </button>
     </div>
   );

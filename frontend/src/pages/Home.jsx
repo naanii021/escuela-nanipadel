@@ -4,6 +4,10 @@ import { getWeatherForClub, isRainy } from "../services/weatherService";
 import { apiGet } from "../services/api";
 import { getUser, isLogged } from "../services/auth";
 import WeatherCourt3D from "../components/WeatherCourt3D";
+import Hoja from "../components/Hoja";
+import MisReservas from "../components/MisReservas";
+import ContactoClub from "../components/ContactoClub";
+import { ahoraMadrid, fechaRelativa } from "../services/fechas";
 import "./home.css";
 import "./inicio.css";
 
@@ -25,42 +29,25 @@ const SCENES = [
   { id: "noche", label: "Noche", night: true },
 ];
 
-const NEWS_ITEMS = [
+// Fotos destacadas del club (sin fecha: no son noticias, son imágenes de la galería).
+const PHOTO_ITEMS = [
   {
     id: 1,
     category: "Liga",
-    date: "26 abr 2026",
-    title: "La liga femenina brilla en casa",
-    summary:
-      "El equipo compitió con buen ritmo y el ambiente del club se notó desde el primer partido.",
+    title: "La liga femenina jugando en casa",
     image: `${process.env.PUBLIC_URL}/fotosLiga/ligafem.jpeg`,
   },
   {
     id: 2,
     category: "Clases",
-    date: "24 abr 2026",
-    title: "Sesión técnica para mejorar bandeja y red",
-    summary:
-      "Los grupos trabajan situaciones reales de partido para ganar confianza y ordenar mejor el juego.",
+    title: "Clase técnica de bandeja y red",
     image: `${process.env.PUBLIC_URL}/fotosClase/clases.jpeg`,
   },
   {
     id: 3,
-    category: "Club",
-    date: "22 abr 2026",
-    title: "Premios y buen ambiente tras el torneo del club",
-    summary:
-      "Alumnos y familias compartieron pista, premios y una jornada de esas que hacen club.",
+    category: "Torneos",
+    title: "Entrega de premios del torneo del club",
     image: `${process.env.PUBLIC_URL}/fotosAlumnos/premiodanipau.jpeg`,
-  },
-  {
-    id: 4,
-    category: "Alumnos",
-    date: "19 abr 2026",
-    title: "Más partidos entre alumnos durante la semana",
-    summary:
-      "La escuela sigue creciendo con reservas, clases y partidos organizados entre alumnos.",
-    image: `${process.env.PUBLIC_URL}/fotosAlumnos/nani.jpeg`,
   },
 ];
 
@@ -90,6 +77,9 @@ function Home() {
   const [todayClasses, setTodayClasses] = useState([]);
   const [activeAlerts, setActiveAlerts] = useState([]);
   const [activeAlertsError, setActiveAlertsError] = useState("");
+  const [nextClass, setNextClass] = useState(null);
+  const role = String(getUser()?.rol || "").toLowerCase();
+  const isStaff = loggedIn && STAFF_ROLES.includes(role);
 
   const loadWeather = useCallback(async () => {
     try {
@@ -119,10 +109,28 @@ function Home() {
       });
   }, [loggedIn]);
 
+  // Alumno: su próxima clase, para no tener que entrar en Clases.
+  useEffect(() => {
+    if (!loggedIn || isStaff) return;
+    apiGet("/api/clases/mis-clases")
+      .then((data) => {
+        if (data?.tipoVista !== "alumno") return;
+        const sesion = (data.proximasSesiones || data.proximas_clases || [])[0];
+        if (!sesion) return;
+        const grupo = (data.clases || []).find((item) => String(item.id) === String(sesion.grupo_id)) || data.grupo || {};
+        setNextClass({
+          fecha: sesion.fecha,
+          hora: String(sesion.hora_inicio || grupo.hora_inicio || "").slice(0, 5),
+          nombre: grupo.nombre || "Tu clase",
+          pista: sesion.pista_habitual || grupo.pista_habitual || "",
+        });
+      })
+      .catch(() => setNextClass(null));
+  }, [loggedIn, isStaff]);
+
   // Atajo para profesores y admin: las clases de hoy con acceso directo a pasar lista.
   useEffect(() => {
-    const role = String(getUser()?.rol || "").toLowerCase();
-    if (!loggedIn || !STAFF_ROLES.includes(role)) return;
+    if (!isStaff) return;
     apiGet("/api/gestion/control/grupos")
       .then((data) => {
         const today = DAY_LETTERS[new Date().getDay()];
@@ -136,7 +144,19 @@ function Home() {
         );
       })
       .catch(() => setTodayClasses([]));
-  }, [loggedIn]);
+  }, [isStaff]);
+
+  // Clase de ahora (empezada y sin terminar) y la siguiente, en hora de Madrid.
+  const nowMinutes = (() => {
+    const [hh, mm] = ahoraMadrid().hora.split(":").map(Number);
+    return hh * 60 + mm;
+  })();
+  const toMinutes = (value) => {
+    const [hh, mm] = String(value || "").split(":").map(Number);
+    return hh * 60 + (mm || 0);
+  };
+  const nowClassId = todayClasses.find((g) => toMinutes(g.hora_inicio) <= nowMinutes && nowMinutes < toMinutes(g.hora_inicio) + Number(g.duracion_min || 60))?.id;
+  const nextClassId = todayClasses.find((g) => toMinutes(g.hora_inicio) > nowMinutes)?.id;
 
   const scene = SCENES.find((item) => item.id === sceneId) || SCENES[0];
   const sceneIndex = SCENES.indexOf(scene);
@@ -157,7 +177,35 @@ function Home() {
   else if (playable === false) headline = "Hoy mejor no jugar";
 
   return (
-    <main className="inicio" aria-labelledby="home-title">
+    <div className="inicio">
+      {todayClasses.length > 0 && (
+        <section className="inicioHoy" aria-labelledby="inicio-hoy-title">
+          <div className="sectionHeader sectionHeaderInline">
+            <div>
+              <h2 id="inicio-hoy-title">Hoy: pasar lista</h2>
+            </div>
+          </div>
+          <ul className="inicioHoyList">
+            {todayClasses.map((group) => {
+              const label = group.id === nowClassId ? "Ahora" : group.id === nextClassId ? "Siguiente" : "";
+              return (
+                <li key={group.id} className={label ? `is${label}` : ""}>
+                  <Link to={`/panel?seccion=control&grupo=${group.id}`}>
+                    <strong>{String(group.hora_inicio).slice(0, 5)}</strong>
+                    <span>
+                      {label && <b className="inicioHoyEtiqueta">{label}</b>}
+                      {String(group.nombre).replace(/\s*·\s*\d{1,2}:\d{2}\s*$/, "")}
+                      {group.pista_habitual ? <small>{group.pista_habitual}</small> : null}
+                    </span>
+                    <em>Pasar lista</em>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       <section className={`inicioHero${night ? " isNight" : ""}${rain ? " isRaining" : ""}`}>
         <WeatherCourt3D weather={weather} night={night} rain={rain} />
 
@@ -226,7 +274,6 @@ function Home() {
                     <li
                       key={hour.time}
                       className={hour.playable ? "isPlayable" : "isBlocked"}
-                      style={{ "--i": index }}
                     >
                       <span>{index === 0 ? "Ahora" : formatHour(hour.time)}</span>
                       <i aria-hidden="true" />
@@ -266,120 +313,108 @@ function Home() {
         </div>
       </section>
 
-      {todayClasses.length > 0 && (
-        <section className="inicioHoy" aria-labelledby="inicio-hoy-title">
-          <div className="sectionHeader sectionHeaderInline">
-            <div>
-              <span className="sectionEyebrow">Hoy</span>
-              <h2 id="inicio-hoy-title">Pasar lista</h2>
+      {showWeatherModal && weather && (
+        <Hoja titulo="El tiempo en la pista" tamano="ancha" className="hojaTiempo" onCerrar={() => setShowWeatherModal(false)}>
+          <div className="weatherCurrentBig">
+            <div className="weatherCurrentIcon">{weather.emoji}</div>
+            <div className="weatherCurrentInfo">
+              <p className="weatherCurrentTemp">{Math.round(weather.temperature)}°C</p>
+              <p className="weatherCurrentDesc">{weather.description}</p>
+              <p className="weatherCurrentFeel">
+                Sensación térmica: {Math.round(weather.apparentTemperature)}°C
+              </p>
             </div>
           </div>
-          <ul className="inicioHoyList">
-            {todayClasses.map((group) => (
-              <li key={group.id}>
-                <Link to={`/panel?seccion=control&grupo=${group.id}`}>
-                  <strong>{String(group.hora_inicio).slice(0, 5)}</strong>
-                  <span>
-                    {String(group.nombre).replace(/\s*·\s*\d{1,2}:\d{2}\s*$/, "")}
-                    {group.pista_habitual ? <small>{group.pista_habitual}</small> : null}
-                  </span>
-                  <em>Pasar lista</em>
-                </Link>
-              </li>
-            ))}
-          </ul>
+
+          <div className="weatherDetailGrid">
+            <div className="weatherDetailItem">
+              <span className="wdLabel">Humedad</span>
+              <span className="wdValue">{weather.humidity}%</span>
+            </div>
+            <div className="weatherDetailItem">
+              <span className="wdLabel">Viento</span>
+              <span className="wdValue">{weather.windSpeed} km/h</span>
+            </div>
+            <div className="weatherDetailItem">
+              <span className="wdLabel">Lluvia</span>
+              <span className="wdValue">{weather.precipitationProbability}%</span>
+            </div>
+            <div className="weatherDetailItem">
+              <span className="wdLabel">Índice UV</span>
+              <span className="wdValue">{weather.uvIndex ?? "-"}</span>
+            </div>
+          </div>
+
+          {weather.recomendacion && (
+            <div className={`recomendacionBox rec-${weather.recomendacion.nivel}`}>
+              <div className="recIcon">{weather.recomendacion.icono}</div>
+              <div className="recText">
+                <strong>{weather.recomendacion.titulo}</strong>
+                <p>{weather.recomendacion.mensaje}</p>
+              </div>
+            </div>
+          )}
+
+          {weather.forecast && weather.forecast.length > 0 && (
+            <div className="forecastSection">
+              <h3>Previsión de los próximos 7 días</h3>
+              <div className="forecastList">
+                {weather.forecast.map((day) => (
+                  <div className="forecastDay" key={day.date}>
+                    <span className="fDayName">{formatDay(day.date)}</span>
+                    <span className="fDayIcon">{day.emoji}</span>
+                    <span className="fDayDesc">{day.description}</span>
+                    <span className="fDayTemps">
+                      <strong>{Math.round(day.tempMax)}°</strong>
+                      <span className="fDayMin"> / {Math.round(day.tempMin)}°</span>
+                    </span>
+                    <span className="fDayRain">{day.precipitationProbability}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <p className="weatherUpdated">
+            Actualizado a las {new Date(weather.updatedAt).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+          </p>
+          <Link className="weatherModalPageLink" to="/estado-pista">
+            Ver todos los detalles del tiempo
+          </Link>
+        </Hoja>
+      )}
+
+      {loggedIn && !isStaff && (
+        <section className="inicioTuyo" aria-label="Tus próximas citas">
+          {nextClass && (
+            <div className="inicioProximaClase">
+              <h2>Tu próxima clase</h2>
+              <p>
+                <strong>{fechaRelativa(nextClass.fecha)}{nextClass.hora ? `, a las ${nextClass.hora}` : ""}</strong>
+                <span>{nextClass.nombre}{nextClass.pista ? ` · ${nextClass.pista}` : ""}</span>
+              </p>
+              <Link className="newsMoreBtn" to="/clases">Ver mis clases</Link>
+            </div>
+          )}
+          <MisReservas enlaceReservar />
         </section>
       )}
 
-      {showWeatherModal && weather && (
-        <div className="weatherModalBackdrop" onClick={() => setShowWeatherModal(false)}>
-          <div className="weatherModal" onClick={(event) => event.stopPropagation()}>
-            <div className="weatherModalHead">
-              <h2>Tiempo en Norba Padel</h2>
-              <button
-                className="weatherCloseBtn"
-                onClick={() => setShowWeatherModal(false)}
-                aria-label="Cerrar detalle del tiempo"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="weatherCurrentBig">
-              <div className="weatherCurrentIcon">{weather.emoji}</div>
-              <div className="weatherCurrentInfo">
-                <p className="weatherCurrentTemp">{Math.round(weather.temperature)}°C</p>
-                <p className="weatherCurrentDesc">{weather.description}</p>
-                <p className="weatherCurrentFeel">
-                  Sensación térmica: {Math.round(weather.apparentTemperature)}°C
-                </p>
-              </div>
-            </div>
-
-            <div className="weatherDetailGrid">
-              <div className="weatherDetailItem">
-                <span className="wdLabel">Humedad</span>
-                <span className="wdValue">{weather.humidity}%</span>
-              </div>
-              <div className="weatherDetailItem">
-                <span className="wdLabel">Viento</span>
-                <span className="wdValue">{weather.windSpeed} km/h</span>
-              </div>
-              <div className="weatherDetailItem">
-                <span className="wdLabel">Lluvia</span>
-                <span className="wdValue">{weather.precipitationProbability}%</span>
-              </div>
-              <div className="weatherDetailItem">
-                <span className="wdLabel">Indice UV</span>
-                <span className="wdValue">{weather.uvIndex ?? "-"}</span>
-              </div>
-            </div>
-
-            {weather.recomendacion && (
-              <div className={`recomendacionBox rec-${weather.recomendacion.nivel}`}>
-                <div className="recIcon">{weather.recomendacion.icono}</div>
-                <div className="recText">
-                  <strong>{weather.recomendacion.titulo}</strong>
-                  <p>{weather.recomendacion.mensaje}</p>
-                </div>
-              </div>
-            )}
-
-            {weather.forecast && weather.forecast.length > 0 && (
-              <div className="forecastSection">
-                <h3>Previsión de los próximos 7 días</h3>
-                <div className="forecastList">
-                  {weather.forecast.map((day) => (
-                    <div className="forecastDay" key={day.date}>
-                      <span className="fDayName">{formatDay(day.date)}</span>
-                      <span className="fDayIcon">{day.emoji}</span>
-                      <span className="fDayDesc">{day.description}</span>
-                      <span className="fDayTemps">
-                        <strong>{Math.round(day.tempMax)}°</strong>
-                        <span className="fDayMin"> / {Math.round(day.tempMin)}°</span>
-                      </span>
-                      <span className="fDayRain">{day.precipitationProbability}%</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <p className="weatherUpdated">
-              Actualizado: {new Date(weather.updatedAt).toLocaleString()}
-            </p>
-            <Link className="weatherModalPageLink" to="/estado-pista">
-              Abrir pagina completa
-            </Link>
+      {!loggedIn && (
+        <section className="inicioNuevo" aria-labelledby="inicio-nuevo-title">
+          <div>
+            <h2 id="inicio-nuevo-title">¿Eres nuevo en la escuela?</h2>
+            <p>Clases de pádel para niños y adultos, de iniciación a competición. Pregúntanos sin compromiso y te buscamos grupo.</p>
+            <Link className="inicioNuevoLink" to="/clases">Ver las clases y apuntarme</Link>
           </div>
-        </div>
+          <ContactoClub mensaje="Hola, quiero información para apuntarme a clases de pádel" />
+        </section>
       )}
 
       {loggedIn && (
         <section className="homeAlerts">
           <div className="sectionHeader sectionHeaderInline">
             <div>
-              <span className="sectionEyebrow">Avisos activos</span>
               <h2>Lo importante del club</h2>
             </div>
             <Link className="newsMoreBtn" to="/avisos">
@@ -408,29 +443,26 @@ function Home() {
       <section className="inicioNews" aria-labelledby="inicio-news-title">
         <div className="sectionHeader sectionHeaderInline">
           <div>
-            <span className="sectionEyebrow">Club en marcha</span>
-            <h2 id="inicio-news-title">Noticias del club</h2>
+            <h2 id="inicio-news-title">Fotos del club</h2>
           </div>
           <Link className="newsMoreBtn" to="/galeria">
-            Ver todas
+            Ver todas las fotos
           </Link>
         </div>
 
         <div className="inicioNewsGrid">
-          {NEWS_ITEMS.slice(0, 3).map((item, index) => (
-            <Link className="inicioNewsCard" to="/galeria" key={item.id} style={{ "--i": index }}>
+          {PHOTO_ITEMS.map((item) => (
+            <Link className="inicioNewsCard" to="/galeria" key={item.id}>
               <img src={item.image} alt="" loading="lazy" />
               <div>
-                <span>
-                  {item.category} · {item.date}
-                </span>
+                <span>{item.category}</span>
                 <h3>{item.title}</h3>
               </div>
             </Link>
           ))}
         </div>
       </section>
-    </main>
+    </div>
   );
 }
 

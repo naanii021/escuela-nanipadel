@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/security.js";
 import { db } from "../db/connection.js";
 import { requireAuth } from "../middleware/auth.js";
+import { ahoraEnClub, esHoraPasada } from "../services/horarioClub.js";
 import {
   NOTIFICATION_EVENTS,
   notifyEvent,
@@ -841,6 +842,63 @@ router.get("/", optionalAuth, async (req, res) => {
   }
 });
 
+// GET /api/reservas/mias
+// Próximas reservas del usuario: las que ha hecho él y las partidas abiertas en las que juega.
+router.get("/mias", requireAuth, async (req, res) => {
+  try {
+    const hoy = ahoraEnClub().fecha;
+    const conParticipantes = await tableExists("reservas_pista_participantes");
+    const reservaColumns = await getTableColumns("reservas_pista");
+
+    const condicionParticipante = conParticipantes
+      ? ` OR r.id IN (
+          SELECT rp.reserva_id FROM reservas_pista_participantes rp
+          WHERE rp.usuario_id = ? AND rp.tipo_participante = 'usuario' AND rp.estado = 'confirmado'
+        )`
+      : "";
+
+    const [rows] = await query(
+      `SELECT
+        r.id,
+        r.usuario_id,
+        r.pista_id,
+        p.nombre AS pista_nombre,
+        DATE_FORMAT(r.fecha, '%Y-%m-%d') AS fecha,
+        TIME_FORMAT(r.hora_inicio, '%H:%i') AS hora_inicio,
+        r.duracion_min,
+        r.estado,
+        ${selectColumn(reservaColumns, "r.tipo_reserva", "'completa'", "tipo_reserva")}
+       FROM reservas_pista r
+       JOIN pistas p ON p.id = r.pista_id
+       WHERE r.estado != 'cancelada'
+         AND r.fecha >= ?
+         AND (r.usuario_id = ?${condicionParticipante})
+       ORDER BY r.fecha ASC, r.hora_inicio ASC
+       LIMIT 20`,
+      conParticipantes ? [hoy, req.user.id, req.user.id] : [hoy, req.user.id],
+    );
+
+    const reservas = rows
+      .filter((row) => !esHoraPasada(row.fecha, row.hora_inicio))
+      .map((row) => ({
+        id: row.id,
+        pista_id: row.pista_id,
+        pista_nombre: row.pista_nombre,
+        fecha: row.fecha,
+        hora_inicio: row.hora_inicio,
+        duracion_min: Number(row.duracion_min || 90),
+        estado: row.estado,
+        tipo_reserva: row.tipo_reserva,
+        es_mia: String(row.usuario_id) === String(req.user.id),
+      }));
+
+    res.json({ ok: true, reservas });
+  } catch (e) {
+    console.error("Error GET /api/reservas/mias:", e);
+    res.status(500).json({ ok: false, message: "No se han podido cargar tus reservas." });
+  }
+});
+
 // GET /api/reservas/pistas
 router.get("/pistas", async (_req, res) => {
   try {
@@ -883,6 +941,14 @@ router.post("/", requireAuth, async (req, res) => {
       return res.status(400).json({
         ok: false,
         message: "Faltan campos obligatorios (pista_id, fecha, hora_inicio)",
+      });
+    }
+
+    // No se puede reservar una hora que ya ha empezado o pasado (hora de Madrid).
+    if (esHoraPasada(fecha, hora_inicio)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Esa hora ya ha pasado. Elige otra hora.",
       });
     }
 

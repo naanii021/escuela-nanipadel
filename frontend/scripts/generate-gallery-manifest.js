@@ -16,9 +16,20 @@ const sourceFolders = [
   { folder: "fotos", category: "Alumnos", legacy: true },
 ];
 
-function toTitle(fileName) {
-  return fileName
-    .replace(/\.[^.]+$/, "")
+// Pie de foto por categoría cuando el nombre del archivo no dice nada ("Ligafem3", "Torneo1").
+const CATEGORY_CAPTIONS = {
+  Alumnos: "Alumnos del club",
+  Clases: "En clase",
+  Liga: "Liga del club",
+  Pista: "Las pistas del club",
+  Torneos: "Torneo del club",
+};
+
+function toTitle(fileName, category) {
+  const base = fileName.replace(/\.[^.]+$/, "");
+  const words = base.split(/[-_\s]+/).filter((word) => /[a-záéíóúñ]{2,}/i.test(word));
+  if (words.length < 2 && CATEGORY_CAPTIONS[category]) return CATEGORY_CAPTIONS[category];
+  return base
     .replace(/[-_]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
@@ -35,14 +46,14 @@ function inferLegacyCategory(fileName) {
 function getCategoryMeta(category) {
   if (category === "Clases") {
     return {
-      highlight: "Entrenamientos y tecnica",
-      desc: "Sesion de entrenamiento y aprendizaje en pista dentro de la escuela.",
+      highlight: "Entrenamientos y técnica",
+      desc: "Sesión de entrenamiento y aprendizaje en pista dentro de la escuela.",
     };
   }
 
   if (category === "Liga") {
     return {
-      highlight: "Competicion por equipos",
+      highlight: "Competición por equipos",
       desc: "Imagen de una jornada de liga con ritmo competitivo y ambiente de club.",
     };
   }
@@ -73,7 +84,7 @@ function collectPhotosFromFolder(source) {
       const meta = getCategoryMeta(category);
 
       return {
-        title: toTitle(fileName),
+        title: toTitle(fileName, category),
         category,
         src: `/${source.folder}/${fileName}`,
         highlight: meta.highlight,
@@ -112,7 +123,7 @@ const courtPhotos = collectPhotosFromFolder({
   id: index + 1,
   title: photo.title,
   src: photo.src,
-  desc: "Vista de las pistas y del entorno del club para acompanar el estado de juego.",
+  desc: "Vista de las pistas y del entorno del club para acompañar el estado de juego.",
 }));
 
 const courtManifest = {
@@ -131,7 +142,7 @@ const tournamentPhotos = collectPhotosFromFolder({
     id: index + 1,
     title: photo.title,
     src: photo.src,
-    highlight: index === 0 ? "Momentos del torneo" : "Ambiente de competicion",
+    highlight: index === 0 ? "Momentos del torneo" : "Ambiente de competición",
     desc: "Imagen del ambiente competitivo, jornadas y actividad deportiva del club.",
   }));
 

@@ -1,27 +1,43 @@
 .footer {
-  padding: 1.2rem 0 2rem;
+  padding: 1.5rem 0 2rem;
   color: var(--muted);
 }
 
 .footerInner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
   gap: 1rem;
   border-top: 1px solid var(--border);
-  padding-top: 1.2rem;
-  font-size: 0.95rem;
+  padding-top: 1.4rem;
+  font-size: 1rem;
 }
 
-.footerInner a {
-  color: #15803d;
-  font-weight: 800;
-  text-decoration: none;
+.footerContacto {
+  display: grid;
+  gap: 0.7rem;
+  max-width: 34rem;
 }
 
-@media (max-width: 640px) {
-  .footerInner {
-    align-items: flex-start;
-    flex-direction: column;
+.footerContacto > strong {
+  font-size: 1.05rem;
+}
+
+.footerLegal {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+/* El pie es verde oscuro: WhatsApp en lima para que destaque. */
+.footer .contactoBtn.isWhatsapp {
+  background: var(--lime, #b8ee58);
+  color: #142119;
+}
+
+.footer .footerContacto > strong {
+  color: #ffffff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .footer .contactoBtn.isWhatsapp:hover {
+    background: #c7f47b;
   }
 }
