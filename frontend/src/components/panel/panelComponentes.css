@@ -1,0 +1,535 @@
+/* Componentes del panel: pasar lista, horario, recuperaciones, aviso de guardado y diálogo.
+   Usan las variables de .ppPanel (pages/panelProfesor.css). */
+
+/* ---------- Pasar lista ---------- */
+/* Tira con las clases de hoy: se desliza en horizontal y marca la de ahora y las ya pasadas. */
+.ppTodayStrip {
+  display: flex;
+  gap: 0.45rem;
+  margin-inline: -0.2rem;
+  padding: 0.1rem 0.2rem 0.35rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.ppTodayCard {
+  display: grid;
+  flex: 0 0 auto;
+  align-content: start;
+  gap: 0.1rem;
+  width: 10.5rem;
+  min-height: 92px;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--pp-line-strong);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--pp-ink);
+  font: inherit;
+  text-align: left;
+  scroll-snap-align: start;
+  cursor: pointer;
+  transition: background-color 140ms var(--pp-ease-out), border-color 140ms var(--pp-ease-out), transform 120ms var(--pp-ease-out);
+}
+
+.ppTodayCard:active { transform: scale(0.97); }
+
+.ppTodayCardTime {
+  font-size: 1.125rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.ppTodayCardName {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.25;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.ppTodayCardState {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.15rem;
+  color: var(--pp-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.ppTodayCardState svg { width: 16px; height: 16px; }
+.ppTodayCard[data-momento="ahora"] .ppTodayCardState { color: var(--pp-ok-ink); }
+.ppTodayCard[data-hecha="true"] .ppTodayCardState { color: var(--pp-ok-ink); }
+.ppTodayCard[data-momento="pasada"][data-hecha="false"] .ppTodayCardState { color: var(--pp-warn-ink); }
+.ppTodayCard[data-momento="ahora"] { border-color: var(--pp-ok); }
+
+.ppTodayCard[aria-pressed="true"] {
+  border-color: var(--pp-primary);
+  background: var(--pp-primary);
+  color: #ffffff;
+}
+
+.ppTodayCard[aria-pressed="true"] .ppTodayCardState { color: #ffffff; }
+
+@media (hover: hover) and (pointer: fine) {
+  .ppTodayCard:hover:not([aria-pressed="true"]) { background: var(--pp-soft); }
+}
+
+.ppClassBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--pp-line);
+  border-radius: 12px;
+  background: var(--pp-soft);
+}
+
+.ppClassBarText {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.ppClassBarText strong {
+  font-size: 1.125rem;
+  font-weight: 800;
+  overflow-wrap: break-word;
+}
+
+.ppClassBarText span {
+  color: var(--pp-muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.ppClassBar .ppBtn { flex: none; }
+
+.ppChangeClass {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  align-items: end;
+  gap: 0.6rem;
+}
+
+.ppHint {
+  color: var(--pp-ink);
+  font-size: 1rem;
+  font-weight: 600;
+  overflow-wrap: break-word;
+}
+
+.ppRoll {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.ppRollRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+  align-items: center;
+  gap: 0.6rem 1rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--pp-line);
+  border-radius: 14px;
+  background: #ffffff;
+  transition: background-color 140ms var(--pp-ease-out), border-color 140ms var(--pp-ease-out);
+}
+
+.ppRollRow[data-estado="falta"] {
+  border-color: hsl(0 55% 80%);
+  background: var(--pp-bad-soft);
+}
+
+.ppRollRow[data-estado="justificada"] {
+  border-color: hsl(38 70% 72%);
+  background: var(--pp-warn-soft);
+}
+
+.ppSegmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.ppSegment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0.35rem 0.4rem;
+  border: 1.5px solid hsl(150 10% 76%);
+  border-radius: 12px;
+  background: #ffffff;
+  color: hsl(150 15% 22%);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.1;
+  cursor: pointer;
+  transition: background-color 120ms var(--pp-ease-out), border-color 120ms var(--pp-ease-out), color 120ms var(--pp-ease-out), transform 120ms var(--pp-ease-out);
+}
+
+.ppSegment svg { flex: none; width: 18px; height: 18px; }
+.ppSegment:active { transform: scale(0.96); }
+
+.ppSegment[data-tone="presente"][aria-pressed="true"] { border-color: var(--pp-ok); background: var(--pp-ok); color: #ffffff; }
+.ppSegment[data-tone="falta"][aria-pressed="true"] { border-color: var(--pp-bad); background: var(--pp-bad); color: #ffffff; }
+.ppSegment[data-tone="justificada"][aria-pressed="true"] { border-color: hsl(38 85% 45%); background: var(--pp-warn); color: hsl(30 80% 12%); }
+
+@media (hover: hover) and (pointer: fine) {
+  .ppSegment:hover:not([aria-pressed="true"]) { border-color: hsl(150 10% 55%); background: var(--pp-soft); }
+}
+
+.ppMore {
+  padding: 0.2rem 0.9rem;
+  border: 1px solid var(--pp-line);
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.ppMoreBody {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.3rem 0 0.9rem;
+}
+
+.ppRadioGroup {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ppRadioGroup legend {
+  margin-bottom: 0.2rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.ppRadioGroup label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* Barra de guardar: queda fija abajo mientras se baja por la lista. */
+.ppSaveBar {
+  position: sticky;
+  bottom: calc(var(--pp-bottom-nav) + env(safe-area-inset-bottom, 0px) + 0.5rem);
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--pp-line-strong);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: var(--pp-shadow-2);
+}
+
+.ppSaveSummary {
+  display: grid;
+  min-width: 0;
+  font-size: 1rem;
+}
+
+.ppSaveSummary span {
+  color: var(--pp-warn-ink);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.ppSaveError { grid-column: 1 / -1; }
+
+.ppSaveBtn {
+  min-width: 11rem;
+  min-height: 52px;
+  font-size: 1.0625rem;
+  transition: background-color 160ms var(--pp-ease-out), border-color 160ms var(--pp-ease-out), transform 120ms var(--pp-ease-out);
+}
+
+.ppSaveBtn[data-done="true"] {
+  border-color: var(--pp-ok);
+  background: var(--pp-ok);
+}
+
+.ppSaveBtn[data-done="true"] svg {
+  animation: ppCheckIn 160ms var(--pp-ease-out);
+}
+
+@keyframes ppCheckIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ---------- Horario ---------- */
+.ppDayPicker {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.25rem;
+  max-width: 560px;
+}
+
+.ppDayPicker button {
+  display: grid;
+  place-items: center;
+  min-height: 56px;
+  padding: 0.3rem 0.2rem;
+  border: 1px solid var(--pp-line-strong);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--pp-ink);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 140ms var(--pp-ease-out), color 140ms var(--pp-ease-out);
+}
+
+.ppDayPicker button span { font-size: 1rem; font-weight: 800; }
+.ppDayPicker button small { color: var(--pp-muted); font-size: 0.8125rem; font-weight: 700; }
+
+.ppDayPicker button[aria-pressed="true"] {
+  border-color: var(--pp-primary);
+  background: var(--pp-primary);
+  color: #ffffff;
+}
+
+.ppDayPicker button[aria-pressed="true"] small { color: #ffffff; }
+
+.ppScheduleList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0.6rem;
+}
+
+.ppScheduleItem {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  border: 1px solid var(--pp-line);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.ppScheduleTime {
+  font-size: 1.125rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.ppScheduleBody { display: grid; gap: 0.25rem; }
+.ppScheduleBody strong { font-size: 1.0625rem; }
+
+.ppScheduleStudents {
+  color: var(--pp-muted);
+  font-size: 0.9375rem;
+}
+
+.ppScheduleActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.ppScheduleActions .ppBtn { flex: 1 1 auto; }
+
+/* ---------- Recuperaciones ---------- */
+.ppRecList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0.6rem;
+}
+
+.ppRecCard {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.8rem;
+  border: 1px solid var(--pp-line);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.ppRecHead { display: grid; gap: 0.1rem; }
+.ppRecHead strong { font-size: 1.0625rem; }
+.ppRecHead span { color: var(--pp-muted); font-size: 0.9375rem; }
+.ppRecForm { display: grid; gap: 0.6rem; }
+
+/* ---------- Aviso de guardado ---------- */
+.ppToastZone {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--pp-bottom-nav, 0px) + env(safe-area-inset-bottom, 0px) + 1rem);
+  z-index: 300;
+  width: min(520px, calc(100% - 1.5rem));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.ppToast {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.75rem 0.8rem 0.75rem 1rem;
+  border-radius: 14px;
+  background: var(--color-primary);
+  color: #ffffff;
+  box-shadow: var(--pp-shadow-2);
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: 0;
+  transform: translateY(16px);
+  visibility: hidden;
+  transition: opacity 180ms var(--pp-ease-out), transform 180ms var(--pp-ease-out), visibility 0s linear 180ms;
+}
+
+.ppToast[data-open="true"] {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 240ms var(--pp-ease-out), transform 240ms var(--pp-ease-out), visibility 0s;
+}
+
+.ppToast[data-tone="error"] { background: var(--pp-bad-ink); }
+
+.ppToastIcon {
+  display: grid;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: hsl(145 55% 30%);
+}
+
+.ppToast[data-tone="error"] .ppToastIcon { background: rgba(255, 255, 255, 0.18); }
+.ppToastIcon svg { width: 18px; height: 18px; }
+.ppToastText { flex: 1; min-width: 0; overflow-wrap: break-word; }
+
+.ppToastClose {
+  flex: none;
+  min-width: 56px;
+  min-height: 44px;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  background: transparent;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ---------- Diálogo de confirmación ---------- */
+.ppDialog {
+  width: min(440px, calc(100% - 2rem));
+  padding: 0;
+  border: 0;
+  border-radius: 20px;
+  background: var(--color-card);
+  color: var(--color-text);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.10);
+}
+
+.ppDialog::backdrop { background: rgba(15, 23, 42, 0.45); }
+
+.ppDialogBody {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1.2rem;
+}
+
+.ppPanel .ppDialog h2 {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.3;
+  text-transform: none;
+}
+
+.ppDialog p { margin: 0; font-size: 1rem; }
+
+.ppDialogActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.ppDialog .ppBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0.6rem 1rem;
+  border: 1px solid hsl(220 14% 78%);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ppDialog .ppBtnDanger { border-color: hsl(0 68% 44%); background: hsl(0 68% 44%); color: #ffffff; }
+
+.ppDialog .ppInlineError {
+  padding: 0.7rem 0.9rem;
+  border: 1px solid hsl(0 60% 80%);
+  border-radius: 12px;
+  background: hsl(0 78% 97%);
+  color: hsl(0 65% 36%);
+  font-weight: 600;
+}
+
+/* ---------- Móvil ---------- */
+@media (max-width: 768px) {
+  .ppRollRow { grid-template-columns: minmax(0, 1fr); }
+
+  .ppSaveBar {
+    grid-template-columns: minmax(0, 1fr);
+    margin-inline: -0.3rem;
+  }
+
+  .ppSaveBtn { width: 100%; }
+  .ppDialogActions .ppBtn { flex: 1 1 100%; }
+  .ppScheduleList,
+  .ppRecList { grid-template-columns: minmax(0, 1fr); }
+
+  /* El botón flotante del asistente taparía la barra de guardar mientras se pasa lista. */
+  body:has(.ppSaveBar) .clubAssistant { display: none; }
+}
+
+@media (max-width: 420px) {
+  .ppSegment {
+    flex-direction: column;
+    gap: 0.15rem;
+    min-height: 54px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ppSegment:active,
+  .ppTodayCard:active { transform: none; }
+  .ppSaveBtn[data-done="true"] svg { animation: none; }
+  .ppToast,
+  .ppToast[data-open="true"] {
+    transform: none;
+    transition-property: opacity, visibility;
+    transition-duration: 150ms, 0s;
+  }
+}
