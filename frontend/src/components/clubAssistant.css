@@ -733,3 +733,9 @@
     transform: none;
   }
 }
+
+@media (max-width: 768px) {
+  .assistantFab.isQuietMobile {
+    display: none;
+  }
+}

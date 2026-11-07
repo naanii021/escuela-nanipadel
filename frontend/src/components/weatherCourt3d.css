@@ -556,3 +556,18 @@
 .weatherCourt3d.isOffscreen *::after {
   animation-play-state: paused !important;
 }
+
+/* Con lluvia no hay clase: la pista se queda vacía, coherente con "Hoy mejor no jugar". */
+.weatherCourt3d .weatherCourtPlayer,
+.weatherCourt3d .weatherCourtPlayerShade,
+.weatherCourt3d .weatherCourtBall,
+.weatherCourt3d .weatherCourtBallShadow {
+  transition: opacity 400ms ease;
+}
+
+.weatherCourt3d.isRaining .weatherCourtPlayer,
+.weatherCourt3d.isRaining .weatherCourtPlayerShade,
+.weatherCourt3d.isRaining .weatherCourtBall,
+.weatherCourt3d.isRaining .weatherCourtBallShadow {
+  opacity: 0;
+}
