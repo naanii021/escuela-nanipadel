@@ -9,8 +9,9 @@ import { requestNotificationsRefresh } from "../services/notificationEvents";
 import Hoja from "../components/Hoja";
 import Toast from "../components/Toast";
 import MisReservas from "../components/MisReservas";
+import { HORAS_RESERVA } from "../services/disponibilidad";
 
-const HOURS = ["09:00", "10:30", "12:00", "13:30", "15:00", "16:30", "18:00", "19:30", "21:00", "22:30"];
+const HOURS = HORAS_RESERVA;
 const PRICE = 10;
 const DURATION = 90;
 const AVATAR_COLORS = ["#2563eb", "#16a34a", "#9333ea", "#dc2626", "#ea580c", "#0891b2", "#be185d"];
