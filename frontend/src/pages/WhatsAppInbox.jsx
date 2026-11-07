@@ -11,6 +11,13 @@ const QUICK_REPLIES = [
   "Te paso la información del torneo.",
 ];
 
+const STATUS_LABELS = {
+  pendiente: "Pendiente",
+  abierta: "Abierta",
+  atendida: "Atendida",
+  cerrada: "Cerrada",
+};
+
 const STATUS_OPTIONS = [
   { key: "todos", label: "Todos" },
   { key: "pendiente", label: "Pendientes" },
@@ -33,6 +40,17 @@ function formatDate(value) {
   });
 }
 
+function statusLabel(estado) {
+  return STATUS_LABELS[estado] || (estado ? `${estado.charAt(0).toUpperCase()}${estado.slice(1)}` : "Sin estado");
+}
+
+// Solo se ofrece el siguiente paso que tiene sentido para cada estado.
+function nextActions(estado) {
+  if (estado === "cerrada") return [{ estado: "abierta", label: "Volver a abrir" }];
+  if (estado === "atendida") return [{ estado: "cerrada", label: "Cerrar conversación" }, { estado: "abierta", label: "Volver a abrir" }];
+  return [{ estado: "atendida", label: "Marcar como atendida" }, { estado: "cerrada", label: "Cerrar conversación" }];
+}
+
 function contactLabel(conversation) {
   return conversation?.nombre_contacto || conversation?.telefono || conversation?.wa_id || "Contacto";
 }
@@ -45,11 +63,14 @@ export default function WhatsAppInbox() {
   const [messages, setMessages] = useState([]);
   const [statusFilter, setStatusFilter] = useState("todos");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [sendError, setSendError] = useState("");
+  const [statusBusy, setStatusBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [mobileConversationOpen, setMobileConversationOpen] = useState(false);
 
@@ -58,9 +79,15 @@ export default function WhatsAppInbox() {
   const query = useMemo(() => {
     const params = new URLSearchParams();
     if (statusFilter !== "todos") params.set("estado", statusFilter);
-    if (search.trim()) params.set("q", search.trim());
+    if (debouncedSearch.trim()) params.set("q", debouncedSearch.trim());
     return params.toString();
-  }, [search, statusFilter]);
+  }, [debouncedSearch, statusFilter]);
+
+  // La búsqueda espera a que se deje de escribir (300 ms) para no pedir datos en cada tecla.
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   const loadConversations = async () => {
     try {
@@ -116,8 +143,7 @@ export default function WhatsAppInbox() {
     return (
       <main className="whatsappInbox">
         <section className="whatsappAccessBox">
-          <span>Admin</span>
-          <h1>Mensajes WhatsApp</h1>
+          <h1>Mensajes de WhatsApp</h1>
           <p>Solo el administrador puede acceder a esta bandeja.</p>
           <button type="button" onClick={() => navigate("/panel")}>Volver al panel</button>
         </section>
@@ -129,17 +155,22 @@ export default function WhatsAppInbox() {
     setSelectedId(String(conversation.id));
     setMobileConversationOpen(true);
     setNotice("");
+    setSendError("");
   };
 
   const updateStatus = async (estado) => {
     if (!selectedId) return;
     try {
+      setStatusBusy(true);
+      setSendError("");
       await apiPatch(`/api/whatsapp/conversations/${selectedId}/status`, { estado });
-      setNotice("Estado actualizado.");
+      setNotice(`Conversación marcada como ${statusLabel(estado).toLowerCase()}.`);
       await loadConversations();
       await loadMessages(selectedId);
     } catch (e) {
-      setError(e.message || "No se pudo actualizar la conversación.");
+      setSendError(`${e.message || "No se ha podido cambiar el estado."} Puedes volver a intentarlo.`);
+    } finally {
+      setStatusBusy(false);
     }
   };
 
@@ -150,14 +181,14 @@ export default function WhatsAppInbox() {
 
     try {
       setSending(true);
-      setError("");
+      setSendError("");
       await apiPost(`/api/whatsapp/conversations/${selectedId}/send`, { message: text });
       setReply("");
       setNotice("Mensaje enviado.");
       await loadConversations();
       await loadMessages(selectedId);
     } catch (e) {
-      setError(e.message || "No se pudo enviar el mensaje.");
+      setSendError(`${e.message || "No se ha podido enviar."} Tu texto sigue aquí: pulsa «Enviar» otra vez para reintentar.`);
     } finally {
       setSending(false);
     }
@@ -167,9 +198,8 @@ export default function WhatsAppInbox() {
     <main className="whatsappInbox" aria-labelledby="whatsapp-title">
       <header className="whatsappHeader">
         <div>
-          <span>Admin</span>
-          <h1 id="whatsapp-title">Mensajes WhatsApp</h1>
-          <p>Gestiona conversaciones de alumnos y nuevos clientes desde el panel.</p>
+          <h1 id="whatsapp-title">Mensajes de WhatsApp</h1>
+          <p>Conversaciones con alumnos, familias y gente interesada en la escuela.</p>
         </div>
         <Link to="/panel" className="whatsappBackLink">Volver al panel</Link>
       </header>
@@ -177,12 +207,13 @@ export default function WhatsAppInbox() {
       <section className="whatsappShell">
         <aside className={`conversationList${mobileConversationOpen ? " isHiddenMobile" : ""}`} aria-label="Conversaciones de WhatsApp">
           <div className="conversationToolbar">
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar nombre o teléfono" />
+            <input type="search" enterKeyHint="search" aria-label="Buscar conversación" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar nombre o teléfono" />
             <div className="conversationFilters">
               {STATUS_OPTIONS.map((option) => (
                 <button
                   key={option.key}
                   type="button"
+                  aria-pressed={statusFilter === option.key}
                   className={statusFilter === option.key ? "isActive" : ""}
                   onClick={() => setStatusFilter(option.key)}
                 >
@@ -192,9 +223,9 @@ export default function WhatsAppInbox() {
             </div>
           </div>
 
-          {loading && <div className="whatsappEmpty">Cargando conversaciones...</div>}
+          {loading && <div className="whatsappEmpty">Cargando conversaciones…</div>}
           {!loading && error && <div className="whatsappError">{error}</div>}
-          {!loading && !error && conversations.length === 0 && <div className="whatsappEmpty">No hay mensajes de WhatsApp todavía.</div>}
+          {!loading && !error && conversations.length === 0 && <div className="whatsappEmpty">No hay conversaciones con este filtro.</div>}
 
           <div className="conversationItems">
             {conversations.map((conversation) => (
@@ -210,9 +241,9 @@ export default function WhatsAppInbox() {
                 </div>
                 <div className="conversationMeta">
                   <span>{formatDate(conversation.ultimo_mensaje_en)}</span>
-                  <em className={`statusChip status-${conversation.estado}`}>{conversation.estado}</em>
+                  <em className={`waStatus status-${conversation.estado}`}>{statusLabel(conversation.estado)}</em>
                   <em className={conversation.puede_responder_libre ? "replyChip canReply" : "replyChip expired"}>
-                    {conversation.puede_responder_libre ? "Puedes responder" : "Ventana caducada"}
+                    {conversation.puede_responder_libre ? "Puedes responder" : "Necesita plantilla"}
                   </em>
                 </div>
               </button>
@@ -228,24 +259,24 @@ export default function WhatsAppInbox() {
               <div className="messagePaneHead">
                 <div>
                   <strong>{contactLabel(selectedConversation)}</strong>
-                  <span>{selectedConversation.telefono}</span>
+                  <span>{selectedConversation.telefono} · {statusLabel(selectedConversation.estado)}</span>
                 </div>
                 <div className="messageActions">
-                  <button type="button" onClick={() => updateStatus("atendida")}>Marcar atendida</button>
-                  <button type="button" onClick={() => updateStatus("abierta")}>Reabrir conversación</button>
-                  <button type="button" onClick={() => updateStatus("cerrada")}>Cerrar conversación</button>
+                  {nextActions(selectedConversation.estado).map((action) => (
+                    <button type="button" key={action.estado} onClick={() => updateStatus(action.estado)} disabled={statusBusy}>{action.label}</button>
+                  ))}
                 </div>
               </div>
 
-              {notice && <div className="whatsappNotice">{notice}</div>}
-              {error && <div className="whatsappError">{error}</div>}
+              {notice && <div className="whatsappNotice" role="status">{notice}</div>}
+              {error && <div className="whatsappError" role="alert">{error}</div>}
 
               <div className="messagesScroll" aria-busy={messagesLoading}>
-                {messagesLoading && <div className="whatsappEmpty">Cargando mensajes...</div>}
+                {messagesLoading && <div className="whatsappEmpty">Cargando mensajes…</div>}
                 {!messagesLoading && messages.map((message) => (
                   <article className={`messageBubble ${message.direccion}`} key={message.id}>
                     <p>{message.contenido || "Mensaje sin contenido"}</p>
-                    <span>{formatDate(message.created_at)} · {message.estado}</span>
+                    <span>{formatDate(message.created_at)}{message.estado ? ` · ${message.estado}` : ""}</span>
                   </article>
                 ))}
                 {!messagesLoading && messages.length === 0 && <div className="whatsappEmpty">No hay mensajes en esta conversación.</div>}
@@ -259,15 +290,17 @@ export default function WhatsAppInbox() {
 
               {!canReply && (
                 <div className="windowWarning">
-                  Han pasado más de 24 horas desde el último mensaje del cliente. Para responder necesitas una plantilla aprobada.
+                  Han pasado más de 24 horas desde su último mensaje. WhatsApp solo deja contestar ahora con una plantilla aprobada.
                 </div>
               )}
 
+              {sendError && <div className="whatsappError" role="alert">{sendError}</div>}
               <form className="replyBox" onSubmit={sendReply}>
                 <textarea
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   placeholder="Escribe una respuesta"
+                  aria-label="Respuesta"
                   rows={3}
                   disabled={!canReply || sending}
                 />
