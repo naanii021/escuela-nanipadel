@@ -9,7 +9,6 @@
   background: rgba(248, 250, 252, 0.76);
   border-bottom: 1px solid rgba(226, 232, 240, 0.65);
   transition: background 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
-  animation: headerDrop 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .headerWrap.scrolled {
@@ -19,10 +18,6 @@
     0 4px 28px rgba(15, 23, 42, 0.07);
 }
 
-@keyframes headerDrop {
-  from { transform: translateY(-100%); opacity: 0; }
-  to   { transform: translateY(0);     opacity: 1; }
-}
 
 /* ─── Inner layout ─────────────────────────────────────────────────── */
 
@@ -45,7 +40,7 @@
   flex-shrink: 0;
 }
 
-.badge {
+.brand .badge {
   width: 46px;
   height: 46px;
   border-radius: 15px;
@@ -57,11 +52,11 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.28s ease;
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s ease;
   flex-shrink: 0;
 }
 
-.badge img {
+.brand .badge img {
   width: 100%;
   height: 100%;
   display: block;
@@ -69,9 +64,12 @@
   pointer-events: none;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .brand:hover .badge {
   transform: translateY(-1px) scale(1.06);
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.32);
+}
 }
 
 .brandText {
@@ -96,8 +94,11 @@
   line-height: 1;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .brand:hover .brandText strong {
   color: #16a34a;
+}
 }
 
 /* ─── Right section ────────────────────────────────────────────────── */
@@ -150,15 +151,21 @@
   opacity: 0;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .nav a:hover {
   color: #1e293b;
   background: rgba(15, 23, 42, 0.042);
 }
+}
+
+@media (hover: hover) and (pointer: fine) {
 
 .nav a:hover::after {
   left: 8px;
   right: 8px;
   opacity: 0.55;
+}
 }
 
 .nav a.active {
@@ -200,7 +207,13 @@
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
 
-.mobileMenuBtn span {
+.mobileMenuIcon {
+  display: grid;
+  gap: 5px;
+}
+
+.mobileMenuIcon > span {
+  display: block;
   width: 19px;
   height: 2px;
   border-radius: 999px;
@@ -208,12 +221,21 @@
   transition: transform 0.18s ease, opacity 0.18s ease;
 }
 
-.mobileMenuBtn:hover,
 .mobileMenuBtn:focus-visible {
   transform: translateY(-1px);
   background: #f0fdf4;
   border-color: rgba(22, 163, 74, 0.28);
   outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+
+.mobileMenuBtn:hover {
+  transform: translateY(-1px);
+  background: #f0fdf4;
+  border-color: rgba(22, 163, 74, 0.28);
+  outline: none;
+}
 }
 
 .mobileMenuBtn.isOpen {
@@ -222,15 +244,15 @@
   color: #ffffff;
 }
 
-.mobileMenuBtn.isOpen span:nth-child(1) {
+.mobileMenuBtn.isOpen .mobileMenuIcon > span:nth-child(1) {
   transform: translateY(7px) rotate(45deg);
 }
 
-.mobileMenuBtn.isOpen span:nth-child(2) {
+.mobileMenuBtn.isOpen .mobileMenuIcon > span:nth-child(2) {
   opacity: 0;
 }
 
-.mobileMenuBtn.isOpen span:nth-child(3) {
+.mobileMenuBtn.isOpen .mobileMenuIcon > span:nth-child(3) {
   transform: translateY(-7px) rotate(-45deg);
 }
 
@@ -253,12 +275,21 @@
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 
-.notificationBellBtn:hover,
 .notificationBellBtn:focus-visible {
   transform: translateY(-1px);
   background: #f0fdf4;
   border-color: rgba(22, 163, 74, 0.28);
   outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+
+.notificationBellBtn:hover {
+  transform: translateY(-1px);
+  background: #f0fdf4;
+  border-color: rgba(22, 163, 74, 0.28);
+  outline: none;
+}
 }
 
 .notificationBadge {
@@ -340,10 +371,17 @@
   text-align: left;
 }
 
-.notificationItem:hover,
 .notificationItem:focus-visible {
   background: #f8fafc;
   outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+
+.notificationItem:hover {
+  background: #f8fafc;
+  outline: none;
+}
 }
 
 .notificationItem.unread {
@@ -458,6 +496,8 @@
   white-space: nowrap;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .loginBtn:hover {
   transform: translateY(-2px);
   box-shadow:
@@ -465,31 +505,11 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.22);
   filter: brightness(1.06);
 }
+}
 
 .loginBtn:active {
   transform: translateY(0);
   box-shadow: 0 2px 8px rgba(22, 163, 74, 0.18);
-}
-
-/* Shimmer sweep animation */
-.loginBtnShimmer {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    108deg,
-    transparent 28%,
-    rgba(255, 255, 255, 0.32) 50%,
-    transparent 72%
-  );
-  transform: translateX(-120%) skewX(-14deg);
-  animation: shimmerSweep 3s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes shimmerSweep {
-  0%   { transform: translateX(-120%) skewX(-14deg); }
-  35%  { transform: translateX(200%)  skewX(-14deg); }
-  100% { transform: translateX(200%)  skewX(-14deg); }
 }
 
 /* ─── Logged-in user ───────────────────────────────────────────────── */
@@ -507,11 +527,19 @@
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 
-.navUserInfo:hover,
 .navUserInfo.active {
   transform: translateY(-1px);
   background: rgba(240, 253, 244, 0.9);
   border-color: rgba(22, 163, 74, 0.28);
+}
+
+@media (hover: hover) and (pointer: fine) {
+
+.navUserInfo:hover {
+  transform: translateY(-1px);
+  background: rgba(240, 253, 244, 0.9);
+  border-color: rgba(22, 163, 74, 0.28);
+}
 }
 
 .navAvatar {
@@ -557,10 +585,13 @@
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
+
 .logoutBtn:hover {
   background: rgba(239, 68, 68, 0.06);
   border-color: rgba(239, 68, 68, 0.3);
   transform: translateY(-1px);
+}
 }
 
 .logoutBtn:active {
@@ -584,213 +615,20 @@
   }
 }
 
-@media (max-width: 980px) {
-  .header {
-    align-items: center;
-    padding: 0.72rem 0;
-  }
-
-  .mobileMenuBtn {
-    display: inline-flex;
-  }
-
-  .headerRight {
-    position: absolute;
-    top: calc(100% + 0.65rem);
-    left: 0;
-    right: 0;
-    display: none;
-    width: 100%;
-    padding: 0.85rem;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 18px;
-    background: #0f172a;
-    box-shadow: 0 22px 60px rgba(15, 23, 42, 0.16);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    color: #e2e8f0;
-    align-items: stretch;
-    flex-direction: column;
-    z-index: 300;
-  }
-
-  .headerRight.isOpen {
-    display: flex;
-  }
-
-  .nav {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.35rem;
-    width: 100%;
-  }
-
-  .nav a {
-    display: flex;
-    align-items: center;
-    min-height: 42px;
-    padding: 0.65rem 0.78rem;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    background: rgba(255, 255, 255, 0.07);
-    color: #e2e8f0;
-    font-size: 0.9rem;
-  }
-
-  .nav a::after {
-    display: none;
-  }
-
-  .nav a:hover,
-  .nav a:focus-visible {
-    background: rgba(34, 197, 94, 0.16);
-    border-color: rgba(34, 197, 94, 0.34);
-    color: #ffffff;
-    outline: none;
-  }
-
-  .nav a.active {
-    background: rgba(34, 197, 94, 0.2);
-    border-color: rgba(34, 197, 94, 0.42);
-    color: #bbf7d0;
-  }
-
-  .headerActions {
-    width: 100%;
-    margin-left: 0;
-    padding-top: 0.72rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-    justify-content: stretch;
-  }
-
-  .headerRight .notificationBellBtn,
-  .headerRight .navUserInfo,
-  .headerRight .logoutBtn {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.13);
-    color: #e2e8f0;
-    box-shadow: none;
-  }
-
-  .headerRight .notificationBellBtn:hover,
-  .headerRight .notificationBellBtn:focus-visible,
-  .headerRight .navUserInfo:hover,
-  .headerRight .navUserInfo.active {
-    background: rgba(34, 197, 94, 0.16);
-    border-color: rgba(34, 197, 94, 0.34);
-    color: #ffffff;
-  }
-
-  .headerRight .navUser {
-    color: #f8fafc;
-  }
-
-  .headerRight .logoutBtn {
-    border-color: rgba(248, 113, 113, 0.3);
-    color: #fecaca;
-  }
-
-  .headerRight .logoutBtn:hover {
-    background: rgba(239, 68, 68, 0.16);
-    border-color: rgba(248, 113, 113, 0.42);
-    color: #ffffff;
-  }
-
-  .navUserInfo {
-    flex: 1;
-    justify-content: flex-start;
-    min-width: 0;
-  }
-
-  .logoutBtn,
-  .loginBtn {
-    min-height: 42px;
-  }
-}
-
-/* ─── Responsive 720px ─────────────────────────────────────────────── */
+/* El menú plegable (≤1120 px) vive en styles/usabilidad.css, que se carga la última. */
 
 @media (max-width: 720px) {
-  .headerWrap {
-    background: rgba(248, 250, 252, 0.96);
-  }
-
-  .header {
-    padding: 0.62rem 0;
-  }
-
-  .badge {
-    width: 40px;
-    height: 40px;
-    border-radius: 13px;
-  }
-
-  .brandText strong {
-    font-size: 0.95rem;
-  }
-
-  .nav {
-    grid-template-columns: 1fr;
-  }
-
-  .headerActions {
-    display: grid;
-    grid-template-columns: 44px minmax(0, 1fr) auto;
-    gap: 0.5rem;
-    align-items: center;
-  }
-
-  .headerActions:has(.loginBtn) {
-    grid-template-columns: 1fr;
-  }
-
-  .loginBtn {
-    flex: 1;
-    justify-content: center;
-  }
-
-  .logoutBtn {
-    justify-content: center;
-    padding-inline: 0.78rem;
-  }
-
   .notificationPanel {
     position: fixed;
     left: 0.6rem;
     right: 0.6rem;
     top: 5.1rem;
     width: auto;
-    max-height: calc(100vh - 6.2rem);
+    max-height: calc(100dvh - 6.2rem);
     border-radius: 18px;
   }
 
   .notificationList {
-    max-height: min(420px, calc(100vh - 12rem));
-  }
-}
-
-@media (max-width: 420px) {
-  .brandText {
-    display: none;
-  }
-
-  .headerRight {
-    width: calc(100vw - 0.8rem);
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-  }
-
-  .headerActions {
-    grid-template-columns: 44px minmax(0, 1fr);
-  }
-
-  .logoutBtn {
-    grid-column: 1 / -1;
-    width: 100%;
-  }
-
-  .navUser {
-    max-width: none;
+    max-height: min(420px, calc(100dvh - 12rem));
   }
 }

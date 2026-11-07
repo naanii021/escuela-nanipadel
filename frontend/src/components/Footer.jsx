@@ -1,16 +1,16 @@
+import ContactoClub from "./ContactoClub";
 import "./footer.css";
-import { buildClubWhatsappUrl } from "../services/whatsappLinks";
 
-// Pie de página de la aplicación
+// Pie de página: contacto directo con el club.
 function Footer() {
   return (
     <footer className="footer">
       <div className="container footerInner">
-        <span>© 2026 NaniPadel</span>
-        <span className="muted">Proyecto académico · DAM</span>
-        <a href={buildClubWhatsappUrl("Hola, quiero información sobre NaniPadel")} target="_blank" rel="noopener noreferrer">
-          Hablar por WhatsApp
-        </a>
+        <div className="footerContacto">
+          <strong>¿Tienes alguna duda? Habla con el club</strong>
+          <ContactoClub mensaje="Hola, quiero información sobre NaniPadel" />
+        </div>
+        <p className="footerLegal">© 2026 NaniPadel · Proyecto académico de DAM</p>
       </div>
     </footer>
   );
