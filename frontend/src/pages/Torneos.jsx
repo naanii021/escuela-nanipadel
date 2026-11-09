@@ -4,8 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "../services/api";
 import { getUser, isLogged } from "../services/auth";
 import { requestNotificationsRefresh } from "../services/notificationEvents";
-
-const TOURNAMENT_PHOTOS_MANIFEST = `${process.env.PUBLIC_URL}/tournament-photos-manifest.json`;
+import { buildClubWhatsappUrl } from "../services/whatsappLinks";
 
 const CATEGORY_META = {
   adultos: {
@@ -325,12 +324,6 @@ function isVisibleTournament(torneo) {
   return !["ejemplo", "demo", "sample"].some((word) => nombre.includes(word));
 }
 
-function isValidTournamentPhoto(photo) {
-  const value = `${photo?.title || ""} ${photo?.src || ""}`.toLowerCase();
-  if (!photo?.src || !/\.(jpe?g|png|webp|avif)$/i.test(photo.src)) return false;
-  return !["icono", "logo", "favicon", "web"].some((word) => value.includes(word));
-}
-
 function isStaffUser() {
   const role = String(getUser()?.rol || "").toLowerCase();
   return ["admin", "profesor", "profe"].includes(role);
@@ -388,7 +381,6 @@ function Torneos() {
   const [actionId, setActionId] = useState(null);
   const [feedback, setFeedback] = useState("");
   const [activeFilter, setActiveFilter] = useState("todos");
-  const [tournamentPhotos, setTournamentPhotos] = useState([]);
   const [americanoOpen, setAmericanoOpen] = useState(false);
   const [americanos, setAmericanos] = useState([]);
   const [selectedAmericanoId, setSelectedAmericanoId] = useState("");
@@ -482,28 +474,6 @@ function Torneos() {
     if (americanoOpen && selectedAmericanoId) loadAmericanoDetail(selectedAmericanoId);
   }, [americanoOpen, selectedAmericanoId, loadAmericanoDetail]);
 
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadTournamentPhotos() {
-      try {
-        const response = await fetch(TOURNAMENT_PHOTOS_MANIFEST, { cache: "no-store" });
-        if (!response.ok) throw new Error("No hemos podido cargar las fotos de torneo.");
-        const manifest = await response.json();
-        if (mounted) {
-          setTournamentPhotos(Array.isArray(manifest.photos) ? manifest.photos : []);
-        }
-      } catch {
-        if (mounted) setTournamentPhotos([]);
-      }
-    }
-
-    loadTournamentPhotos();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
   const publicTorneos = useMemo(() => torneos.filter(isVisibleTournament), [torneos]);
 
   const stats = useMemo(() => {
@@ -530,7 +500,6 @@ function Torneos() {
     return publicTorneos.filter((t) => t.categoria === activeFilter);
   }, [publicTorneos, activeFilter]);
 
-  const featuredPhotos = tournamentPhotos.filter(isValidTournamentPhoto).slice(0, 4);
   const selectedParticipantIds = useMemo(
     () => new Set((americanoDetail?.participantes || []).map((item) => Number(item.alumno_id))),
     [americanoDetail?.participantes]
@@ -1483,10 +1452,23 @@ function Torneos() {
         )}
 
         {!loading && !err && filteredTorneos.length === 0 && (
-          <div className="torneosMessage" role="status">
-            {activeFilter !== "todos"
-              ? "No hay torneos en esta categoría por ahora."
-              : "Aún no hay torneos publicados. Cuando el club abra uno, aparecerá aquí."}
+          <div className="torneosMessage torneosEmpty" role="status">
+            {activeFilter !== "todos" ? (
+              <p>No hay torneos en esta categoría por ahora.</p>
+            ) : (
+              <>
+                <strong>Aún no hay torneos publicados</strong>
+                <p>Cuando el club abra uno, aparecerá aquí.</p>
+                <a
+                  className="torneosEmptyAction"
+                  href={buildClubWhatsappUrl("Hola, avisadme por WhatsApp cuando haya un torneo en la escuela.")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Avísame por WhatsApp cuando haya torneo
+                </a>
+              </>
+            )}
           </div>
         )}
 
@@ -1621,33 +1603,6 @@ function Torneos() {
                   </article>
                 );
               })}
-            </div>
-          </section>
-        )}
-
-        {featuredPhotos.length > 0 && (
-          <section className="torneosGallerySection" aria-label="Ambiente competitivo">
-            <div className="torneosGalleryHead">
-              <div>
-                <span className="torneosSectionEyebrow">Ambiente competitivo</span>
-                <h3>Fotos de jornadas y torneos</h3>
-              </div>
-              <p>Momentos de competición y ambiente de club.</p>
-            </div>
-
-            <div className="torneosGalleryGrid">
-              {featuredPhotos.map((photo) => (
-                <article className="torneosGalleryCard" key={photo.id}>
-                  <div className="torneosGalleryMedia">
-                    <img src={photo.src} alt={photo.title} loading="lazy" />
-                  </div>
-                  <div className="torneosGalleryBody">
-                    <span>{photo.highlight}</span>
-                    <strong>{photo.title}</strong>
-                    <p>{photo.desc}</p>
-                  </div>
-                </article>
-              ))}
             </div>
           </section>
         )}
