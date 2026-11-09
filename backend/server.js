@@ -23,6 +23,10 @@ import { sendWhatsAppMessage } from "./services/whatsappService.js";
 // Creamos la app de Express
 const app = express();
 
+// El backend solo escucha en 127.0.0.1 y nginx le pasa las peticiones: sin esto todos los usuarios
+// llegan con la IP de nginx y los límites de intentos por IP (contraseña, formularios) los contarían a todos juntos.
+app.set("trust proxy", "loopback");
+
 // Puerto del backend
 const PORT = process.env.PORT || 4000;
 const HOST = process.env.HOST || "127.0.0.1";
