@@ -330,7 +330,7 @@ export default function WeatherCourt3D({ weather, night, rain, mojada = false, e
               <i
                 className={`weatherCourtPlayer is-${figura.tipo}`}
                 data-pose="espera"
-                style={estiloFigura(figura, MEDIDAS_FIGURA.figura)}
+                style={estiloFigura(figura, figura.tipo === "profe" ? MEDIDAS_FIGURA.profe : MEDIDAS_FIGURA.figura)}
                 ref={(element) => {
                   figureRefs.current[index] = element;
                 }}
