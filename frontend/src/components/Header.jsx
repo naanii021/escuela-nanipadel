@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { getUser, isLogged, loginHref, logout as doLogout } from "../services/auth";
 import NotificationBell from "./NotificationBell";
 import ContactoClub from "./ContactoClub";
+import { TIENDA_VISIBLE } from "../config/club";
 import "./header.css";
 
 const STAFF_ROLES = ["admin", "profesor", "profe"];
@@ -95,9 +96,11 @@ function Header() {
             <NavLink to="/torneos" className={navClass} onClick={closeMobileMenu}>
               Torneos
             </NavLink>
-            <NavLink to="/tienda" className={navClass} onClick={closeMobileMenu}>
-              Tienda
-            </NavLink>
+            {TIENDA_VISIBLE && (
+              <NavLink to="/tienda" className={navClass} onClick={closeMobileMenu}>
+                Tienda
+              </NavLink>
+            )}
             <NavLink to="/estado-pista" className={navClass} onClick={closeMobileMenu}>
               Tiempo y pista
             </NavLink>
