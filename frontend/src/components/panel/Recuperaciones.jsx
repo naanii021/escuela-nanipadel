@@ -68,7 +68,7 @@ export default function Recuperaciones({ recuperaciones, sesiones, cargando, err
     <section className="ppSection" aria-labelledby="pp-rec-title">
       <div className="ppSectionHead">
         <h2 id="pp-rec-title">Recuperaciones</h2>
-        <p>Cada falta justificada en una clase dada se apunta aquí para darle otra clase.</p>
+        <p>Aquí se apuntan las faltas justificadas y las clases canceladas que se pueden recuperar.</p>
       </div>
 
       <div className="ppSegmentedTabs" role="group" aria-label="Qué recuperaciones ver">
@@ -97,14 +97,18 @@ export default function Recuperaciones({ recuperaciones, sesiones, cargando, err
           {visibles.map((item) => {
             const borrador = borradores[item.id] || borradorDe(item);
             const opciones = sesiones.filter((sesion) => (
-              sesion.fecha === borrador.fecha_recuperacion && Number(sesion.id) !== Number(item.sesion_origen_id)
+              sesion.estado !== "cancelada" && sesion.fecha === borrador.fecha_recuperacion && Number(sesion.id) !== Number(item.sesion_origen_id)
             ));
             const nombre = nombreCompleto({ nombre: item.alumno_nombre, apellidos: item.alumno_apellidos });
             return (
               <li className="ppRecCard" key={item.id}>
                 <div className="ppRecHead">
                   <strong>{nombre}</strong>
-                  <span>Faltó el {formatFecha(item.fecha_original)} a {item.grupo_origen}</span>
+                  <span>
+                    {item.motivo === "clase_cancelada"
+                      ? `Clase cancelada el ${formatFecha(item.fecha_original)} (${item.grupo_origen})`
+                      : `Faltó el ${formatFecha(item.fecha_original)} a ${item.grupo_origen}`}
+                  </span>
                   {item.fecha_recuperacion && <span>Recupera el {formatFecha(item.fecha_recuperacion)}</span>}
                 </div>
                 <div className="ppRecForm">

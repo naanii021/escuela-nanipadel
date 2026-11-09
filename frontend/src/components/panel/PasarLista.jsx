@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { apiGet, apiPost, apiPut } from "../../services/api";
-import { IcCheck, IcNota, IcX } from "./Iconos";
-import { claseMasProxima, diaDeFecha, diasDelGrupo, formatDias, formatFecha, formatHorario, hora, hoyISO, iniciales, minutosDe, momentoClase, nivelLabel, nombreCompleto, nombreGrupo, nombrePista, plural } from "./panelUtils";
+import CancelarClaseHoja from "./CancelarClaseHoja";
+import { IcAviso, IcCheck, IcNota, IcX } from "./Iconos";
+import { claseMasProxima, diaDeFecha, diasDelGrupo, formatDias, formatFecha, formatHorario, hora, hoyISO, iniciales, minutosDe, momentoClase, motivoCorto, nivelLabel, nombreCompleto, nombreGrupo, nombrePista, plural } from "./panelUtils";
 
 const ASISTENCIA = [
   { key: "presente", label: "Vino", Icon: IcCheck },
@@ -28,7 +29,7 @@ function resumenAsistencia(cuenta) {
   return partes.join(" · ");
 }
 
-export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = {}, onAviso, onGuardada }) {
+export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = {}, cancelacionesHoy = {}, onAviso, onGuardada }) {
   const [grupos, setGrupos] = useState([]);
   const [gruposCargando, setGruposCargando] = useState(true);
   const [gruposError, setGruposError] = useState("");
@@ -49,6 +50,12 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
   const [guardarError, setGuardarError] = useState("");
   const [recienGuardada, setRecienGuardada] = useState(false);
   const [cambiarAbierto, setCambiarAbierto] = useState(false);
+  const [hayAsistencia, setHayAsistencia] = useState(false);
+  const [cancelarAbierto, setCancelarAbierto] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
+  const [cancelarError, setCancelarError] = useState("");
+  const [reabriendo, setReabriendo] = useState(false);
+  const [reabrirError, setReabrirError] = useState("");
   const flashTimer = useRef(null);
   const peticionAplicada = useRef(null);
   const tiraRef = useRef(null);
@@ -110,6 +117,7 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
   useEffect(() => {
     if (!grupo?.id || !hayClase) {
       setSesion(null);
+      setHayAsistencia(false);
       setAlumnos([]);
       setBorrador({});
       setCargaError("");
@@ -125,6 +133,8 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
         if (cancelado) return;
         const actual = data.sesiones?.[0] || null;
         setSesion(actual);
+        setHayAsistencia(Boolean(data.asistencias?.length));
+        setReabrirError("");
         setAlumnos(data.alumnos || []);
         setBorrador(Object.fromEntries((data.asistencias || []).map((item) => [item.alumno_id, item.estado])));
         // Hoy o antes: la clase se da por dada salvo que se cambie. Así la falta justificada crea su recuperación.
@@ -185,6 +195,7 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
       const ruta = `/api/gestion/control/grupos/${grupo.id}/sesiones`;
       const data = sesion ? await apiPut(`${ruta}/${sesion.id}/asistencia`, body) : await apiPost(ruta, body);
       setSesion(data.sesion || null);
+      setHayAsistencia(true);
       if (data.alumnos) setAlumnos(data.alumnos);
       if (data.asistencias) setBorrador(Object.fromEntries(data.asistencias.map((item) => [item.alumno_id, item.estado])));
       if (data.sesion?.profesor_id != null) setProfesorSel(String(data.sesion.profesor_id));
@@ -203,8 +214,50 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
     }
   };
 
+  const cancelada = sesion?.estado === "cancelada";
+  const cancelacion = cancelada ? sesion.cancelacion || { motivo: "otro", texto: "" } : null;
+
+  const cancelarClase = async ({ motivo, texto, recuperable }) => {
+    if (!grupo || cancelando) return;
+    try {
+      setCancelando(true);
+      setCancelarError("");
+      const data = await apiPost(`/api/gestion/control/grupos/${grupo.id}/sesiones/cancelar`, { fecha, motivo, texto, recuperable });
+      setSesion(data.sesion || null);
+      setCancelarAbierto(false);
+      const creadas = Number(data.recuperaciones_creadas || 0);
+      onAviso?.(creadas
+        ? `Clase cancelada. ${plural(creadas, "alumno puede", "alumnos pueden")} recuperarla.`
+        : "Clase cancelada.");
+      onGuardada?.();
+    } catch (e) {
+      setCancelarError(`${e.message || "No se ha podido cancelar la clase."} No se ha cancelado nada: puedes volver a intentarlo.`);
+    } finally {
+      setCancelando(false);
+    }
+  };
+
+  const reabrirClase = async () => {
+    if (!grupo || reabriendo) return;
+    try {
+      setReabriendo(true);
+      setReabrirError("");
+      const data = await apiPost(`/api/gestion/control/grupos/${grupo.id}/sesiones/reabrir`, { fecha });
+      setSesion(data.sesion || null);
+      setEstadoClase(fecha <= hoyISO() ? "dada" : "programada");
+      setNotas("");
+      onAviso?.("Clase reabierta. Ya puedes pasar lista.");
+      onGuardada?.();
+    } catch (e) {
+      setReabrirError(`${e.message || "No se ha podido reabrir la clase."} Puedes volver a intentarlo.`);
+    } finally {
+      setReabriendo(false);
+    }
+  };
+
   const fechaTexto = capitalizar(formatFecha(fecha));
   const muestraLista = hayClase && !cargando && !cargaError;
+  const puedeCancelar = muestraLista && !cancelada;
 
   return (
     <section className="ppSection ppRollSection" id="panel-control" aria-labelledby="pp-control-title">
@@ -230,7 +283,9 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
             <div className="ppTodayStrip" ref={tiraRef} role="group" aria-label={`Clases de hoy, ${formatFecha(hoy)}`}>
               {clasesDeHoy.map((item) => {
                 const activa = String(item.id) === String(grupo.id) && fecha === hoy;
-                const hecha = listasHoy[item.id] === "guardada" || (activa && Boolean(sesion));
+                const canceladaHoy = activa ? cancelada : Boolean(cancelacionesHoy[item.id]);
+                const motivoHoy = activa ? motivoCorto(cancelacion) : cancelacionesHoy[item.id];
+                const hecha = !canceladaHoy && (listasHoy[item.id] === "guardada" || (activa && hayAsistencia));
                 const momento = momentoClase(item);
                 return (
                   <button
@@ -239,13 +294,14 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
                     className="ppTodayCard"
                     data-momento={momento}
                     data-hecha={hecha ? "true" : "false"}
+                    data-cancelada={canceladaHoy ? "true" : "false"}
                     aria-pressed={activa}
                     onClick={() => { setGrupoId(String(item.id)); setFecha(hoy); setCambiarAbierto(false); }}
                   >
                     <span className="ppTodayCardTime">{hora(item.hora_inicio)}</span>
                     <span className="ppTodayCardName">{nombreGrupo(item)}</span>
                     <span className="ppTodayCardState">
-                      {hecha ? <><IcCheck /> Lista pasada</> : momento === "ahora" ? "Ahora" : momento === "pasada" ? "Sin lista" : "Más tarde"}
+                      {canceladaHoy ? <span className="ppBadgeCancel">Cancelada · {motivoHoy}</span> : hecha ? <><IcCheck /> Lista pasada</> : momento === "ahora" ? "Ahora" : momento === "pasada" ? "Sin lista" : "Más tarde"}
                     </span>
                   </button>
                 );
@@ -259,9 +315,16 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
               <span>{fechaTexto} · {formatHorario(grupo.hora_inicio, grupo.duracion_min)} · {nombrePista(grupo.pista_habitual)}</span>
               <span>Da la clase: {profesorTexto}</span>
             </div>
-            <button type="button" className="ppBtn ppBtnSmall" aria-expanded={cambiarAbierto} aria-controls="pp-cambiar-clase" onClick={() => setCambiarAbierto((v) => !v)}>
-              {cambiarAbierto ? "Listo" : "Cambiar"}
-            </button>
+            <div className="ppClassBarActions">
+              <button type="button" className="ppBtn ppBtnSmall" aria-expanded={cambiarAbierto} aria-controls="pp-cambiar-clase" onClick={() => setCambiarAbierto((v) => !v)}>
+                {cambiarAbierto ? "Listo" : "Cambiar"}
+              </button>
+              {puedeCancelar && (
+                <button type="button" className="ppBtn ppBtnSmall ppBtnDangerQuiet" onClick={() => { setCancelarError(""); setCancelarAbierto(true); }}>
+                  Cancelar la clase
+                </button>
+              )}
+            </div>
           </div>
 
           {cambiarAbierto && (
@@ -296,20 +359,34 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
             </div>
           )}
 
-          {muestraLista && alumnos.length === 0 && <p className="ppEmpty">Este día no hay alumnos apuntados en el grupo.</p>}
+          {muestraLista && cancelada && (
+            <div className="ppCancelBanner" role="status">
+              <span className="ppBadgeCancel ppBadgeCancelBig"><IcAviso /> Cancelada · {motivoCorto(cancelacion)}</span>
+              <p>
+                Esta clase está cancelada, así que no hay lista que pasar. Si fue un error, puedes reabrirla.
+                {" "}Al reabrir se retiran las recuperaciones que aún no tengan fecha.
+              </p>
+              {reabrirError && <p className="ppInlineError" role="alert">{reabrirError}</p>}
+              <button type="button" className="ppBtn ppBtnPrimary" onClick={reabrirClase} disabled={reabriendo}>
+                {reabriendo ? "Reabriendo..." : "Reabrir la clase"}
+              </button>
+            </div>
+          )}
 
-          {muestraLista && alumnos.length > 0 && (
+          {muestraLista && !cancelada && alumnos.length === 0 && <p className="ppEmpty">Este día no hay alumnos apuntados en el grupo.</p>}
+
+          {muestraLista && !cancelada && alumnos.length > 0 && (
             <>
               <p className="ppHint">
-                {sesion
-                  ? "Esta lista ya se guardó. Puedes corregirla."
+                {hayAsistencia
+                  ? "Lista ya guardada: puedes corregirla."
                   : "Todos aparecen como que vinieron. Toca solo a quien faltó."}
                 {" "}
                 {esFutura
                   ? "Este día aún no ha llegado."
                   : estadoClase === "dada"
-                    ? "Al guardar, la clase cuenta como dada y las faltas justificadas quedan para recuperar."
-                    : "Has marcado que la clase no se dio: no se apuntarán recuperaciones."}
+                    ? "Las faltas justificadas quedan para recuperar."
+                    : "La clase no se da por dada: no se apuntan recuperaciones."}
               </p>
 
               <ul className="ppRoll">
@@ -386,13 +463,22 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
                 </p>
                 {guardarError && <p className="ppInlineError ppSaveError" role="alert">{guardarError}</p>}
                 <button type="button" className="ppBtn ppBtnPrimary ppSaveBtn" data-done={recienGuardada ? "true" : "false"} onClick={guardar} disabled={guardando}>
-                  {guardando ? "Guardando..." : recienGuardada ? <><IcCheck /> Lista guardada</> : guardarError ? "Reintentar" : sesion ? "Guardar cambios" : "Guardar lista"}
+                  {guardando ? "Guardando..." : recienGuardada ? <><IcCheck /> Lista guardada</> : guardarError ? "Reintentar" : hayAsistencia ? "Guardar cambios" : "Guardar lista"}
                 </button>
               </div>
             </>
           )}
         </>
       )}
+      <CancelarClaseHoja
+        abierto={cancelarAbierto}
+        grupoNombre={grupo ? nombreGrupo(grupo) : ""}
+        fechaTexto={formatFecha(fecha)}
+        ocupado={cancelando}
+        error={cancelarError}
+        onConfirmar={cancelarClase}
+        onCancelar={() => setCancelarAbierto(false)}
+      />
     </section>
   );
 }
