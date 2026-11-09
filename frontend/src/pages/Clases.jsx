@@ -6,6 +6,7 @@ import { getUser, isLogged } from "../services/auth";
 import { buildClubWhatsappUrl } from "../services/whatsappLinks";
 import { fechaLarga } from "../services/fechas";
 import ContactoClub from "../components/ContactoClub";
+import EncuentraGrupoForm from "../components/EncuentraGrupoForm";
 
 const DAY_LABELS = { L: "Lunes", M: "Martes", X: "Miércoles", J: "Jueves", V: "Viernes", S: "Sábado", D: "Domingo" };
 const STAFF_ROLES = ["admin", "profesor", "profe"];
@@ -224,40 +225,13 @@ function StudentGroupCard({ grupo }) {
   );
 }
 
-const PREGUNTAS_GRUPO = [
-  { key: "quien", titulo: "¿Para quién es la clase?", opciones: ["Para un niño o niña", "Para un adulto"] },
-  { key: "nivel", titulo: "¿Qué nivel tiene?", opciones: ["Empieza de cero", "Ya juega", "Compite"] },
-  { key: "dias", titulo: "¿Cuándo le viene bien?", opciones: ["Tardes entre semana", "Mañanas", "Fines de semana"] },
-];
-
-// Tres preguntas con botones y un único botón de WhatsApp con el mensaje ya escrito.
+// Formulario de 4 preguntas: enviar al club por correo o escribir por WhatsApp.
 function EncuentraGrupo() {
-  const [respuestas, setRespuestas] = useState({});
-  const partes = PREGUNTAS_GRUPO.filter((p) => respuestas[p.key]).map((p) => `${p.titulo.replace(/[¿?]/g, "")}: ${respuestas[p.key].toLowerCase()}`);
-  const mensaje = `Hola, quiero información sobre las clases de pádel.${partes.length ? ` ${partes.join(". ")}.` : ""}`;
-
   return (
     <section className="encuentraGrupo" aria-labelledby="encuentra-grupo-titulo">
       <h2 id="encuentra-grupo-titulo">Encuentra tu grupo</h2>
-      <p>Responde con un toque y te escribimos con los grupos que encajan. No hace falta rellenar nada más.</p>
-      {PREGUNTAS_GRUPO.map((pregunta) => (
-        <fieldset key={pregunta.key} className="encuentraPregunta">
-          <legend>{pregunta.titulo}</legend>
-          <div>
-            {pregunta.opciones.map((opcion) => (
-              <button
-                key={opcion}
-                type="button"
-                aria-pressed={respuestas[pregunta.key] === opcion}
-                onClick={() => setRespuestas((r) => ({ ...r, [pregunta.key]: r[pregunta.key] === opcion ? undefined : opcion }))}
-              >
-                {opcion}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-      ))}
-      <ContactoClub mensaje={mensaje} />
+      <p>Respóndenos a 4 preguntas rápidas, casi todo con un toque. Te llamamos con los grupos que encajan.</p>
+      <EncuentraGrupoForm />
     </section>
   );
 }
