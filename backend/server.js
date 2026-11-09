@@ -16,6 +16,7 @@ import galeriaRouter from "./routes/galeria.js";
 import notificacionesRouter from "./routes/notificaciones.js";
 import whatsappRouter from "./routes/whatsapp.js";
 import noticiasRouter from "./routes/noticias.js";
+import contactoRouter from "./routes/contacto.js";
 import { requireAuth, requireRoles } from "./middleware/auth.js";
 import { sendWhatsAppMessage } from "./services/whatsappService.js";
 
@@ -110,6 +111,9 @@ app.use("/api/whatsapp", whatsappRouter);
 
 // Titulares de pádel de la prensa deportiva (solo lectura, con caché)
 app.use("/api/noticias", noticiasRouter);
+
+// Formulario público "Encuentra tu grupo": envía la consulta por correo al club
+app.use("/api/contacto", contactoRouter);
 
 // ======================================================
 // RUTAS BÁSICAS
