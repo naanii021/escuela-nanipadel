@@ -1,3 +1,4 @@
+import bcrypt from "bcrypt";
 import express from "express";
 import { db } from "../db/connection.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
@@ -244,6 +245,91 @@ router.put("/profesional", requireRoles(PROFESSIONAL_ROLES), async (req, res) =>
   } catch (e) {
     console.error("Error PUT /api/perfil/profesional:", e);
     res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+// --- Cambio de contraseña ---------------------------------------------------
+// Códigos: 400 datos no válidos, 403 contraseña actual incorrecta, 429 demasiados
+// intentos. Nunca 401: el frontend cierra la sesión ante un 401 y aquí el usuario
+// sigue identificado, solo se ha equivocado al escribir.
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_MAX_BYTES = 72; // bcrypt ignora en silencio lo que pase de 72 bytes
+const PASSWORD_BCRYPT_ROUNDS = 10;
+const PASSWORD_MAX_FAILS = 5;
+const PASSWORD_WINDOW_MS = 15 * 60 * 1000;
+const passwordFails = new Map(); // clave -> { count, resetAt }
+
+function passwordKeys(req) {
+  return [`u:${req.user?.id}`, `ip:${req.ip || req.socket?.remoteAddress || "?"}`];
+}
+
+function passwordBlockedSeconds(keys, now = Date.now()) {
+  let wait = 0;
+  for (const key of keys) {
+    const entry = passwordFails.get(key);
+    if (!entry) continue;
+    if (entry.resetAt <= now) { passwordFails.delete(key); continue; }
+    if (entry.count >= PASSWORD_MAX_FAILS) wait = Math.max(wait, Math.ceil((entry.resetAt - now) / 1000));
+  }
+  return wait;
+}
+
+function registerPasswordFail(keys, now = Date.now()) {
+  for (const key of keys) {
+    const entry = passwordFails.get(key);
+    if (!entry || entry.resetAt <= now) passwordFails.set(key, { count: 1, resetAt: now + PASSWORD_WINDOW_MS });
+    else entry.count += 1;
+  }
+}
+
+export function resetPasswordAttempts() {
+  passwordFails.clear();
+}
+
+// PUT /api/perfil/password  { actual, nueva }
+router.put("/password", async (req, res) => {
+  try {
+    const { actual, nueva } = req.body || {};
+    const keys = passwordKeys(req);
+
+    const wait = passwordBlockedSeconds(keys);
+    if (wait > 0) {
+      res.set("Retry-After", String(wait));
+      return res.status(429).json({
+        ok: false,
+        message: `Demasiados intentos fallidos. Espera ${Math.ceil(wait / 60)} minuto(s) y vuelve a probar.`,
+      });
+    }
+
+    if (typeof actual !== "string" || typeof nueva !== "string" || !actual || !nueva) {
+      return res.status(400).json({ ok: false, message: "Escribe tu contraseña actual y la nueva." });
+    }
+    if (nueva.length < PASSWORD_MIN_LENGTH) {
+      return res.status(400).json({ ok: false, message: `La nueva contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres.` });
+    }
+    if (Buffer.byteLength(nueva, "utf8") > PASSWORD_MAX_BYTES || Buffer.byteLength(actual, "utf8") > PASSWORD_MAX_BYTES) {
+      return res.status(400).json({ ok: false, message: "La contraseña es demasiado larga. Usa como máximo 72 caracteres." });
+    }
+
+    const [rows] = await query("SELECT password_hash FROM usuarios WHERE id = ? AND activo = 1 LIMIT 1", [req.user.id]);
+    const hash = rows[0]?.password_hash;
+    const valid = hash ? await bcrypt.compare(actual, hash) : false;
+    if (!valid) {
+      registerPasswordFail(keys);
+      return res.status(403).json({ ok: false, message: "La contraseña actual no es correcta." });
+    }
+
+    if (nueva === actual) {
+      return res.status(400).json({ ok: false, message: "La nueva contraseña debe ser distinta de la actual." });
+    }
+
+    const nuevoHash = await bcrypt.hash(nueva, PASSWORD_BCRYPT_ROUNDS);
+    await query("UPDATE usuarios SET password_hash = ? WHERE id = ?", [nuevoHash, req.user.id]);
+    passwordFails.delete(keys[0]);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Error PUT /api/perfil/password:", error.message);
+    res.status(500).json({ ok: false, message: "No hemos podido cambiar la contraseña. Inténtalo de nuevo." });
   }
 });
 
