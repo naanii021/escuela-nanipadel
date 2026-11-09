@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { PRECIO_CON_LUZ, PRECIO_SIN_LUZ, precioTurno } from "../services/precios";
 import "./cuadranteReservas.css";
 
 // Cuadrante de reservas: columnas = pistas, filas = franjas de 90 minutos agrupadas en
@@ -34,7 +35,15 @@ const IconoPista = (
   </svg>
 );
 
-function Celda({ slot, precio, onReservar, onDetalle }) {
+// Bombilla pequeña: marca los turnos que se juegan con luces encendidas.
+export const IconoLuz = (
+  <svg className="cuLuzIcono" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M9 18h6M10 21.5h4" />
+    <path d="M12 2.5a6.5 6.5 0 0 0-3.6 11.9c.7.5 1.1 1.2 1.1 2.1h5c0-.9.4-1.6 1.1-2.1A6.5 6.5 0 0 0 12 2.5Z" />
+  </svg>
+);
+
+function Celda({ slot, onReservar, onDetalle }) {
   const cuando = `${slot.courtName}, de ${slot.start} a ${slot.end}`;
   const comun = { "data-r": slot.fila, "data-c": slot.columna };
 
@@ -65,16 +74,18 @@ function Celda({ slot, precio, onReservar, onDetalle }) {
   }
 
   if (slot.status === "disponible") {
+    const { precio, conLuz } = precioTurno(slot.dateISO, slot.start);
     return (
       <button
         type="button"
-        className="cuCelda isLibre"
+        className={`cuCelda isLibre${conLuz ? " isConLuz" : ""}`}
         onClick={() => onReservar(slot)}
-        aria-label={`${cuando}, libre. Reservar por ${precio} euros`}
+        aria-label={`${cuando}, libre. Reservar por ${precio} euros${conLuz ? ", con luz" : ", sin luz"}`}
         {...comun}
       >
         <strong>Libre</strong>
         <span><b>Reservar</b> · {precio} €</span>
+        {conLuz && <span className="cuLuz">{IconoLuz}con luz</span>}
       </button>
     );
   }
@@ -127,7 +138,7 @@ function moverConFlechas(event) {
 
 // filas: [[slot pista 1, slot pista 2…], …] ya filtradas (sin las pasadas si se ocultan).
 // ahora: "HH:MM" si el día mostrado es hoy; se dibuja la línea de "ahora".
-export default function CuadranteReservas({ pistas, filas, ahora, precio, ocupado, onReservar, onDetalle }) {
+export default function CuadranteReservas({ pistas, filas, ahora, ocupado, onReservar, onDetalle }) {
   const libresPorPista = pistas.map((_, columna) => filas.filter((fila) => esLibre(fila[columna])).length);
   const indiceAhora = ahora ? (() => {
     const i = filas.findIndex((fila) => !fila[0].pasada);
@@ -195,7 +206,7 @@ export default function CuadranteReservas({ pistas, filas, ahora, precio, ocupad
                   </th>
                   {fila.map((slot, columna) => (
                     <td key={slot.id}>
-                      <Celda slot={{ ...slot, fila: indice, columna }} precio={precio} onReservar={onReservar} onDetalle={onDetalle} />
+                      <Celda slot={{ ...slot, fila: indice, columna }} onReservar={onReservar} onDetalle={onDetalle} />
                     </td>
                   ))}
                 </tr>
@@ -210,10 +221,11 @@ export default function CuadranteReservas({ pistas, filas, ahora, precio, ocupad
   );
 }
 
-export function Leyenda({ precio, className = "" }) {
+export function Leyenda({ className = "" }) {
   return (
     <ul className={`cuLeyenda ${className}`} aria-label="Qué significa cada color">
-      <li><span className="cuMuestra isLibre" aria-hidden="true" />Libre · {precio} €</li>
+      <li><span className="cuMuestra isLibre" aria-hidden="true" />Sin luz · {PRECIO_SIN_LUZ} €</li>
+      <li><span className="cuMuestra isLibre isConLuz" aria-hidden="true">{IconoLuz}</span>Con luz · {PRECIO_CON_LUZ} €</li>
       <li><span className="cuMuestra isMia" aria-hidden="true" />Tu reserva</li>
       <li><span className="cuMuestra isAbierta" aria-hidden="true" />Partida abierta</li>
       <li><span className="cuMuestra isOcupada" aria-hidden="true" />Ocupada</li>
