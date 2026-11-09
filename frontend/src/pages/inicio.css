@@ -1170,3 +1170,13 @@
     display: none;
   }
 }
+
+.inicioProximaClase.isCancelada {
+  border-color: hsl(0 60% 80%);
+  background: hsl(0 70% 97%);
+}
+
+.inicioClaseCancelada {
+  color: hsl(0 65% 36%);
+  font-weight: 700;
+}

@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/security.js";
 import { db } from "../db/connection.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
+import { sesionParaAlumno } from "./gestionControl.js";
 
 const router = express.Router();
 const query = (sql, params = []) => db.promise().query(sql, params);
@@ -259,7 +260,8 @@ async function getProximasSesiones(groupIds) {
      LIMIT 8`,
     groupIds
   );
-  return rows;
+  // Las observaciones son notas internas del profesor: el alumno solo recibe el motivo de una cancelación.
+  return rows.map(sesionParaAlumno);
 }
 
 async function getAsistenciaReciente(alumnoId) {

@@ -90,7 +90,7 @@ registerHooks({
   },
 });
 
-const { default: router, formatCancelacion, parseCancelacion } = await import("../routes/gestionControl.js");
+const { default: router, formatCancelacion, parseCancelacion, sesionParaAlumno } = await import("../routes/gestionControl.js");
 
 // 2026-11-05 es jueves.
 async function call(method, path, body = {}, role = "profesor") {
@@ -228,4 +228,22 @@ test("permisos: un alumno no cancela ni reabre; un profesor y un admin sí", asy
   assert.equal(session, null);
   assert.equal((await call("post", cancelar, { motivo: "lluvia" }, "profe")).statusCode, 200);
   assert.equal((await call("post", reabrir, {}, "admin")).statusCode, 200);
+});
+
+test("lo que ve el alumno: sin notas internas y con el motivo si la clase está cancelada", () => {
+  const programada = sesionParaAlumno({ id: 1, estado: "programada", fecha: "2026-11-12", observaciones: "Trabajar el saque; falta Ana" });
+  assert.equal("observaciones" in programada, false);
+  assert.equal("cancelacion" in programada, false);
+  assert.equal(programada.fecha, "2026-11-12");
+
+  const cancelada = sesionParaAlumno({ id: 2, estado: "cancelada", observaciones: formatCancelacion("lluvia") });
+  assert.equal("observaciones" in cancelada, false);
+  assert.deepEqual(cancelada.cancelacion, { motivo: "lluvia", texto: "", etiqueta: "Lluvia" });
+
+  const otro = sesionParaAlumno({ id: 3, estado: "cancelada", observaciones: formatCancelacion("otro", "Obras en la pista") });
+  assert.equal(otro.cancelacion.texto, "Obras en la pista");
+
+  // Una cancelada sin el formato esperado no rompe nada.
+  assert.equal(sesionParaAlumno({ id: 4, estado: "cancelada", observaciones: null }).cancelacion.motivo, "otro");
+  assert.equal(sesionParaAlumno(null), null);
 });

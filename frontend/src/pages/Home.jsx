@@ -161,6 +161,8 @@ function Home() {
           hora: String(sesion.hora_inicio || grupo.hora_inicio || "").slice(0, 5),
           nombre: grupo.nombre || "Tu clase",
           pista: sesion.pista_habitual || grupo.pista_habitual || "",
+          cancelada: sesion.estado === "cancelada",
+          motivo: sesion.cancelacion?.etiqueta || "",
         });
       })
       .catch(() => setNextClass(null));
@@ -471,11 +473,12 @@ function Home() {
       {loggedIn && !isStaff && (
         <section className="inicioTuyo" aria-label="Tus próximas citas">
           {nextClass && (
-            <div className="inicioProximaClase">
-              <h2>Tu próxima clase</h2>
+            <div className={`inicioProximaClase${nextClass.cancelada ? " isCancelada" : ""}`}>
+              <h2>{nextClass.cancelada ? "Tu próxima clase está cancelada" : "Tu próxima clase"}</h2>
               <p>
                 <strong>{fechaRelativa(nextClass.fecha)}{nextClass.hora ? `, a las ${nextClass.hora}` : ""}</strong>
                 <span>{nextClass.nombre}{nextClass.pista ? ` · ${nextClass.pista}` : ""}</span>
+                {nextClass.cancelada && <span className="inicioClaseCancelada">Cancelada{nextClass.motivo ? ` · ${nextClass.motivo}` : ""}. El club te avisará de cuándo recuperarla.</span>}
               </p>
               <Link className="newsMoreBtn" to="/clases">Ver mis clases</Link>
             </div>

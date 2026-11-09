@@ -45,6 +45,15 @@ export function parseCancelacion(observaciones) {
   return { motivo, texto: match[2].trim(), etiqueta: MOTIVOS_CANCELACION[motivo] };
 }
 
+// Sesión tal como la ve un alumno o una familia: sin las notas internas del profesor (observaciones)
+// y, si está cancelada, con el motivo ya traducido.
+export function sesionParaAlumno(sesion) {
+  if (!sesion) return sesion;
+  const { observaciones, ...resto } = sesion;
+  if (resto.estado !== "cancelada") return resto;
+  return { ...resto, cancelacion: parseCancelacion(observaciones) || { motivo: "otro", texto: "", etiqueta: MOTIVOS_CANCELACION.otro } };
+}
+
 // Añade `cancelacion` a la sesión solo cuando está cancelada, para no cambiar la forma del resto.
 function withCancelacion(sesion) {
   if (!sesion || sesion.estado !== "cancelada") return sesion;
