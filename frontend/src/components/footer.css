@@ -1,24 +1,176 @@
+/* Pie de página sobre el verde oscuro del club (fondo y color base en redesign.css). */
+/* Abajo queda sitio para el botón flotante de Ayuda, que no tapa los enlaces legales. */
 .footer {
-  padding: 1.5rem 0 2rem;
-  color: var(--muted);
+  padding: 2.4rem 0 5.5rem;
+  color: #c9d8ce;
 }
 
 .footerInner {
   display: grid;
-  gap: 1rem;
-  border-top: 1px solid var(--border);
-  padding-top: 1.4rem;
+  gap: 2rem;
   font-size: 1rem;
 }
 
-.footerContacto {
-  display: grid;
-  gap: 0.7rem;
-  max-width: 34rem;
+.footer h2 {
+  margin: 0 0 0.8rem;
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
-.footerContacto > strong {
-  font-size: 1.05rem;
+.footerColumnas {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.5fr) minmax(0, 0.9fr);
+  gap: 2rem 3rem;
+  align-items: start;
+}
+
+.footerLista {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footer .footerLista a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 44px;
+  min-height: 44px;
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.footer .footerLista a:focus-visible,
+.footer .footerLegales a:focus-visible,
+.footer .footerDato a:focus-visible,
+.footerPatrocinador:focus-visible {
+  outline: 3px solid var(--lime, #b8ee58);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Contacto: los dos botones grandes y debajo dirección y horario. */
+.footerContacto .contactoClub {
+  max-width: 30rem;
+}
+
+.footer .contactoBtn.isWhatsapp {
+  background: var(--lime, #b8ee58);
+  color: #142119;
+}
+
+.footerDatos {
+  display: grid;
+  gap: 0.7rem;
+  margin: 1.1rem 0 0;
+}
+
+.footerDato dt {
+  color: #a9c2b2;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.footerDato dd {
+  margin: 0.1rem 0 0;
+  color: #ffffff;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.footerDato dd.isPendiente,
+.footerPendiente {
+  color: #a9c2b2;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.footerPendiente {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.footer .footerDato a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #ffffff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Patrocinadores: franja de logos; los huecos libres invitan a patrocinar por WhatsApp. */
+.footerPatrocinio {
+  padding-top: 1.6rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.footerPatrocinadores {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footerPatrocinador {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.15rem;
+  min-height: 88px;
+  height: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--color-text);
+  text-align: center;
+  text-decoration: none;
+  transition: transform 120ms var(--ease-out), background-color 160ms ease, border-color 160ms ease;
+}
+
+.footerPatrocinador img {
+  max-width: 100%;
+  max-height: 56px;
+  object-fit: contain;
+}
+
+.footer .footerPatrocinador.isHueco {
+  border: 1.5px dashed rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+.footerPatrocinador.isHueco strong {
+  font-size: 1rem;
+}
+
+.footerPatrocinador.isHueco span {
+  color: var(--lime, #b8ee58);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+a.footerPatrocinador:active {
+  transform: scale(0.98);
+}
+
+/* Base: copyright y textos legales. */
+.footerBase {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 1.5rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .footerLegal {
@@ -26,18 +178,81 @@
   font-size: 0.875rem;
 }
 
-/* El pie es verde oscuro: WhatsApp en lima para que destaque. */
-.footer .contactoBtn.isWhatsapp {
-  background: var(--lime, #b8ee58);
-  color: #142119;
+.footerLegales {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.footer .footerContacto > strong {
+.footer .footerLegales a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+  text-underline-offset: 3px;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .footer .contactoBtn.isWhatsapp:hover {
     background: #c7f47b;
+  }
+
+  .footer .footerLista a:hover,
+  .footer .footerLegales a:hover {
+    color: var(--lime, #b8ee58);
+    text-decoration-color: currentColor;
+  }
+
+  .footer .footerPatrocinador.isHueco:hover {
+    border-color: var(--lime, #b8ee58);
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+@media (max-width: 900px) {
+  .footerColumnas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .footerContacto {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+}
+
+@media (max-width: 560px) {
+  .footerColumnas {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.6rem;
+  }
+
+  .footerContacto {
+    grid-column: auto;
+  }
+
+  .footerPatrocinadores {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .footerPatrocinador {
+    min-height: 80px;
+    padding: 0.7rem 0.6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footerPatrocinador {
+    transition: none;
+  }
+
+  a.footerPatrocinador:active {
+    transform: none;
   }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getAssistantSummary } from "../services/assistantService";
 import { getUser, isLogged } from "../services/auth";
 import { buildClubWhatsappUrl } from "../services/whatsappLinks";
@@ -183,6 +183,8 @@ function buildCommandResponse(command, role) {
 }
 
 export default function ClubAssistant() {
+  // En Reservar pista el botón flotante tapaba celdas del cuadrante en el móvil; ahí la barra inferior ya tiene Contacto.
+  const enReservas = useLocation().pathname.startsWith("/reservas");
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -390,7 +392,7 @@ export default function ClubAssistant() {
       )}
 
       <button
-        className={`assistantFab${open ? " isOpen" : ""}`}
+        className={`assistantFab${open ? " isOpen" : ""}${enReservas && !open ? " isQuietMobile" : ""}`}
         onClick={() => setOpen((value) => !value)}
         aria-label={open ? "Cerrar la ayuda" : "Abrir la ayuda del club"}
         aria-expanded={open}

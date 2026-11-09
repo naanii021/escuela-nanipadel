@@ -1,14 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { isRainy } from "../services/weatherService";
+import { Alumno, Carro, JugadorFrente, Profe } from "./pista3d/Figuras";
+import { ESCENAS, MEDIDAS_FIGURA } from "./pista3d/escenas";
 import "./weatherCourt3d.css";
-
-// Cuatro jugadores en silueta: dos por lado, cerca de la red y al fondo.
-const PLAYERS = [
-  { x: 90, y: 190, side: "isFar" },
-  { x: 210, y: 190, side: "isFar" },
-  { x: 90, y: 410, side: "isNear" },
-  { x: 210, y: 410, side: "isNear" },
-];
 
 const STARS = Array.from({ length: 18 }, (_, index) => ({
   left: (index * 53) % 100,
@@ -20,17 +14,43 @@ function prefersReducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
+function FiguraSvg({ figura }) {
+  if (figura.tipo === "profe") return <Profe />;
+  if (figura.tipo === "jugadorFrente") return <JugadorFrente polo={figura.polo} />;
+  return <Alumno polo={figura.polo} detalle={figura.detalle} gorra={figura.gorra} pelo={figura.pelo} />;
+}
+
+// Estilo de una figura de pie: los pies quedan en (--px, --py) y gira sobre ellos.
+// El CSS multiplica las medidas por --fig-escala (más grandes en el móvil).
+function estiloFigura({ x, y }, medidas) {
+  return {
+    "--px": `${x}px`,
+    "--py": `${y}px`,
+    "--fw": `${medidas.ancho}px`,
+    "--fh": `${medidas.alto}px`,
+    "--fx": `${medidas.pieX}px`,
+    "--fy": `${medidas.pieY}px`,
+  };
+}
+
+const posicion = ({ x, y }) => ({ "--px": `${x}px`, "--py": `${y}px` });
+
 // `night` y `rain` fuerzan la escena (vista previa); sin ellos se usa el tiempo real.
-export default function WeatherCourt3D({ weather, night, rain }) {
+// `escena`: "clase" (profe con carro y dos alumnos) o "partido" (2 contra 2).
+export default function WeatherCourt3D({ weather, night, rain, escena = "clase" }) {
   const stageRef = useRef(null);
   const areaRef = useRef(null);
   const courtRef = useRef(null);
-  const ballRef = useRef(null);
-  const shadowRef = useRef(null);
   const rainRef = useRef(null);
-  const playerRefs = useRef([]);
+  const figureRefs = useRef([]);
+  const shadeRefs = useRef([]);
+  const ballRefs = useRef([]);
+  const ballShadowRefs = useRef([]);
+  const geoRef = useRef({ rx: 58, rz: -28, k: 1 });
+  const clockRef = useRef(null);
   const [inView, setInView] = useState(true);
 
+  const datos = ESCENAS[escena] || ESCENAS.clase;
   const isNight = night ?? Number(weather?.isDay) === 0;
   const isRaining = rain ?? isRainy(weather || {});
 
@@ -43,88 +63,132 @@ export default function WeatherCourt3D({ weather, night, rain }) {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    const ball = ballRef.current;
-    const shadow = shadowRef.current;
-    if (!ball || !shadow || !inView || prefersReducedMotion()) return undefined;
-
-    let frameId;
-    let direction = 1;
-    let shot = {
-      from: { x: 150, y: 520 },
-      to: { x: 190, y: 130 },
-      startedAt: performance.now(),
-      duration: 1150,
-      height: 80,
-    };
-
-    const nextShot = (from, now) => {
-      direction *= -1;
-      shot = {
-        from,
-        to: {
-          x: 40 + Math.random() * 220,
-          y: direction > 0 ? 60 + Math.random() * 200 : 340 + Math.random() * 200,
-        },
-        startedAt: now,
-        duration: 950 + Math.random() * 360,
-        height: 60 + Math.random() * 50,
-      };
-    };
-
-    const positions = PLAYERS.map(({ x, y }) => ({ x, y }));
-
-    const animate = (now) => {
-      let progress = (now - shot.startedAt) / shot.duration;
-      if (progress >= 1) {
-        nextShot(shot.to, now);
-        progress = 0;
-      }
-
-      const x = shot.from.x + (shot.to.x - shot.from.x) * progress;
-      const y = shot.from.y + (shot.to.y - shot.from.y) * progress;
-      const z = 4 * shot.height * progress * (1 - progress) + 6;
-      const scale = Math.max(0.45, 1 - z / 260);
-
-      ball.style.transform = `translate3d(${x}px, ${y}px, ${z}px)`;
-      shadow.style.transform = `translate3d(${x + z * 0.18}px, ${y + z * 0.1}px, 2px) scale(${scale})`;
-      shadow.style.opacity = String(scale * 0.62);
-
-      // Cada jugador se acerca despacio hacia la bola sin salirse de su zona.
-      PLAYERS.forEach((base, index) => {
-        const refs = playerRefs.current[index];
-        const point = positions[index];
-        if (!refs?.figure || !refs.shade || !point) return;
-        point.x += (base.x + (x - base.x) * 0.3 - point.x) * 0.06;
-        point.y += (base.y + (y - 300) * 0.12 - point.y) * 0.06;
-        const bob = Math.sin(now * 0.008 + index * 1.7) * 1.2;
-        [refs.figure, refs.shade].forEach((element) => {
-          element.style.setProperty("--px", `${point.x.toFixed(1)}px`);
-          element.style.setProperty("--py", `${point.y.toFixed(1)}px`);
-        });
-        refs.figure.style.setProperty("--bob", `${bob.toFixed(2)}px`);
-      });
-      frameId = window.requestAnimationFrame(animate);
-    };
-
-    frameId = window.requestAnimationFrame(animate);
-    return () => window.cancelAnimationFrame(frameId);
-  }, [inView]);
-
+  // Encaje: se mide la pista proyectada (losa, cristales y focos) y se escala y centra para
+  // que quepa entera en su zona, sea cual sea la inclinación de cada pantalla. Va antes que
+  // el bucle porque fija la inclinación y el tamaño de figuras que usa la escena.
   useEffect(() => {
     const area = areaRef.current;
     const court = courtRef.current;
     if (!area || !court) return undefined;
 
-    const fit = () => {
-      const scale = Math.min(area.clientHeight / 830, area.clientWidth / 600);
-      court.style.setProperty("--court-scale", scale.toFixed(3));
+    const medir = (conLosa) => {
+      const caja = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
+      const piezas = conLosa ? ".weatherCourt3dGround, .weatherCourtWall, .weatherCourtLight" : ".weatherCourtWall, .weatherCourtLight";
+      court.querySelectorAll(piezas).forEach((pieza) => {
+        const r = pieza.getBoundingClientRect();
+        caja.left = Math.min(caja.left, r.left);
+        caja.top = Math.min(caja.top, r.top);
+        caja.right = Math.max(caja.right, r.right);
+        caja.bottom = Math.max(caja.bottom, r.bottom);
+      });
+      return caja;
     };
+
+    const fit = () => {
+      const styles = getComputedStyle(court);
+      geoRef.current = {
+        rx: parseFloat(styles.getPropertyValue("--rx-base")) || 58,
+        rz: parseFloat(styles.getPropertyValue("--rz-base")) || -28,
+        k: parseFloat(styles.getPropertyValue("--fig-escala")) || 1,
+      };
+      const margen = parseFloat(styles.getPropertyValue("--court-margin")) || 12;
+      // En el móvil la losa puede salirse por los lados para que la pista se vea más grande.
+      const conLosa = styles.getPropertyValue("--court-losa").trim() !== "0";
+      const zona = area.getBoundingClientRect();
+      if (!zona.width || !zona.height) return;
+
+      court.style.transition = "none";
+      let scale = 1;
+      let dx = 0;
+      let dy = 0;
+      // Dos pasadas: la perspectiva hace que el tamaño no sea del todo proporcional a la escala.
+      for (let pasada = 0; pasada < 2; pasada += 1) {
+        court.style.setProperty("--court-scale", scale.toFixed(4));
+        court.style.setProperty("--court-dx", `${dx.toFixed(1)}px`);
+        court.style.setProperty("--court-dy", `${dy.toFixed(1)}px`);
+        const caja = medir(conLosa);
+        const ancho = caja.right - caja.left;
+        const alto = caja.bottom - caja.top;
+        if (!ancho || !alto) break;
+        const factor = Math.min((zona.width - margen * 2) / ancho, (zona.height - margen * 2) / alto);
+        scale *= factor;
+        dx += (zona.left + zona.width / 2 - (caja.left + caja.right) / 2) * factor;
+        dy += (zona.top + zona.height / 2 - (caja.top + caja.bottom) / 2) * factor;
+      }
+      court.style.setProperty("--court-scale", scale.toFixed(4));
+      court.style.setProperty("--court-dx", `${dx.toFixed(1)}px`);
+      court.style.setProperty("--court-dy", `${dy.toFixed(1)}px`);
+      court.getBoundingClientRect();
+      court.style.transition = "";
+    };
+
     const observer = new ResizeObserver(fit);
     observer.observe(area);
     fit();
     return () => observer.disconnect();
   }, []);
+
+  // Bucle de la escena: el animador dice dónde está cada figura y cada bola en el instante t.
+  useEffect(() => {
+    const animar = datos.crearAnimador();
+    const ultimas = [];
+
+    const aplicar = (frame) => {
+      frame.figuras.forEach((figura, index) => {
+        const element = figureRefs.current[index];
+        const shade = shadeRefs.current[index];
+        if (!element || !shade) return;
+        const x = figura.x.toFixed(1);
+        const y = figura.y.toFixed(1);
+        const antes = ultimas[index] || {};
+        if (antes.x !== x || antes.y !== y) {
+          [element, shade].forEach((el) => {
+            el.style.setProperty("--px", `${x}px`);
+            el.style.setProperty("--py", `${y}px`);
+          });
+        }
+        if (antes.pose !== figura.pose) element.dataset.pose = figura.pose;
+        ultimas[index] = { x, y, pose: figura.pose };
+      });
+
+      for (let index = 0; index < datos.pelotas; index += 1) {
+        const ball = ballRefs.current[index];
+        const shadow = ballShadowRefs.current[index];
+        if (!ball || !shadow) continue;
+        const bola = frame.pelotas[index];
+        if (!bola) {
+          ball.style.opacity = "0";
+          shadow.style.opacity = "0";
+          continue;
+        }
+        const { x, y, z, opacidad } = bola;
+        const scale = Math.max(0.45, 1 - z / 260);
+        ball.style.opacity = String(opacidad);
+        ball.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${(z + 6).toFixed(1)}px) rotateZ(calc(var(--court-rz) * -1)) rotateX(calc(var(--court-rx) * -1))`;
+        shadow.style.transform = `translate3d(${(x + z * 0.18).toFixed(1)}px, ${(y + z * 0.1).toFixed(1)}px, 2px) scale(${scale.toFixed(3)})`;
+        shadow.style.opacity = String(scale * 0.62 * opacidad);
+      }
+    };
+
+    // Movimiento reducido: una imagen fija bonita, con bolas en el aire.
+    if (prefersReducedMotion()) {
+      aplicar(animar(datos.instanteFijo, geoRef.current));
+      return undefined;
+    }
+    if (!inView) return undefined;
+
+    // El reloj de la escena se para fuera de pantalla y sigue donde lo dejó.
+    if (clockRef.current === null) clockRef.current = datos.instanteFijo;
+    const offset = performance.now() - clockRef.current;
+    let frameId;
+    const tick = (now) => {
+      clockRef.current = now - offset;
+      aplicar(animar(clockRef.current, geoRef.current));
+      frameId = window.requestAnimationFrame(tick);
+    };
+    frameId = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [inView, datos]);
 
   useEffect(() => {
     const canvas = rainRef.current;
@@ -185,16 +249,16 @@ export default function WeatherCourt3D({ weather, night, rain }) {
     };
   }, [isNight, isRaining, inView]);
 
-  // El ratón inclina la pista aunque el texto de la portada quede por encima.
+  // El ratón inclina un poco la pista aunque el texto de la portada quede por encima.
   useEffect(() => {
     const court = courtRef.current;
-    if (!court || prefersReducedMotion() || !window.matchMedia("(pointer: fine)").matches) return undefined;
+    if (!court || prefersReducedMotion() || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return undefined;
 
     const handleMove = (event) => {
       const horizontal = event.clientX / window.innerWidth - 0.5;
       const vertical = event.clientY / window.innerHeight - 0.5;
-      court.style.setProperty("--court-rx", `${58 - vertical * 8}deg`);
-      court.style.setProperty("--court-rz", `${-28 + horizontal * 14}deg`);
+      court.style.setProperty("--tilt-x", `${(-vertical * 8).toFixed(2)}deg`);
+      court.style.setProperty("--tilt-z", `${(horizontal * 14).toFixed(2)}deg`);
     };
     window.addEventListener("pointermove", handleMove);
     return () => window.removeEventListener("pointermove", handleMove);
@@ -202,7 +266,7 @@ export default function WeatherCourt3D({ weather, night, rain }) {
 
   return (
     <div
-      className={`weatherCourt3d${isNight ? " isNight" : ""}${isRaining ? " isRaining" : ""}${inView ? "" : " isOffscreen"}`}
+      className={`weatherCourt3d escena-${datos.id}${isNight ? " isNight" : ""}${isRaining ? " isRaining" : ""}${inView ? "" : " isOffscreen"}`}
       ref={stageRef}
       aria-hidden="true"
     >
@@ -243,36 +307,51 @@ export default function WeatherCourt3D({ weather, night, rain }) {
           {["lightOne", "lightTwo", "lightThree", "lightFour"].map((name) => (
             <span className={`weatherCourtBeam beam-${name}`} key={name} />
           ))}
-          {PLAYERS.map((player, index) => {
-            const style = { "--px": `${player.x}px`, "--py": `${player.y}px` };
-            return (
-              <span key={index}>
-                <i
-                  className="weatherCourtPlayerShade"
-                  style={style}
-                  ref={(element) => {
-                    playerRefs.current[index] = { ...playerRefs.current[index], shade: element };
-                  }}
-                />
-                <i
-                  className={`weatherCourtPlayer ${player.side}`}
-                  style={style}
-                  ref={(element) => {
-                    playerRefs.current[index] = { ...playerRefs.current[index], figure: element };
-                  }}
-                >
-                  <svg viewBox="0 0 34 56" width="34" height="56">
-                    <circle cx="12" cy="6" r="5" />
-                    <path d="M6 14h12l2 17h-4l-1 25h-3l-1-13-1 13H7L6 31H4z" />
-                    <path className="racket" d="M18 21l7-8" />
-                    <ellipse className="racket" cx="28" cy="9" rx="4.5" ry="6" />
-                  </svg>
-                </i>
-              </span>
-            );
-          })}
-          <span className="weatherCourtBall" ref={ballRef} />
-          <span className="weatherCourtBallShadow" ref={shadowRef} />
+          {datos.carro && (
+            <>
+              <i className="weatherCourtPlayerShade isCarro" style={posicion(datos.carro)} />
+              <i className="weatherCourtPlayer weatherCourtCarro" style={estiloFigura(datos.carro, MEDIDAS_FIGURA.carro)}>
+                <Carro />
+              </i>
+            </>
+          )}
+          {datos.figuras.map((figura, index) => (
+            <Fragment key={figura.id}>
+              <i
+                className="weatherCourtPlayerShade"
+                style={posicion(figura)}
+                ref={(element) => {
+                  shadeRefs.current[index] = element;
+                }}
+              />
+              <i
+                className={`weatherCourtPlayer is-${figura.tipo}`}
+                data-pose="espera"
+                style={estiloFigura(figura, MEDIDAS_FIGURA.figura)}
+                ref={(element) => {
+                  figureRefs.current[index] = element;
+                }}
+              >
+                <FiguraSvg figura={figura} />
+              </i>
+            </Fragment>
+          ))}
+          {Array.from({ length: datos.pelotas }, (_, index) => (
+            <Fragment key={index}>
+              <span
+                className="weatherCourtBallShadow"
+                ref={(element) => {
+                  ballShadowRefs.current[index] = element;
+                }}
+              />
+              <span
+                className="weatherCourtBall"
+                ref={(element) => {
+                  ballRefs.current[index] = element;
+                }}
+              />
+            </Fragment>
+          ))}
         </div>
       </div>
       <canvas className="weatherCourtRain" ref={rainRef} />

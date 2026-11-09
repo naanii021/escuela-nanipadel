@@ -71,7 +71,7 @@ export default function MisReservas({ recarga = 0, onCambio, titulo = "Tus próx
       {reservas.length === 0 ? (
         <p className="misReservasVacio">
           No tienes reservas próximas.
-          {enlaceReservar && <> <Link to="/reservas">Reservar pista</Link></>}
+          {enlaceReservar && <> <Link className="misReservasEnlace" to="/reservas">Reservar pista</Link></>}
         </p>
       ) : (
         <ul className="misReservasLista">

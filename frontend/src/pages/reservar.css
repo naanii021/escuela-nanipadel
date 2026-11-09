@@ -35,8 +35,8 @@
   place-items: center;
   align-content: center;
   gap: 0.05rem;
-  min-height: 60px;
-  padding: 0.4rem 0.25rem;
+  min-height: 76px;
+  padding: 0.45rem 0.25rem;
   border: 1px solid #c9d6cd;
   border-radius: 12px;
   background: #ffffff;
@@ -50,12 +50,19 @@
   transition: transform 120ms var(--ease-out), background-color 120ms ease, border-color 120ms ease;
 }
 
-.rsDia strong {
-  font-size: 1rem;
+.rsDiaNombre {
+  font-size: 0.95rem;
   font-weight: 700;
 }
 
-.rsDia span {
+.rsDiaNumero {
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.rsDiaMes {
   color: var(--color-muted);
   font-size: 0.875rem;
   font-weight: 600;
@@ -68,7 +75,7 @@
 }
 
 .rsDia.isActivo span {
-  color: #d6e6dc;
+  color: #dbe3f0;
 }
 
 .rsDia:active {
@@ -105,34 +112,55 @@
   }
 }
 
-/* ---------- Título del día ---------- */
+/* ---------- Título y resumen del día ---------- */
+
+.rsPrincipal {
+  display: grid;
+  gap: 0.9rem;
+  min-width: 0;
+}
 
 .rsDiaTitulo {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.35rem 1rem;
+  display: grid;
+  gap: 0.3rem;
 }
 
 .rsDiaTitulo h2 {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 1.45rem;
   line-height: 1.2;
   letter-spacing: -0.02em;
 }
 
-.rsDiaTitulo span {
+.rsDiaTitulo p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1rem 0.6rem;
+  margin: 0;
   font-size: 1rem;
-  font-weight: 700;
 }
 
-.rsDiaTitulo .isHay {
-  color: #166534;
+.rsDiaTitulo p strong {
+  font-size: 1.05rem;
+  font-weight: 800;
 }
 
-.rsDiaTitulo .isNo {
+.rsDiaTitulo p span {
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.rsDiaTitulo .isHay strong {
+  color: hsl(150 62% 22%);
+}
+
+.rsDiaTitulo .isNo strong {
   color: #9a3412;
+}
+
+.rsLeyendaCaja {
+  display: none;
 }
 
 .rsPasadas {
@@ -150,157 +178,20 @@
   cursor: pointer;
 }
 
-/* ---------- Rejilla hora × pista ---------- */
+/* ---------- Cuadrante ---------- */
 
-.rsTablaWrap {
-  overflow-x: auto;
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: var(--shadow-1);
+/* Al cambiar de día el cuadrante nuevo entra con un fundido corto (no se mueve el dato). */
+.rsCuadro {
+  min-width: 0;
+  animation: rsEntraDia 200ms var(--ease-out) backwards;
 }
 
-.rsTabla {
-  width: 100%;
-  min-width: calc(4.6rem + var(--pistas, 2) * 7.5rem);
-  border-collapse: collapse;
-  table-layout: fixed;
+@keyframes rsEntraDia {
+  from { opacity: 0; transform: translateY(6px); }
 }
 
-.rsTabla th,
-.rsTabla td {
-  padding: 0.35rem;
-  border-bottom: 1px solid #edf1ee;
-  vertical-align: middle;
-}
-
-.rsTabla tbody tr:last-child th,
-.rsTabla tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.rsTabla thead th {
-  padding: 0.75rem 0.35rem;
-  background: #f4f7f3;
-  color: var(--color-text);
-  font-size: 1rem;
-  font-weight: 700;
-  text-align: center;
-}
-
-.rsTabla thead th:first-child {
-  width: 4.6rem;
-  text-align: left;
-  padding-left: 0.85rem;
-}
-
-.rsTabla tbody th {
-  padding-left: 0.85rem;
-  text-align: left;
-}
-
-.rsTabla tbody th strong {
-  display: block;
-  font-size: 1.1rem;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-
-.rsTabla tbody th span {
-  color: var(--color-muted);
-  font-size: 0.875rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-.rsCelda {
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 0.05rem;
-  width: 100%;
-  min-height: 58px;
-  padding: 0.35rem 0.4rem;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  font: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
-  line-height: 1.2;
-  text-align: center;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-button.rsCelda {
-  cursor: pointer;
-  transition: transform 120ms var(--ease-out), background-color 120ms ease, border-color 120ms ease;
-}
-
-button.rsCelda:active {
-  transform: scale(0.97);
-}
-
-.rsCelda strong {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 1rem;
-  font-weight: 800;
-}
-
-.rsCelda span {
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.rsCelda.isLibre {
-  border-color: #86d39f;
-  background: #dcfce7;
-  color: #14532d;
-}
-
-.rsCelda.isLibre span {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.rsCelda.isMia {
-  border-color: #93b4f0;
-  background: #dbeafe;
-  color: #1e3a8a;
-}
-
-.rsCelda.isAbierta {
-  border-color: #f2c76b;
-  background: #fef3c7;
-  color: #7c2d12;
-}
-
-.rsCelda.isOcupada {
-  background: #f1f5f9;
-  color: #475569;
-}
-
-.rsCelda.isPasada {
-  background: repeating-linear-gradient(135deg, #f8fafc 0 8px, #f1f5f9 8px 16px);
-  color: #5b6675;
-  font-size: 0.875rem;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .rsCelda.isLibre:hover {
-    border-color: #16a34a;
-    background: #bbf7d0;
-  }
-
-  .rsCelda.isMia:hover {
-    border-color: #2563eb;
-  }
-
-  .rsCelda.isAbierta:hover {
-    border-color: #d97706;
-  }
+@keyframes rsFundido {
+  from { opacity: 0; }
 }
 
 .rsCargando {
@@ -606,6 +497,57 @@ button.rsCelda:active {
   from { opacity: 0; transform: scale(0.8); }
 }
 
+/* ---------- Escritorio: cuadrante a la izquierda, tus reservas y leyenda al lado ---------- */
+
+@media (min-width: 1100px) {
+  .rs.conLateral {
+    max-width: var(--container, 1160px);
+    column-gap: 1.75rem;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-areas:
+      "cabeza cabeza"
+      "dias lateral"
+      "principal lateral";
+    align-items: start;
+  }
+
+  .rs.conLateral .rsHead { grid-area: cabeza; }
+  .rs.conLateral .rsDias { grid-area: dias; }
+  .rs.conLateral .rsPrincipal { grid-area: principal; }
+
+  .rsLateral {
+    grid-area: lateral;
+    position: sticky;
+    top: calc(var(--rs-arriba, 64px) + 1rem);
+    display: grid;
+    gap: 1rem;
+  }
+
+  .rsLeyendaCaja {
+    display: grid;
+    gap: 0.75rem;
+    padding: 1.1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    background: #ffffff;
+  }
+
+  .rsLeyendaCaja h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+  }
+
+  .rsLeyendaCaja .cuLeyenda {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .cuLeyenda.isSoloMovil {
+    display: none;
+  }
+}
+
 /* ---------- Móvil ---------- */
 
 @media (max-width: 760px) {
@@ -619,26 +561,17 @@ button.rsCelda:active {
     gap: 0.9rem;
   }
 
+  .rsDia {
+    min-height: 68px;
+    padding: 0.35rem 0.2rem;
+  }
+
+  .rsDiaNumero {
+    font-size: 1.3rem;
+  }
+
   .rsHead p {
     font-size: 1rem;
-  }
-
-  .rsTabla {
-    min-width: calc(4.2rem + var(--pistas, 2) * 6.6rem);
-  }
-
-  .rsTabla thead th:first-child {
-    width: 4.2rem;
-    padding-left: 0.6rem;
-  }
-
-  .rsTabla tbody th {
-    padding-left: 0.6rem;
-  }
-
-  .rsTabla th,
-  .rsTabla td {
-    padding: 0.3rem 0.25rem;
   }
 
   .rsCamposFila {
@@ -651,9 +584,12 @@ button.rsCelda:active {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rsDia:active,
-  button.rsCelda:active {
+  .rsDia:active {
     transform: none;
+  }
+
+  .rsCuadro {
+    animation-name: rsFundido;
   }
 
   .rsHechoCheck,

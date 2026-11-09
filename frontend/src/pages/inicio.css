@@ -16,6 +16,12 @@
   }
 }
 
+@keyframes inicioDatoFunde {
+  from {
+    opacity: 0;
+  }
+}
+
 @keyframes inicioPing {
   to {
     opacity: 0;
@@ -63,6 +69,11 @@
 
 .inicioHero > .weatherCourt3d {
   z-index: 0;
+}
+
+/* Aire alrededor de la pista para que no se meta bajo el texto de la izquierda. */
+.inicioHero .weatherCourt3dCourt {
+  --court-margin: 28;
 }
 
 .inicioInner {
@@ -214,21 +225,104 @@
   transition: transform 160ms ease-out, background-color 160ms ease-out, color 160ms ease-out;
 }
 
-.inicioAction.isPrimary {
-  flex: 1 1 100%;
-  border-color: transparent;
-  background: var(--ink);
-  color: #fff;
-  font-size: 1.05rem;
-}
-
-.inicioHero.isNight .inicioAction.isPrimary {
-  background: #c6f432;
-  color: #0b1220;
-}
-
-.inicioAction:not(.isPrimary) {
+.inicioAction {
   flex: 1 1 0;
+}
+
+/* Reservar pista: el botón protagonista, en el lima de la marca, con el dato de horas libres. */
+.inicioReservar {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex: 1 1 100%;
+  align-items: center;
+  gap: 0.85rem;
+  min-height: 72px;
+  padding: 0.65rem 1.1rem 0.65rem 0.7rem;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--lime, #b8ee58);
+  color: #10261a;
+  text-decoration: none;
+  box-shadow: 0 12px 26px rgba(23, 55, 42, 0.28), inset 0 -3px 0 rgba(16, 38, 26, 0.12);
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 160ms var(--ease-out), background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.inicioReservarIcono {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 13px;
+  background: #17372a;
+  color: var(--lime, #b8ee58);
+}
+
+.inicioReservarTexto {
+  display: grid;
+  flex: 1;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.inicioReservarTexto strong {
+  font-size: 1.3rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.inicioReservarTexto small {
+  color: #22422e;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.25;
+  animation: inicioDatoEntra 240ms var(--ease-out) backwards;
+}
+
+.inicioReservarFlecha {
+  flex: none;
+  transition: transform 160ms var(--ease-out);
+}
+
+/* Un solo brillo suave al cargar la portada; después el botón se queda quieto. */
+.inicioReservar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+  transform: translateX(-110%);
+  animation: inicioBrillo 1100ms var(--ease-out) 700ms 1 both;
+  pointer-events: none;
+}
+
+@keyframes inicioBrillo {
+  to {
+    transform: translateX(110%);
+  }
+}
+
+@keyframes inicioDatoEntra {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.inicioReservar:active {
+  transform: scale(0.98);
+}
+
+.inicioReservar:focus-visible {
+  outline: 3px solid #17372a;
+  outline-offset: 3px;
+}
+
+.inicioHero.isNight .inicioReservar:focus-visible {
+  outline-color: var(--lime, #b8ee58);
 }
 
 .inicioAction:active {
@@ -236,12 +330,22 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .inicioAction:hover {
+  .inicioAction:hover,
+  .inicioReservar:hover {
     transform: translateY(-2px);
   }
 
-  .inicioAction:not(.isPrimary):hover {
+  .inicioAction:hover {
     background: var(--glass);
+  }
+
+  .inicioReservar:hover {
+    background: #c7f47b;
+    box-shadow: 0 16px 32px rgba(23, 55, 42, 0.32), inset 0 -3px 0 rgba(16, 38, 26, 0.12);
+  }
+
+  .inicioReservar:hover .inicioReservarFlecha {
+    transform: translateX(3px);
   }
 }
 
@@ -486,65 +590,6 @@
   font-weight: 800;
 }
 
-/* ---------- Noticias ---------- */
-
-.inicioNews {
-  display: grid;
-  gap: 1rem;
-}
-
-.inicioNewsGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-}
-
-.inicioNewsCard {
-  display: grid;
-  overflow: hidden;
-  border: 1px solid var(--color-border);
-  border-radius: 18px;
-  background: var(--color-card);
-  color: var(--color-text);
-  text-decoration: none;
-  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
-}
-
-.inicioNewsCard:active {
-  transform: scale(0.985);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .inicioNewsCard:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
-  }
-}
-
-.inicioNewsCard img {
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  object-fit: cover;
-}
-
-.inicioNewsCard div {
-  display: grid;
-  gap: 0.35rem;
-  padding: 0.9rem 1rem 1.1rem;
-}
-
-.inicioNewsCard span {
-  color: var(--color-muted);
-  font-size: 0.76rem;
-  font-weight: 700;
-}
-
-.inicioNewsCard h3 {
-  margin: 0;
-  font-size: 1.02rem;
-  line-height: 1.3;
-}
-
 /* ---------- Responsive ---------- */
 
 @media (max-width: 980px) {
@@ -556,52 +601,62 @@
 @media (max-width: 900px) {
   .inicioHero {
     --court-area-w: 100%;
-    --court-area-h: 300px;
+    --court-area-h: 360px;
+  }
+
+  /* Pista más girada: el lado largo queda casi horizontal y llena el ancho del móvil. */
+  .inicioHero .weatherCourt3dCourt {
+    --rx-base: 54deg;
+    --rz-base: -64deg;
+    --court-margin: 6;
+    --court-losa: 0;
+    --fig-escala: 1.15;
   }
 
   .inicioInner {
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
     gap: 0.8rem;
-    padding: 296px 0 5rem;
+    padding: calc(var(--court-area-h) - 4px) 0 5rem;
   }
 
-  /* Chip sobre la esquina de la pista, para que los botones suban en pantalla. */
+  /* La temperatura pasa a una píldora en la fila de la fecha: así no tapa la pista. */
   .inicioWeather {
     position: absolute;
-    top: 0.8rem;
-    left: 0;
+    top: calc(var(--court-area-h) - 4px);
+    right: 0;
     width: auto;
     margin: 0;
-    padding: 0.55rem 0.9rem;
-    border-radius: 16px;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .inicioWeatherNow {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    min-height: 34px;
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+    background: var(--glass);
   }
 
   .inicioWeatherNow strong {
-    font-size: 2rem;
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
   }
 
   .inicioWeatherNow span {
-    margin-top: 0.1rem;
-    font-size: 0.78rem;
+    margin-top: 0;
+    font-size: 0.875rem;
   }
 
   .inicioInfo {
     max-width: none;
   }
 
-  .inicioNewsGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .inicioNewsCard {
-    grid-template-columns: 38% 1fr;
-  }
-
-  .inicioNewsCard img {
-    height: 100%;
-    aspect-ratio: auto;
-  }
 }
 
 @media (max-width: 520px) {
@@ -625,7 +680,7 @@
     font-size: 1rem;
   }
 
-  .inicioAction:not(.isPrimary) {
+  .inicioAction {
     flex-basis: calc(50% - 0.3rem);
   }
 
@@ -648,9 +703,19 @@
 
   .inicioTabs::before,
   .inicioAction,
-  .inicioNewsCard,
+  .inicioReservar,
+  .inicioReservarFlecha,
   .inicioHoyList a {
     transition: none;
+  }
+
+  .inicioReservar::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  .inicioReservarTexto small {
+    animation-name: inicioDatoFunde;
   }
 }
 
@@ -686,13 +751,53 @@
 
 @media (max-width: 520px) {
   .inicioHero {
-    --court-area-h: 215px;
+    --court-area-h: clamp(220px, 64vw, 270px);
     min-height: 0;
   }
 
   .inicioInner {
-    padding-top: 212px;
+    padding-top: calc(var(--court-area-h) - 6px);
     padding-bottom: 3.5rem;
+  }
+
+  .inicioEyebrowClub {
+    display: none;
+  }
+
+  .inicioReservar {
+    min-height: 68px;
+  }
+
+  .inicioReservarIcono {
+    width: 46px;
+    height: 46px;
+  }
+
+  .inicioReservarTexto strong {
+    font-size: 1.2rem;
+  }
+
+  .inicioReservar {
+    gap: 0.7rem;
+    padding-right: 0.85rem;
+  }
+
+  .inicioReservarTexto small {
+    font-size: 0.9rem;
+  }
+
+  .inicioWeather {
+    top: calc(var(--court-area-h) - 6px);
+  }
+
+  .inicioHero .weatherCourt3dCourt {
+    --fig-escala: 1.3;
+  }
+}
+
+@media (max-width: 400px) {
+  .inicioWeatherNow span {
+    display: none;
   }
 
   .inicioVerdict {

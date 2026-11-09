@@ -7,6 +7,9 @@ import WeatherCourt3D from "../components/WeatherCourt3D";
 import Hoja from "../components/Hoja";
 import MisReservas from "../components/MisReservas";
 import ContactoClub from "../components/ContactoClub";
+import FotosClub from "../components/FotosClub";
+import NoticiasPadel from "../components/NoticiasPadel";
+import { horasLibresHoy } from "../services/disponibilidad";
 import { ahoraMadrid, fechaRelativa } from "../services/fechas";
 import "./home.css";
 import "./inicio.css";
@@ -17,8 +20,7 @@ const DAY_LETTERS = ["D", "L", "M", "X", "J", "V", "S"];
 const CLUB_LAT = 39.483017;
 const CLUB_LON = -6.364445;
 
-const ACTIONS = [
-  { label: "Reservar pista", to: "/reservas", primary: true },
+const SECONDARY_ACTIONS = [
   { label: "Clases", to: "/clases" },
   { label: "Torneos", to: "/torneos" },
 ];
@@ -29,27 +31,28 @@ const SCENES = [
   { id: "noche", label: "Noche", night: true },
 ];
 
-// Fotos destacadas del club (sin fecha: no son noticias, son imágenes de la galería).
-const PHOTO_ITEMS = [
-  {
-    id: 1,
-    category: "Liga",
-    title: "La liga femenina jugando en casa",
-    image: `${process.env.PUBLIC_URL}/fotosLiga/ligafem.jpeg`,
-  },
-  {
-    id: 2,
-    category: "Clases",
-    title: "Clase técnica de bandeja y red",
-    image: `${process.env.PUBLIC_URL}/fotosClase/clases.jpeg`,
-  },
-  {
-    id: 3,
-    category: "Torneos",
-    title: "Entrega de premios del torneo del club",
-    image: `${process.env.PUBLIC_URL}/fotosAlumnos/premiodanipau.jpeg`,
-  },
-];
+function textoHorasLibres(libres) {
+  if (libres === 0) return "Hoy ya no quedan horas libres";
+  if (libres === 1) return "Queda 1 hora libre hoy";
+  return `Quedan ${libres} horas libres hoy`;
+}
+
+function IconoReservar() {
+  return (
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+      <path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4" />
+    </svg>
+  );
+}
+
+function IconoFlecha() {
+  return (
+    <svg className="inicioReservarFlecha" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}
 
 function formatDay(dateStr) {
   const date = new Date(dateStr);
@@ -78,6 +81,7 @@ function Home() {
   const [activeAlerts, setActiveAlerts] = useState([]);
   const [activeAlertsError, setActiveAlertsError] = useState("");
   const [nextClass, setNextClass] = useState(null);
+  const [horasLibres, setHorasLibres] = useState(null);
   const role = String(getUser()?.rol || "").toLowerCase();
   const isStaff = loggedIn && STAFF_ROLES.includes(role);
 
@@ -95,6 +99,19 @@ function Home() {
   useEffect(() => {
     loadWeather();
   }, [loadWeather]);
+
+  // Dato real bajo "Reservar pista". Si falla o tarda, el botón se queda sin él.
+  useEffect(() => {
+    let cancelled = false;
+    horasLibresHoy()
+      .then((libres) => {
+        if (!cancelled) setHorasLibres(libres);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!loggedIn) return;
@@ -211,7 +228,7 @@ function Home() {
 
         <div className="inicioInner">
           <div className="inicioInfo">
-            <span className="inicioEyebrow">Escuela NaniPadel · {today}</span>
+            <span className="inicioEyebrow"><span className="inicioEyebrowClub">Escuela NaniPadel · </span>{today}</span>
 
             <h1 id="home-title" className={`inicioVerdict ${verdictClass}`}>
               <span className="inicioVerdictDot" aria-hidden="true" />
@@ -232,6 +249,24 @@ function Home() {
               </button>
             )}
 
+            <nav className="inicioActions" aria-label="Acciones principales">
+              <Link to="/reservas" className={`inicioReservar${horasLibres !== null ? " hasDato" : ""}`}>
+                <span className="inicioReservarIcono">
+                  <IconoReservar />
+                </span>
+                <span className="inicioReservarTexto">
+                  <strong>Reservar pista</strong>
+                  {horasLibres !== null && <small>{textoHorasLibres(horasLibres)}</small>}
+                </span>
+                <IconoFlecha />
+              </Link>
+              {SECONDARY_ACTIONS.map((action) => (
+                <Link key={action.to} to={action.to} className="inicioAction">
+                  {action.label}
+                </Link>
+              ))}
+            </nav>
+
             {weather && (
               <dl className="inicioStats">
                 <div>
@@ -249,17 +284,6 @@ function Home() {
               </dl>
             )}
 
-            <nav className="inicioActions" aria-label="Acciones principales">
-              {ACTIONS.map((action) => (
-                <Link
-                  key={action.to}
-                  to={action.to}
-                  className={`inicioAction${action.primary ? " isPrimary" : ""}`}
-                >
-                  {action.label}
-                </Link>
-              ))}
-            </nav>
 
             {weather && weather.hourly.length > 0 && (
               <div className="inicioHours">
@@ -440,28 +464,9 @@ function Home() {
         </section>
       )}
 
-      <section className="inicioNews" aria-labelledby="inicio-news-title">
-        <div className="sectionHeader sectionHeaderInline">
-          <div>
-            <h2 id="inicio-news-title">Fotos del club</h2>
-          </div>
-          <Link className="newsMoreBtn" to="/galeria">
-            Ver todas las fotos
-          </Link>
-        </div>
+      <FotosClub />
 
-        <div className="inicioNewsGrid">
-          {PHOTO_ITEMS.map((item) => (
-            <Link className="inicioNewsCard" to="/galeria" key={item.id}>
-              <img src={item.image} alt="" loading="lazy" />
-              <div>
-                <span>{item.category}</span>
-                <h3>{item.title}</h3>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+      <NoticiasPadel />
     </div>
   );
 }

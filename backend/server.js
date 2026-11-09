@@ -15,6 +15,7 @@ import perfilRouter from "./routes/perfil.js";
 import galeriaRouter from "./routes/galeria.js";
 import notificacionesRouter from "./routes/notificaciones.js";
 import whatsappRouter from "./routes/whatsapp.js";
+import noticiasRouter from "./routes/noticias.js";
 import { requireAuth, requireRoles } from "./middleware/auth.js";
 import { sendWhatsAppMessage } from "./services/whatsappService.js";
 
@@ -106,6 +107,9 @@ app.use("/api/notificaciones", notificacionesRouter);
 
 // Webhook publico de WhatsApp y bandeja privada para administracion
 app.use("/api/whatsapp", whatsappRouter);
+
+// Titulares de pádel de la prensa deportiva (solo lectura, con caché)
+app.use("/api/noticias", noticiasRouter);
 
 // ======================================================
 // RUTAS BÁSICAS

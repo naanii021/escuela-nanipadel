@@ -104,3 +104,19 @@ export function esPasada(fechaIso, hora, ahora = new Date()) {
   if (dia !== actual.fecha) return dia < actual.fecha;
   return horaCorta(hora) <= actual.hora;
 }
+
+// "ahora mismo", "hace 25 min", "hace 2 h", "ayer", "5 nov": para titulares y avisos.
+export function haceCuanto(valor, ahora = new Date()) {
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) return "";
+  const minutos = Math.round((ahora.getTime() - fecha.getTime()) / 60000);
+  if (minutos < 1) return "ahora mismo";
+  if (minutos < 60) return `hace ${minutos} min`;
+  const horas = Math.floor(minutos / 60);
+  const hoy = ahoraMadrid(ahora).fecha;
+  const dia = aISO(fecha);
+  if (horas < 24 && dia === hoy) return `hace ${horas} h`;
+  if (dia === sumarDias(hoy, -1)) return "ayer";
+  if (horas < 24) return `hace ${horas} h`;
+  return formatear(dia, { day: "numeric", month: "short" }).replace(".", "");
+}

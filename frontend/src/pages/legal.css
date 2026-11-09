@@ -1,0 +1,68 @@
+/* Páginas legales: texto largo, columna estrecha y letra cómoda. */
+.legal {
+  display: grid;
+  gap: 0.2rem;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 1rem 0 2rem;
+  color: var(--color-text);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+}
+
+.legalBorrador {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e8b24a;
+  border-radius: 12px;
+  background: #fff7e6;
+  color: #5c3d00;
+}
+
+.legalBorrador strong {
+  display: block;
+  color: #4a3100;
+  font-size: 1.1rem;
+}
+
+.legal h1 {
+  margin: 0 0 0.6rem;
+  font-size: clamp(2rem, 6vw, 2.8rem);
+  line-height: 1.05;
+}
+
+.legal h2 {
+  margin: 1.2rem 0 0.2rem;
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-transform: none;
+}
+
+.legal p,
+.legal ul {
+  margin: 0.3rem 0;
+}
+
+.legal ul {
+  padding-left: 1.3rem;
+}
+
+.legalOtras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1.5rem;
+  margin-top: 1.6rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.legalOtras a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-secondary-dark);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

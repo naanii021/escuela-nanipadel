@@ -14,6 +14,7 @@ import PanelProfesor from "./pages/PanelProfesor";
 import Perfil from "./pages/Perfil";
 import Avisos from "./pages/Avisos";
 import WhatsAppInbox from "./pages/WhatsAppInbox";
+import Legal from "./pages/Legal";
 import "./styles/premium.css";
 import "./styles/redesign.css";
 import "./styles/movil.css";
@@ -33,6 +34,9 @@ function App() {
         <Route path="/estado-pista" element={<EstadoPista />} />
         <Route path="/avisos" element={<Avisos />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/aviso-legal" element={<Legal tipo="aviso-legal" />} />
+        <Route path="/privacidad" element={<Legal tipo="privacidad" />} />
+        <Route path="/cookies" element={<Legal tipo="cookies" />} />
         <Route path="/perfil" element={<Perfil />} />
         <Route path="/panel/whatsapp" element={<WhatsAppInbox />} />
         <Route path="/panel/*" element={<PanelProfesor />} />
