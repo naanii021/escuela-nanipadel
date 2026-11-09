@@ -496,6 +496,141 @@
   font-weight: 600;
 }
 
+/* ---------- Clase cancelada ---------- */
+.ppClassBarActions {
+  display: grid;
+  flex: none;
+  gap: 0.4rem;
+  justify-items: stretch;
+}
+
+/* Insignia roja suave: Cancelada · Lluvia */
+.ppBadgeCancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.1rem 0.55rem;
+  border: 1px solid hsl(0 55% 82%);
+  border-radius: 999px;
+  background: var(--pp-bad-soft);
+  color: var(--pp-bad-ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.ppBadgeCancelBig { padding: 0.25rem 0.75rem; font-size: 1rem; }
+.ppBadgeCancel svg { flex: none; width: 18px; height: 18px; }
+
+.ppTodayCardState .ppBadgeCancel { padding: 0.05rem 0.4rem; font-size: 0.8125rem; }
+.ppTodayCard[data-cancelada="true"] { border-color: hsl(0 55% 78%); }
+.ppTodayCard[data-cancelada="true"] .ppTodayCardState { color: var(--pp-bad-ink); }
+
+.ppCancelBanner {
+  display: grid;
+  justify-items: start;
+  gap: 0.6rem;
+  padding: 0.9rem;
+  border: 1px solid hsl(0 55% 82%);
+  border-radius: 14px;
+  background: var(--pp-bad-soft);
+}
+
+.ppCancelBanner > p { color: var(--pp-ink); }
+
+/* Hoja de cancelar: sube desde abajo en el móvil y se centra en pantallas grandes. */
+.ppCancelDialog { width: min(480px, calc(100% - 2rem)); }
+.ppCancelDialog[open] { animation: ppHojaEntra 240ms var(--pp-ease-out); }
+.ppCancelDialog[open]::backdrop { animation: ppFondoEntra 200ms ease-out; }
+
+@keyframes ppHojaEntra {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes ppFondoEntra {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ppCancelBody { gap: 0.75rem; }
+.ppMotivos { display: grid; gap: 0.4rem; margin: 0; padding: 0; border: 0; min-width: 0; }
+.ppMotivos legend { margin-bottom: 0.35rem; padding: 0; font-size: 0.9375rem; font-weight: 700; }
+.ppMotivoGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; }
+
+.ppMotivo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 56px;
+  padding: 0.4rem 0.6rem;
+  border: 1.5px solid hsl(150 10% 76%);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--pp-ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 120ms var(--pp-ease-out), border-color 120ms var(--pp-ease-out), transform 120ms var(--pp-ease-out);
+}
+
+.ppMotivo:active:not(:disabled) { transform: scale(0.97); }
+.ppMotivo svg { flex: none; width: 18px; height: 18px; }
+.ppMotivo[aria-pressed="true"] { border-color: var(--pp-bad); background: var(--pp-bad-soft); color: var(--pp-bad-ink); box-shadow: inset 0 0 0 1px var(--pp-bad); }
+
+.ppCheckRow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 44px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ppCheckRow input { flex: none; width: 24px; height: 24px; accent-color: var(--pp-ok); }
+
+.ppCancelAviso {
+  padding: 0.7rem 0.8rem;
+  border-radius: 12px;
+  background: var(--pp-soft);
+  font-size: 1rem;
+}
+
+.ppCancelPista { margin-top: -0.3rem; }
+
+@media (hover: hover) and (pointer: fine) {
+  .ppMotivo:hover:not([aria-pressed="true"]):not(:disabled) { border-color: hsl(150 10% 55%); background: var(--pp-soft); }
+}
+
+@media (max-width: 768px) {
+  .ppCancelDialog {
+    width: 100%;
+    max-width: none;
+    margin: auto 0 0;
+    border-radius: 20px 20px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .ppCancelDialog[open] { animation-name: ppHojaSube; }
+  .ppCancelBody { padding: 1rem 1rem 0.9rem; max-height: calc(100dvh - 1.5rem); overflow-y: auto; overscroll-behavior: contain; }
+  .ppCancelDialog .ppDialogActions { position: sticky; bottom: 0; background: var(--color-card); padding-top: 0.4rem; }
+  .ppCancelDialog .ppDialogActions .ppBtn { flex: 1 1 100%; }
+  .ppCancelDialog .ppDialogActions .ppBtnDanger { order: -1; }
+}
+
+@keyframes ppHojaSube {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+
 /* ---------- Móvil ---------- */
 @media (max-width: 768px) {
   .ppRollRow { grid-template-columns: minmax(0, 1fr); }
@@ -526,6 +661,8 @@
   .ppSegment:active,
   .ppTodayCard:active { transform: none; }
   .ppSaveBtn[data-done="true"] svg { animation: none; }
+  .ppMotivo:active:not(:disabled) { transform: none; }
+  .ppCancelDialog[open] { animation-name: ppFondoEntra; animation-duration: 150ms; }
   .ppToast,
   .ppToast[data-open="true"] {
     transform: none;

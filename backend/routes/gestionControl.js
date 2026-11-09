@@ -11,7 +11,7 @@ const SESSION_STATES = new Set(["programada", "dada", "cancelada"]);
 // observaciones con el formato estable CANCELADA|motivo|texto libre (el texto es opcional).
 export const MOTIVOS_CANCELACION = {
   lluvia: "Lluvia",
-  profesor: "El profesor no puede dar la clase",
+  profesor: "Profesor no disponible",
   pista: "Pista no disponible",
   otro: "Otro motivo",
 };
@@ -307,14 +307,14 @@ export async function listControlRecoveries(user, connection = db.promise()) {
     );
   const [sesiones] = await connection.query(
       `SELECT s.id, s.grupo_id, DATE_FORMAT(s.fecha, '%Y-%m-%d') AS fecha,
-              s.hora_inicio, g.nombre AS grupo_nombre
+              s.hora_inicio, s.estado, s.observaciones, g.nombre AS grupo_nombre
        FROM sesiones_clase s
        JOIN grupos g ON g.id = s.grupo_id
          AND g.curso_id = ? AND g.sede_id = ?
        ORDER BY s.fecha DESC, s.hora_inicio, s.id`,
       [context.curso_id, context.sede_id]
     );
-  return { recuperaciones, sesiones };
+  return { recuperaciones, sesiones: sesiones.map(withCancelacion) };
 }
 
 router.get("/recuperaciones", async (req, res) => {

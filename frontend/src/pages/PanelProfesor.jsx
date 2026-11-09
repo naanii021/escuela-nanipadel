@@ -10,7 +10,7 @@ import Recuperaciones from "../components/panel/Recuperaciones";
 import { IcAtras, IcBuscar, IcMensaje, IcTelefono } from "../components/panel/Iconos";
 import {
   DIAS_SEMANA, NIVELES, diaHoy, diasDelGrupo, estadoCupo, formatDias, formatFecha, formatHorario,
-  formatHorariosTexto, grupoActivo, hora, hoyISO, iniciales, minutosDe, nivelClass,
+  formatHorariosTexto, grupoActivo, hora, hoyISO, iniciales, minutosDe, motivoCorto, nivelClass,
   nivelKey, nivelLabel, nombreCompleto, nombrePista, opcionesNivel, plural, sinAcentos, telHref,
   textoCupo, ultimaFechaDelDia, whatsappHref,
 } from "../components/panel/panelUtils";
@@ -155,6 +155,7 @@ export default function PanelProfesor() {
   const [recLoading, setRecLoading] = useState(false);
   const [recError, setRecError] = useState("");
   const [listasHoy, setListasHoy] = useState({});
+  const [cancelacionesHoy, setCancelacionesHoy] = useState({});
   const [listasTick, setListasTick] = useState(0);
 
   const [search, setSearch] = useState("");
@@ -274,10 +275,15 @@ export default function PanelProfesor() {
     Promise.allSettled(todayClasses.map((item) => apiGet(`/api/gestion/control/grupos/${item.id}/sesiones?fecha=${fecha}`)))
       .then((results) => {
         if (cancelled) return;
+        const sesionDe = (result) => (result.status === "fulfilled" ? result.value.sesiones?.[0] : null);
         setListasHoy(Object.fromEntries(results.map((result, index) => [
           todayClasses[index].id,
-          result.status === "fulfilled" && result.value.sesiones?.length && result.value.asistencias?.length ? "guardada" : "",
+          sesionDe(result) && sesionDe(result).estado !== "cancelada" && result.value.asistencias?.length ? "guardada" : "",
         ])));
+        // Clases de hoy canceladas: id del grupo -> texto corto del motivo (Lluvia, Pista no disponible...).
+        setCancelacionesHoy(Object.fromEntries(results
+          .map((result, index) => [todayClasses[index].id, sesionDe(result)?.estado === "cancelada" ? motivoCorto(sesionDe(result).cancelacion) : ""])
+          .filter(([, motivo]) => motivo)));
       });
     return () => { cancelled = true; };
   }, [todayClasses, listasTick]);
@@ -773,13 +779,14 @@ export default function PanelProfesor() {
               profesores={profesores}
               peticion={controlPeticion}
               listasHoy={listasHoy}
+              cancelacionesHoy={cancelacionesHoy}
               onAviso={mostrarAviso}
               onGuardada={() => { setListasTick((n) => n + 1); loadRecoveries(); }}
             />
           )}
 
           {activeSection === "horario" && (
-            <HorarioDia grupos={grupos} onPasarLista={openControl} onVerGrupo={openGroup} />
+            <HorarioDia grupos={grupos} refresco={listasTick} onPasarLista={openControl} onVerGrupo={openGroup} />
           )}
 
           {activeSection === "recuperaciones" && (
@@ -1069,16 +1076,18 @@ export default function PanelProfesor() {
                   {trackingGroup && (
                     <div className="ppTracking">
                       <div>
-                        <h3 className="ppSubhead">Clases con lista pasada</h3>
+                        <h3 className="ppSubhead">Clases con lista pasada o canceladas</h3>
                         {recError && <p className="ppInlineError" role="alert">{recError}</p>}
-                        {!recError && trackingSessions.length === 0 && <p className="ppEmpty">Aún no se ha pasado lista en este grupo.</p>}
+                        {!recError && trackingSessions.length === 0 && <p className="ppEmpty">Aún no se ha pasado lista ni se ha cancelado ninguna clase en este grupo.</p>}
                         {trackingSessions.length > 0 && (
                           <ul className="ppPickList">
                             {trackingSessions.map((session) => (
                               <li key={session.id}>
                                 <button type="button" className="ppPickItem" onClick={() => openControl(trackingGroup, session.fecha)}>
                                   <span>{formatFecha(session.fecha)}, {hora(session.hora_inicio)}</span>
-                                  <strong>Ver lista y notas</strong>
+                                  {session.estado === "cancelada"
+                                    ? <span className="ppBadgeCancel">Cancelada · {motivoCorto(session.cancelacion)}</span>
+                                    : <strong>Ver lista y notas</strong>}
                                 </button>
                               </li>
                             ))}
