@@ -37,6 +37,10 @@ function textoHorasLibres(libres) {
   return `Quedan ${libres} horas libres hoy`;
 }
 
+const AVISO_CLAVE = "nani:avisoClasesCerrado";
+const hoyClave = () => new Date().toDateString();
+const nombreSinHora = (nombre) => String(nombre).replace(/\s*·\s*\d{1,2}:\d{2}\s*$/, "");
+
 function IconoReservar() {
   return (
     <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -82,8 +86,25 @@ function Home() {
   const [activeAlertsError, setActiveAlertsError] = useState("");
   const [nextClass, setNextClass] = useState(null);
   const [horasLibres, setHorasLibres] = useState(null);
+  const [avisoAbierto, setAvisoAbierto] = useState(false);
+  const [avisoCerrado, setAvisoCerrado] = useState(() => {
+    try {
+      return sessionStorage.getItem(AVISO_CLAVE) === hoyClave();
+    } catch {
+      return false;
+    }
+  });
   const role = String(getUser()?.rol || "").toLowerCase();
   const isStaff = loggedIn && STAFF_ROLES.includes(role);
+
+  const cerrarAviso = () => {
+    setAvisoCerrado(true);
+    try {
+      sessionStorage.setItem(AVISO_CLAVE, hoyClave());
+    } catch {
+      /* sin sessionStorage el aviso solo se cierra hasta recargar */
+    }
+  };
 
   const loadWeather = useCallback(async () => {
     try {
@@ -175,6 +196,16 @@ function Home() {
   const nowClassId = todayClasses.find((g) => toMinutes(g.hora_inicio) <= nowMinutes && nowMinutes < toMinutes(g.hora_inicio) + Number(g.duracion_min || 60))?.id;
   const nextClassId = todayClasses.find((g) => toMinutes(g.hora_inicio) > nowMinutes)?.id;
 
+  // Aviso de arriba: la clase de ahora; si no hay, la siguiente; si ya acabaron todas, la última.
+  const claseAviso = todayClasses.find((g) => g.id === nowClassId) || todayClasses.find((g) => g.id === nextClassId) || todayClasses[todayClasses.length - 1];
+  let textoEstado = "";
+  if (claseAviso) {
+    const nombre = `${String(claseAviso.hora_inicio).slice(0, 5)} ${nombreSinHora(claseAviso.nombre)}`;
+    if (claseAviso.id === nowClassId) textoEstado = `Ahora: ${nombre}`;
+    else if (claseAviso.id === nextClassId) textoEstado = `Siguiente: ${nombre}`;
+    else textoEstado = "ya han terminado";
+  }
+
   const scene = SCENES.find((item) => item.id === sceneId) || SCENES[0];
   const sceneIndex = SCENES.indexOf(scene);
   const previewing = scene.id !== "ahora";
@@ -195,31 +226,60 @@ function Home() {
 
   return (
     <div className="inicio">
-      {todayClasses.length > 0 && (
-        <section className="inicioHoy" aria-labelledby="inicio-hoy-title">
-          <div className="sectionHeader sectionHeaderInline">
-            <div>
-              <h2 id="inicio-hoy-title">Hoy: pasar lista</h2>
-            </div>
+      {todayClasses.length > 0 && !avisoCerrado && (
+        <section className="inicioAviso" aria-label="Clases de hoy">
+          <div className="inicioAvisoBarra">
+            <button
+              type="button"
+              className="inicioAvisoResumen"
+              aria-expanded={avisoAbierto}
+              aria-controls="inicio-aviso-lista"
+              onClick={() => setAvisoAbierto((abierto) => !abierto)}
+            >
+              <span className="inicioAvisoTexto">
+                <strong className="inicioAvisoCuenta">
+                  <span className="inicioAvisoCuentaLarga">{todayClasses.length === 1 ? "Hoy tienes 1 clase" : `Hoy tienes ${todayClasses.length} clases`}</span>
+                  <span className="inicioAvisoCuentaCorta" aria-hidden="true">{todayClasses.length}</span>
+                </strong>
+                <span className="inicioAvisoEstado" data-punto="· ">{textoEstado}</span>
+              </span>
+              <span className="inicioAvisoVer">{avisoAbierto ? "Ocultar" : todayClasses.length === 1 ? "Ver la clase" : `Ver las ${todayClasses.length} clases`}</span>
+              <svg className="inicioAvisoFlecha" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+            <Link className="inicioAvisoPasar" to={`/panel?seccion=control&grupo=${claseAviso.id}`}>
+              Pasar lista
+            </Link>
+            <button type="button" className="inicioAvisoCerrar" aria-label="Cerrar el aviso de hoy" onClick={cerrarAviso}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
           </div>
-          <ul className="inicioHoyList">
-            {todayClasses.map((group) => {
-              const label = group.id === nowClassId ? "Ahora" : group.id === nextClassId ? "Siguiente" : "";
-              return (
-                <li key={group.id} className={label ? `is${label}` : ""}>
-                  <Link to={`/panel?seccion=control&grupo=${group.id}`}>
-                    <strong>{String(group.hora_inicio).slice(0, 5)}</strong>
-                    <span>
-                      {label && <b className="inicioHoyEtiqueta">{label}</b>}
-                      {String(group.nombre).replace(/\s*·\s*\d{1,2}:\d{2}\s*$/, "")}
-                      {group.pista_habitual ? <small>{group.pista_habitual}</small> : null}
-                    </span>
-                    <em>Pasar lista</em>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <div className={`inicioAvisoPanel${avisoAbierto ? " isOpen" : ""}`} id="inicio-aviso-lista" inert={!avisoAbierto}>
+            <ul className="inicioHoyList">
+              {todayClasses.map((group) => {
+                const label = group.id === nowClassId ? "Ahora" : group.id === nextClassId ? "Siguiente" : "";
+                return (
+                  <li key={group.id} className={label ? `is${label}` : ""}>
+                    <Link to={`/panel?seccion=control&grupo=${group.id}`}>
+                      <strong>{String(group.hora_inicio).slice(0, 5)}</strong>
+                      <span>
+                        {label && <b className="inicioHoyEtiqueta">{label}</b>}
+                        {nombreSinHora(group.nombre)}
+                        {group.pista_habitual ? <small>{group.pista_habitual}</small> : null}
+                      </span>
+                      <em>Pasar lista</em>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            <button type="button" className="inicioAvisoOcultar" onClick={cerrarAviso}>
+              Cerrar este aviso hoy
+            </button>
+          </div>
         </section>
       )}
 

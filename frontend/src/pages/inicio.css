@@ -525,11 +525,6 @@
 
 /* ---------- Pasar lista (profesores) ---------- */
 
-.inicioHoy {
-  display: grid;
-  gap: 0.8rem;
-}
-
 .inicioHoyList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -608,8 +603,8 @@
   .inicioHero .weatherCourt3dCourt {
     --rx-base: 54deg;
     --rz-base: -64deg;
-    --court-margin: 6;
-    --court-losa: 0;
+    --court-margin: 5;
+    --losa-margen: 14px;
     --fig-escala: 1.15;
   }
 
@@ -883,11 +878,6 @@
   }
 }
 
-/* Staff: "Pasar lista" va antes del tiempo, con la clase de ahora marcada. */
-.inicio > .inicioHoy:first-child {
-  padding-top: 2.4rem;
-}
-
 .inicioHoyEtiqueta {
   display: inline-block;
   margin-right: 0.45rem;
@@ -904,22 +894,279 @@
   box-shadow: 0 0 0 1px #2f7d54;
 }
 
-@media (max-width: 980px) {
-  .inicio > .inicioHoy:first-child {
-    padding-top: 1.6rem;
-  }
-}
-
-@media (max-width: 520px) {
-  .inicio > .inicioHoy:first-child {
-    padding-top: 1rem;
-  }
-}
-
 .inicioHoyList em {
   font-size: 0.9rem;
 }
 
 .inicioHoyList {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+}
+
+/* ---------- Aviso general de clases de hoy (staff) ---------- */
+
+/* Va encima del hero, a todo el ancho. El margen negativo anula el hueco del grid para no sumar aire. */
+.inicioAviso {
+  position: relative;
+  z-index: 5;
+  width: 100vw;
+  margin: 0 calc(50% - 50vw) -2.6rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-secondary) 30%, transparent);
+  background: var(--color-secondary-light);
+  color: var(--color-secondary-dark);
+}
+
+.inicioAvisoBarra {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: min(var(--container, 1180px), calc(100% - 1rem));
+  margin: 0 auto;
+  min-height: 52px;
+}
+
+.inicioAvisoResumen {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 0.4rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.inicioAvisoTexto {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-primary);
+  font-size: 0.95rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inicioAvisoTexto strong {
+  font-weight: 800;
+}
+
+.inicioAvisoTexto {
+  display: flex;
+  align-items: center;
+}
+
+.inicioAvisoTexto > .inicioAvisoEstado {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inicioAvisoTexto > .inicioAvisoCuenta {
+  flex: none;
+}
+
+.inicioAvisoVer {
+  display: none;
+  flex: none;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.inicioAvisoFlecha {
+  flex: none;
+  transition: transform 220ms var(--ease-out);
+}
+
+.inicioAvisoResumen[aria-expanded="true"] .inicioAvisoFlecha {
+  transform: rotate(180deg);
+}
+
+.inicioAvisoPasar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 1rem;
+  border-radius: 999px;
+  background: var(--color-secondary-dark);
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 120ms var(--ease-out);
+}
+
+.inicioAvisoPasar:active,
+.inicioAvisoCerrar:active {
+  transform: scale(0.97);
+}
+
+.inicioAvisoCerrar {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.inicioAvisoResumen:focus-visible,
+.inicioAvisoPasar:focus-visible,
+.inicioAvisoCerrar:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Lista desplegable: la altura anima con grid (0fr a 1fr), sin medir nada. */
+.inicioAvisoPanel {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition: grid-template-rows 240ms var(--ease-out), visibility 0s linear 240ms;
+}
+
+.inicioAvisoPanel.isOpen {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition: grid-template-rows 240ms var(--ease-out), visibility 0s;
+}
+
+.inicioAvisoPanel > .inicioHoyList,
+.inicioAvisoPanel > .inicioAvisoOcultar {
+  min-height: 0;
+  overflow: hidden;
+  width: min(var(--container, 1180px), calc(100% - 1rem));
+  margin: 0 auto;
+}
+
+.inicioAvisoPanel.isOpen > .inicioHoyList {
+  padding: 0.2rem 0 0.6rem;
+}
+
+.inicioAvisoPanel {
+  grid-template-rows: 0fr 0fr;
+}
+
+.inicioAvisoPanel.isOpen {
+  grid-template-rows: 1fr auto;
+}
+
+/* En el móvil la X no cabe en la barra: el cierre va al final de la lista. */
+.inicioAvisoOcultar {
+  display: none;
+}
+
+.inicioAvisoCuentaCorta {
+  display: none;
+}
+
+@media (max-width: 519px) {
+  .inicioAvisoCerrar {
+    display: none;
+  }
+
+  .inicioAvisoCuentaLarga,
+  .inicioAvisoTexto > .inicioAvisoEstado {
+    font-size: inherit;
+  }
+
+  .inicioAvisoCuentaLarga {
+    display: none;
+  }
+
+  .inicioAvisoCuentaCorta {
+    display: inline-grid;
+    place-items: center;
+    min-width: 1.6rem;
+    height: 1.6rem;
+    margin-right: 0.45rem;
+    border-radius: 999px;
+    background: var(--color-secondary-dark);
+    color: #ffffff;
+    font-size: 0.85rem;
+  }
+
+  .inicioAvisoEstado {
+    margin-left: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .inicioAvisoResumen {
+    gap: 0.3rem;
+  }
+
+  .inicioAvisoPasar {
+    padding: 0 0.85rem;
+  }
+
+  .inicioAvisoPanel.isOpen > .inicioAvisoOcultar {
+    display: block;
+    margin: 0 auto 0.6rem;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-secondary-dark);
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+}
+
+@media (min-width: 640px) {
+  .inicioAvisoVer {
+    display: inline;
+  }
+}
+
+@media (min-width: 1020px) {
+  .inicioAvisoBarra,
+  .inicioAvisoPanel > .inicioHoyList {
+    width: min(var(--container, 1180px), calc(100% - 3rem));
+  }
+}
+
+@media (max-width: 980px) {
+  .inicioAviso {
+    margin-bottom: -2.6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inicioAvisoPanel,
+  .inicioAvisoPanel.isOpen,
+  .inicioAvisoFlecha,
+  .inicioAvisoPasar {
+    transition: none;
+  }
+}
+
+@media (min-width: 520px) {
+  .inicioAvisoEstado::before {
+    content: attr(data-punto);
+  }
+
+  .inicioAvisoEstado {
+    margin-left: 0.35rem;
+  }
+}
+
+/* Muy estrecho: el número de clases se queda en la lista; en la barra manda la clase de ahora. */
+@media (max-width: 400px) {
+  .inicioAvisoCuentaCorta {
+    display: none;
+  }
 }
