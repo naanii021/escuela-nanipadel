@@ -6,7 +6,17 @@ const router = express.Router();
 const SEDE = "Seminario Diocesano";
 const DAYS = ["D", "L", "M", "X", "J", "V", "S"];
 const ATTENDANCE = new Set(["presente", "falta", "justificada"]);
-const SESSION_STATES = new Set(["programada", "dada"]);
+const SESSION_STATES = new Set(["programada", "dada", "cancelada"]);
+// Una clase cancelada se guarda en sesiones_clase.estado = 'cancelada' y el motivo en
+// observaciones con el formato estable CANCELADA|motivo|texto libre (el texto es opcional).
+export const MOTIVOS_CANCELACION = {
+  lluvia: "Lluvia",
+  profesor: "El profesor no puede dar la clase",
+  pista: "Pista no disponible",
+  otro: "Otro motivo",
+};
+const MOTIVO_RECUPERACION_CANCELADA = "clase_cancelada";
+const TEXTO_CANCELACION_MAX = 120;
 const RECOVERY_STATES = new Set(["pendiente", "asignada", "recuperada", "cancelada"]);
 
 function fail(status, message) {
@@ -20,6 +30,25 @@ function validDate(value) {
   const date = new Date(`${value}T00:00:00Z`);
   if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) fail(400, "Indica una fecha valida");
   return DAYS[date.getUTCDay()];
+}
+
+export function formatCancelacion(motivo, texto = "") {
+  const limpio = String(texto ?? "").replace(/\s+/g, " ").trim().slice(0, TEXTO_CANCELACION_MAX);
+  return `CANCELADA|${motivo}|${limpio}`;
+}
+
+// Lee observaciones de una sesión cancelada. Devuelve null si no tiene el formato CANCELADA|motivo|texto.
+export function parseCancelacion(observaciones) {
+  const match = /^CANCELADA\|([a-z_]+)\|?([\s\S]*)$/.exec(String(observaciones ?? ""));
+  if (!match) return null;
+  const motivo = Object.prototype.hasOwnProperty.call(MOTIVOS_CANCELACION, match[1]) ? match[1] : "otro";
+  return { motivo, texto: match[2].trim(), etiqueta: MOTIVOS_CANCELACION[motivo] };
+}
+
+// Añade `cancelacion` a la sesión solo cuando está cancelada, para no cambiar la forma del resto.
+function withCancelacion(sesion) {
+  if (!sesion || sesion.estado !== "cancelada") return sesion;
+  return { ...sesion, cancelacion: parseCancelacion(sesion.observaciones) || { motivo: "otro", texto: "", etiqueta: MOTIVOS_CANCELACION.otro } };
 }
 
 function dateOnly(value) {
@@ -177,17 +206,20 @@ export async function loadControlSession(user, groupId, fecha, connection = db.p
     getRoster(connection, group, context, day),
   ]);
   const asistencias = await getAttendance(connection, sesion?.id);
-  return { sesiones: sesion ? [sesion] : [], alumnos, asistencias, dia: day, profesor_actual_id: professorId, grupo: group };
+  return { sesiones: sesion ? [withCancelacion(sesion)] : [], alumnos, asistencias, dia: day, profesor_actual_id: professorId, grupo: group };
 }
 
 async function syncRecoveries(connection, sesion, asistencias) {
+  // Las recuperaciones de una clase cancelada las gestionan cancelar/reabrir, no la asistencia.
+  if (sesion.estado === "cancelada") return;
   for (const asistencia of asistencias) {
     const [rows] = await connection.query(
-      `SELECT id, estado FROM recuperaciones_clase
+      `SELECT id, estado, motivo FROM recuperaciones_clase
        WHERE alumno_id = ? AND sesion_origen_id = ? LIMIT 1 FOR UPDATE`,
       [asistencia.alumno_id, sesion.id]
     );
     const recovery = rows[0];
+    if (recovery?.motivo === MOTIVO_RECUPERACION_CANCELADA) continue;
     const needsRecovery = sesion.estado === "dada" && asistencia.estado === "justificada";
 
     if (needsRecovery && !recovery) {
@@ -402,8 +434,12 @@ export async function saveControlSession({ user, groupId, fecha, payload = {}, s
       const [professors] = await connection.query("SELECT id FROM profesores WHERE id = ? LIMIT 1", [professorId]);
       if (!professors.length) fail(400, "Profesor no encontrado");
     }
+    if (payload.estado === "cancelada") fail(400, "Para cancelar una clase usa la opcion Cancelar la clase");
     let sesion = await getSession(connection, group.id, normalizedDate, true);
     if (sessionId && Number(sesion?.id) !== Number(sessionId)) fail(404, "Sesion no encontrada");
+    if (sesion?.estado === "cancelada" && (entries !== undefined || payload.estado !== undefined)) {
+      fail(400, "La clase esta cancelada: no se puede pasar lista. Reabrela si fue un error");
+    }
     if (!sesion) {
       const [inserted] = await connection.query(
         `INSERT INTO sesiones_clase
@@ -441,13 +477,120 @@ export async function saveControlSession({ user, groupId, fecha, payload = {}, s
     const asistencias = await getAttendance(connection, sesion.id);
     await syncRecoveries(connection, sesion, asistencias);
     await connection.commit();
-    return { sesion, alumnos, asistencias, dia: day };
+    return { sesion: withCancelacion(sesion), alumnos, asistencias, dia: day };
   } catch (error) {
     if (connection) await connection.rollback();
     throw error;
   } finally {
     connection?.release();
   }
+}
+
+// Crea (o reactiva) la recuperacion `pendiente` de cada alumno de la clase cancelada, sin duplicar.
+// Con recuperable = false solo retira las pendientes de esta misma cancelacion.
+async function syncCancelRecoveries(connection, sesion, alumnos, recuperable) {
+  let creadas = 0;
+  for (const alumno of alumnos) {
+    const [rows] = await connection.query(
+      `SELECT id, estado, motivo FROM recuperaciones_clase
+       WHERE alumno_id = ? AND sesion_origen_id = ? LIMIT 1 FOR UPDATE`,
+      [alumno.id, sesion.id]
+    );
+    const recovery = rows[0];
+    if (recuperable && !recovery) {
+      await connection.query(
+        `INSERT INTO recuperaciones_clase
+         (alumno_id, grupo_id, fecha_original, motivo, estado, sesion_origen_id)
+         VALUES (?, ?, ?, '${MOTIVO_RECUPERACION_CANCELADA}', 'pendiente', ?)`,
+        [alumno.id, sesion.grupo_id, dateOnly(sesion.fecha), sesion.id]
+      );
+      creadas += 1;
+    } else if (recuperable && recovery.estado === "cancelada") {
+      await connection.query(
+        `UPDATE recuperaciones_clase
+         SET estado = 'pendiente', motivo = '${MOTIVO_RECUPERACION_CANCELADA}', fecha_recuperacion = NULL, sesion_recuperacion_id = NULL
+         WHERE id = ?`,
+        [recovery.id]
+      );
+      creadas += 1;
+    } else if (!recuperable && recovery?.motivo === MOTIVO_RECUPERACION_CANCELADA && recovery.estado === "pendiente") {
+      await connection.query("UPDATE recuperaciones_clase SET estado = 'cancelada' WHERE id = ?", [recovery.id]);
+    }
+  }
+  return creadas;
+}
+
+async function inTransaction(work) {
+  let connection;
+  try {
+    connection = await db.promise().getConnection();
+    await connection.beginTransaction();
+    const result = await work(connection);
+    await connection.commit();
+    return result;
+  } catch (error) {
+    if (connection) await connection.rollback();
+    throw error;
+  } finally {
+    connection?.release();
+  }
+}
+
+// Cancela toda la clase de un dia (lluvia, profesor ausente...). No hace falta pasar lista.
+export function cancelControlSession({ user, groupId, fecha, motivo, texto = "", recuperable = true }) {
+  return inTransaction(async (connection) => {
+    const normalizedDate = String(fecha || "");
+    const day = validDate(normalizedDate);
+    if (!Object.prototype.hasOwnProperty.call(MOTIVOS_CANCELACION, motivo)) fail(400, "Indica el motivo de la cancelacion");
+    const { group, context, professorId } = await getGroup(connection, user, groupId, true);
+    if (day !== group.dia1 && day !== group.dia2) fail(400, "El grupo no tiene clase en ese dia");
+    const alumnos = await getRoster(connection, group, context, day);
+    const observaciones = formatCancelacion(motivo, motivo === "otro" ? texto : "");
+    const quiereRecuperar = recuperable !== false && recuperable !== "false" && recuperable !== 0;
+    let sesion = await getSession(connection, group.id, normalizedDate, true);
+    if (!sesion) {
+      const [inserted] = await connection.query(
+        `INSERT INTO sesiones_clase
+         (grupo_id, profesor_id, fecha, hora_inicio, hora_fin, estado, observaciones)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [group.id, professorId ?? null, normalizedDate, group.hora_inicio, endTime(group.hora_inicio, group.duracion_min),
+          "cancelada", observaciones]
+      );
+      sesion = { id: inserted.insertId };
+    } else {
+      await connection.query(
+        `UPDATE sesiones_clase SET profesor_id = ?, estado = ?, observaciones = ? WHERE id = ?`,
+        [sesion.profesor_id ?? professorId ?? null, "cancelada", observaciones, sesion.id]
+      );
+    }
+    sesion = await getSession(connection, group.id, normalizedDate);
+    const creadas = await syncCancelRecoveries(connection, sesion, alumnos, quiereRecuperar);
+    return { sesion: withCancelacion(sesion), alumnos, dia: day, recuperaciones_creadas: creadas };
+  });
+}
+
+// Deshace una cancelacion: la clase vuelve a programada y se retiran las recuperaciones aun pendientes.
+export function reopenControlSession({ user, groupId, fecha }) {
+  return inTransaction(async (connection) => {
+    const normalizedDate = String(fecha || "");
+    const day = validDate(normalizedDate);
+    const { group, context } = await getGroup(connection, user, groupId, true);
+    let sesion = await getSession(connection, group.id, normalizedDate, true);
+    if (!sesion || sesion.estado !== "cancelada") fail(409, "Esa clase no esta cancelada");
+    const alumnos = await getRoster(connection, group, context, day);
+    await connection.query(
+      `UPDATE sesiones_clase SET profesor_id = ?, estado = ?, observaciones = ? WHERE id = ?`,
+      [sesion.profesor_id, "programada", null, sesion.id]
+    );
+    // Solo las pendientes de esta cancelacion; las asignadas o recuperadas no se tocan.
+    const [retiradas] = await connection.query(
+      `UPDATE recuperaciones_clase SET estado = 'cancelada'
+       WHERE sesion_origen_id = ? AND motivo = '${MOTIVO_RECUPERACION_CANCELADA}' AND estado = 'pendiente'`,
+      [sesion.id]
+    );
+    sesion = await getSession(connection, group.id, normalizedDate);
+    return { sesion, alumnos, dia: day, recuperaciones_retiradas: retiradas?.affectedRows ?? 0 };
+  });
 }
 
 async function saveRequest(req, res, sessionId = null) {
@@ -464,6 +607,23 @@ async function saveRequest(req, res, sessionId = null) {
     sendError(res, error);
   }
 }
+
+router.post("/grupos/:grupoId/sesiones/cancelar", async (req, res) => {
+  try {
+    const { fecha, motivo, texto, recuperable } = req.body || {};
+    res.json({ ok: true, ...(await cancelControlSession({ user: req.user, groupId: req.params.grupoId, fecha, motivo, texto, recuperable })) });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+router.post("/grupos/:grupoId/sesiones/reabrir", async (req, res) => {
+  try {
+    res.json({ ok: true, ...(await reopenControlSession({ user: req.user, groupId: req.params.grupoId, fecha: req.body?.fecha })) });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
 
 router.post("/grupos/:grupoId/sesiones", (req, res) => saveRequest(req, res));
 router.put("/grupos/:grupoId/sesiones/:sesionId/asistencia", (req, res) => saveRequest(req, res, req.params.sesionId));

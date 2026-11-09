@@ -313,3 +313,27 @@ test("los borradores caducan a los 60 minutos, no se guardan y se limpian del Ma
   bot.pruneExpiredDrafts();
   assert.equal(bot.drafts.size, 0);
 });
+
+test("una clase cancelada no ofrece pasar lista y avisa si se cancela con la lista en curso", async () => {
+  freshAttendance();
+  const api = fakeApi();
+  const bot = createTelegramBot({ api, database: globalThis.__telegramTestDb, now: () => new Date("2026-09-22T10:00:00Z") });
+  await bot.handleUpdate(callback("c1", "attendance:1:2026-09-22"));
+  assert.ok(bot.drafts.size > 0);
+  session = {
+    id: 11, grupo_id: 1, profesor_id: 1, fecha: "2026-09-22", hora_inicio: "18:00:00", hora_fin: "19:00:00",
+    estado: "cancelada", observaciones: "CANCELADA|lluvia|",
+  };
+  // Guardar con el borrador abierto: la API lo rechaza y el bot lo cuenta sin guardar nada.
+  await bot.handleUpdate(callback("c2", "save:1:20260922"));
+  assert.match(api.calls.at(-1).text, /cancelada/i);
+  assert.equal(attendance.size, 0);
+  // Abrir la clase muestra el motivo y ningun boton de pasar lista.
+  api.calls.length = 0;
+  await bot.handleUpdate(callback("c3", "open:1:2026-09-22"));
+  const message = api.calls.find((call) => call.method === "sendMessage");
+  assert.match(message.text, /Clase cancelada · Lluvia/);
+  assert.equal(message.reply_markup, undefined);
+  await bot.handleUpdate(callback("c4", "attendance:1:2026-09-22"));
+  assert.match(api.calls.at(-1).text, /Clase cancelada · Lluvia/);
+});
