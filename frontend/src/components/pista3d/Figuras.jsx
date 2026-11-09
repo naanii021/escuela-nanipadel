@@ -3,6 +3,11 @@
 // Las posturas se cambian con data-pose en el contenedor y el CSS gira el brazo.
 
 export const FIGURA = { ancho: 64, alto: 104, pieX: 26, pieY: 102 };
+// El profe necesita más lienzo a los lados y arriba/abajo: la pala sale de la figura al golpear y
+// el navegador recorta lo que queda fuera de la caja. Su caja es más grande (ver MEDIDAS_FIGURA.profe)
+// y los pies siguen en el mismo punto.
+export const MARGEN_PROFE = 34;
+export const MARGEN_PROFE_V = 8;
 export const CARRO = { ancho: 48, alto: 64, pieX: 24, pieY: 62 };
 
 const PIEL = "#e7b48b";
@@ -85,11 +90,12 @@ export function Alumno({ polo = "#b8ee58", detalle = "#2f7d54", gorra = "#ffffff
   );
 }
 
-// Profe visto de frente, junto al carro: polo oscuro con "PROFE", silbato y pala en la otra mano.
+// Profe visto de frente, junto al carro: polo oscuro con "PROFE", silbato, pala en una mano
+// (con ella golpea las bolas) y la otra mano libre para coger bolas del carro.
 export function Profe() {
   const polo = "#17372a";
   return (
-    <svg viewBox={`0 0 ${FIGURA.ancho} ${FIGURA.alto}`} aria-hidden="true">
+    <svg viewBox={`${-MARGEN_PROFE} ${-MARGEN_PROFE_V} ${FIGURA.ancho + MARGEN_PROFE * 2} ${FIGURA.alto + MARGEN_PROFE_V * 2}`} aria-hidden="true">
       <Piernas pantalon="#3b4250" calcetin="#b8ee58" />
       <Torso polo={polo} detalle="#b8ee58" />
       <text x="26" y="50.5" textAnchor="middle" fontSize="6" fontWeight="900" fontFamily="Inter, Arial, sans-serif" fill="#b8ee58" letterSpacing=".2">
@@ -98,13 +104,14 @@ export function Profe() {
       {/* Cordón y silbato */}
       <path d="M22.2 30.2l3.8 9.4 3.8-9.4" fill="none" stroke="#b8ee58" strokeWidth=".9" />
       <rect x="23.9" y="39" width="4.4" height="3" rx="1.2" fill="#d6dbe3" stroke="#5b6472" strokeWidth=".5" />
-      {/* Brazo izquierdo con la pala colgando */}
-      <g>
+      {/* Brazo de la pala: la misma pala que los alumnos, agarrada por el mango y con la cabeza
+          hacia abajo en reposo. Gira desde el hombro (13.5, 34) en el saque. */}
+      <g className="brazoPala">
+        <g transform="rotate(180 9.4 52.5)">
+          <Pala x={9.4} y={35.5} />
+        </g>
         <path d="M13.2 36.5l-3.6 16" stroke={PIEL} strokeWidth="4.6" strokeLinecap="round" />
         <path d="M13.6 33.5l-3.4 8" stroke={polo} strokeWidth="6.4" strokeLinecap="round" />
-        <g transform="rotate(180 9.4 55)">
-          <Pala x={9.4} y={43} cara="#b8ee58" borde="#17372a" />
-        </g>
       </g>
       {/* Cara, gorra con visera hacia la cámara */}
       <rect x="23" y="23" width="6" height="7" rx="2" fill={PIEL_SOMBRA} />
@@ -114,7 +121,7 @@ export function Profe() {
       <path d="M23.6 21.2q2.4 1.4 4.8 0" fill="none" stroke="#8a4b33" strokeWidth=".8" strokeLinecap="round" />
       <path d="M17.6 14.2a8.4 8.4 0 0 1 16.8 0z" fill="#b8ee58" />
       <ellipse cx="26" cy="14.4" rx="10.6" ry="2.4" fill="#8fc73a" />
-      {/* Brazo que lanza: baja al carro, coge bola y la suelta en alto */}
+      {/* Brazo libre: baja al carro, coge una bola y la sostiene en alto hasta dejarla caer */}
       <g className="brazo">
         <path d="M38.6 34.5l2.4 17" stroke={PIEL} strokeWidth="4.6" strokeLinecap="round" />
         <path d="M38.4 33.6l1.2 5.6" stroke={polo} strokeWidth="6.4" strokeLinecap="round" />

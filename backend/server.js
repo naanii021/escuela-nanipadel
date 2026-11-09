@@ -16,11 +16,16 @@ import galeriaRouter from "./routes/galeria.js";
 import notificacionesRouter from "./routes/notificaciones.js";
 import whatsappRouter from "./routes/whatsapp.js";
 import noticiasRouter from "./routes/noticias.js";
+import contactoRouter from "./routes/contacto.js";
 import { requireAuth, requireRoles } from "./middleware/auth.js";
 import { sendWhatsAppMessage } from "./services/whatsappService.js";
 
 // Creamos la app de Express
 const app = express();
+
+// El backend solo escucha en 127.0.0.1 y nginx le pasa las peticiones: sin esto todos los usuarios
+// llegan con la IP de nginx y los límites de intentos por IP (contraseña, formularios) los contarían a todos juntos.
+app.set("trust proxy", "loopback");
 
 // Puerto del backend
 const PORT = process.env.PORT || 4000;
@@ -110,6 +115,9 @@ app.use("/api/whatsapp", whatsappRouter);
 
 // Titulares de pádel de la prensa deportiva (solo lectura, con caché)
 app.use("/api/noticias", noticiasRouter);
+
+// Formulario público "Encuentra tu grupo": envía la consulta por correo al club
+app.use("/api/contacto", contactoRouter);
 
 // ======================================================
 // RUTAS BÁSICAS

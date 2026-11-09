@@ -286,7 +286,7 @@ function Home() {
       )}
 
       <section className={`inicioHero${night ? " isNight" : ""}${rain ? " isRaining" : ""}`}>
-        <WeatherCourt3D weather={weather} night={night} rain={rain} />
+        <WeatherCourt3D weather={weather} night={night} rain={rain} mojada={Boolean(weather?.playability?.mojada)} />
 
         <div className="inicioInner">
           <div className="inicioInfo">
@@ -301,7 +301,7 @@ function Home() {
               {weatherError
                 ? "Puedes reservar igualmente y comprobarlo más tarde."
                 : weather
-                  ? `${weather.playability.reason}. ${weather.description}, ${Math.round(weather.temperature)}°C.`
+                  ? `${weather.playability.reason.replace(/\.$/, "")}. ${weather.description}, ${Math.round(weather.temperature)}°C.`
                   : "Un momento, estamos mirando cómo está la pista."}
             </p>
 
@@ -364,7 +364,7 @@ function Home() {
                       <span>{index === 0 ? "Ahora" : formatHour(hour.time)}</span>
                       <i aria-hidden="true" />
                       <strong>{Math.round(hour.temperature)}°</strong>
-                      <small>{hour.playable ? "Se juega" : "No"}</small>
+                      <small>{hour.playable ? "Se juega" : hour.motivoCorto || "No"}</small>
                     </li>
                   ))}
                 </ol>

@@ -37,7 +37,7 @@ const posicion = ({ x, y }) => ({ "--px": `${x}px`, "--py": `${y}px` });
 
 // `night` y `rain` fuerzan la escena (vista previa); sin ellos se usa el tiempo real.
 // `escena`: "clase" (profe con carro y dos alumnos) o "partido" (2 contra 2).
-export default function WeatherCourt3D({ weather, night, rain, escena = "clase" }) {
+export default function WeatherCourt3D({ weather, night, rain, mojada = false, escena = "clase" }) {
   const stageRef = useRef(null);
   const areaRef = useRef(null);
   const courtRef = useRef(null);
@@ -53,6 +53,8 @@ export default function WeatherCourt3D({ weather, night, rain, escena = "clase" 
   const datos = ESCENAS[escena] || ESCENAS.clase;
   const isNight = night ?? Number(weather?.isDay) === 0;
   const isRaining = rain ?? isRainy(weather || {});
+  // Sin clase cuando llueve o la pista está mojada: no hay jugadores ni bolas y el bucle no hace falta.
+  const sinClase = isRaining || mojada;
 
   // Fuera de pantalla no hay nada que animar: se pausan los bucles y las animaciones CSS.
   useEffect(() => {
@@ -130,6 +132,7 @@ export default function WeatherCourt3D({ weather, night, rain, escena = "clase" 
 
   // Bucle de la escena: el animador dice dónde está cada figura y cada bola en el instante t.
   useEffect(() => {
+    if (sinClase) return undefined;
     const animar = datos.crearAnimador();
     const ultimas = [];
 
@@ -188,7 +191,7 @@ export default function WeatherCourt3D({ weather, night, rain, escena = "clase" 
     };
     frameId = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(frameId);
-  }, [inView, datos]);
+  }, [inView, datos, sinClase]);
 
   useEffect(() => {
     const canvas = rainRef.current;
@@ -266,7 +269,7 @@ export default function WeatherCourt3D({ weather, night, rain, escena = "clase" 
 
   return (
     <div
-      className={`weatherCourt3d escena-${datos.id}${isNight ? " isNight" : ""}${isRaining ? " isRaining" : ""}${inView ? "" : " isOffscreen"}`}
+      className={`weatherCourt3d escena-${datos.id}${isNight ? " isNight" : ""}${isRaining ? " isRaining" : ""}${mojada && !isRaining ? " isWet" : ""}${inView ? "" : " isOffscreen"}`}
       ref={stageRef}
       aria-hidden="true"
     >
@@ -327,7 +330,7 @@ export default function WeatherCourt3D({ weather, night, rain, escena = "clase" 
               <i
                 className={`weatherCourtPlayer is-${figura.tipo}`}
                 data-pose="espera"
-                style={estiloFigura(figura, MEDIDAS_FIGURA.figura)}
+                style={estiloFigura(figura, figura.tipo === "profe" ? MEDIDAS_FIGURA.profe : MEDIDAS_FIGURA.figura)}
                 ref={(element) => {
                   figureRefs.current[index] = element;
                 }}

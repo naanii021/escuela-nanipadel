@@ -454,6 +454,94 @@
   transition-duration: 140ms;
 }
 
+/* Profe: alimenta las bolas con la pala. Coge una bola del carro con la mano libre, la sube,
+   la deja caer, lleva la pala atrás y la golpea con un swing corto. Los ángulos coinciden con
+   ANG_PALA_GOLPE y ANG_MANO_SACA de pista3d/escenas.js (de ahí sale dónde nace la bola). */
+.weatherCourtPlayer .brazoPala {
+  transform-box: view-box;
+  transform-origin: 13.5px 34px;
+  transform: rotate(20deg);
+  transition: transform 380ms var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+
+.weatherCourtPlayer.is-profe[data-pose="coge"] .brazo {
+  transform: rotate(-38deg);
+}
+
+.weatherCourtPlayer.is-profe[data-pose="saca"] .brazo,
+.weatherCourtPlayer.is-profe[data-pose="suelta"] .brazo,
+.weatherCourtPlayer.is-profe[data-pose="golpe"] .brazo {
+  transform: rotate(-100deg);
+}
+
+.weatherCourtPlayer.is-profe[data-pose="saca"] .brazo {
+  transition-duration: 320ms;
+}
+
+.weatherCourtPlayer.is-profe[data-pose="suelta"] .brazoPala {
+  transform: rotate(68deg);
+  transition-duration: 240ms;
+}
+
+.weatherCourtPlayer.is-profe[data-pose="golpe"] .brazoPala {
+  transform: rotate(-74deg);
+  transition-duration: 110ms;
+}
+
+/* La bola solo se ve en la mano libre mientras la sube. */
+.weatherCourtPlayer.is-profe .bolaMano {
+  opacity: 0;
+}
+
+.weatherCourtPlayer.is-profe[data-pose="saca"] .bolaMano {
+  opacity: 1;
+}
+
+.weatherCourtPlayerShade {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  pointer-events: none;
+}
+
+.weatherCourtPlayer {
+  z-index: 6;
+  width: calc(var(--fw) * var(--fig-escala, 1));
+  height: calc(var(--fh) * var(--fig-escala, 1));
+  margin: calc(var(--fy) * var(--fig-escala, 1) * -1) 0 0 calc(var(--fx) * var(--fig-escala, 1) * -1);
+  transform-origin: calc(var(--fx) * var(--fig-escala, 1)) calc(var(--fy) * var(--fig-escala, 1));
+  transform: translate3d(var(--px), var(--py), 0) rotateZ(calc(var(--court-rz) * -1)) rotateX(calc(var(--court-rx) * -1));
+}
+
+.weatherCourtPlayer svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Brazo de la pala (o del lanzamiento): gira desde el hombro según la postura. */
+.weatherCourtPlayer .brazo {
+  transform-box: view-box;
+  transform-origin: 38.5px 34px;
+  transition: transform 260ms var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+
+.weatherCourtPlayer .bolaMano {
+  transition: opacity 120ms ease-out;
+}
+
+/* Alumnos: se preparan con la pala atrás y golpean cruzando por delante. */
+.weatherCourtPlayer[data-pose="prepara"] .brazo {
+  transform: rotate(55deg);
+}
+
+.weatherCourtPlayer[data-pose="golpe"] .brazo {
+  transform: rotate(-70deg);
+  transition-duration: 140ms;
+}
+
 /* Profe: coge bola del carro, sube el brazo y la suelta en alto. */
 .weatherCourtPlayer.is-profe[data-pose="coge"] .brazo {
   transform: rotate(-38deg);
@@ -541,6 +629,7 @@
 
   /* La escena queda fija en una postura: sin giros de brazo animados. */
   .weatherCourtPlayer .brazo,
+  .weatherCourtPlayer .brazoPala,
   .weatherCourtPlayer .bolaMano {
     transition: none;
   }
@@ -568,6 +657,27 @@
 .weatherCourt3d.isRaining .weatherCourtPlayer,
 .weatherCourt3d.isRaining .weatherCourtPlayerShade,
 .weatherCourt3d.isRaining .weatherCourtBall,
-.weatherCourt3d.isRaining .weatherCourtBallShadow {
-  opacity: 0;
+.weatherCourt3d.isRaining .weatherCourtBallShadow,
+.weatherCourt3d.isWet .weatherCourtPlayer,
+.weatherCourt3d.isWet .weatherCourtPlayerShade,
+.weatherCourt3d.isWet .weatherCourtBall,
+.weatherCourt3d.isWet .weatherCourtBallShadow {
+  /* !important: la animación les pone la opacidad directamente en el elemento. */
+  opacity: 0 !important;
+}
+
+/* Pista mojada con el cielo despejado: brillo de agua, un poco más oscura y sin clase. */
+.weatherCourt3d.isWet .weatherCourtWet {
+  opacity: 1;
+  animation: weatherCourtSheen 6s linear infinite;
+}
+
+.weatherCourt3d.isWet .weatherCourt3dTurf {
+  filter: saturate(1.15) brightness(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weatherCourt3d.isWet .weatherCourtWet {
+    animation: none;
+  }
 }

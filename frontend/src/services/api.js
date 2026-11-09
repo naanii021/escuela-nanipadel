@@ -82,7 +82,7 @@ async function apiRequest(path, options = {}) {
 
   if (!res.ok) {
     if (res.status === 401 && getToken()) closeExpiredSession();
-    throw new Error(data.message || `No hemos podido completar la peticion (${res.status}).`);
+    throw Object.assign(new Error(data.message || `No hemos podido completar la peticion (${res.status}).`), { status: res.status });
   }
 
   return data;

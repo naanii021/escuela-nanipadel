@@ -7,7 +7,7 @@
 // contragiran para mirar a la cámara; hace falta para saber dónde queda la pala en 3D) y
 // k es el aumento extra de las figuras en esa pantalla.
 
-import { CARRO, FIGURA } from "./Figuras";
+import { CARRO, FIGURA, MARGEN_PROFE, MARGEN_PROFE_V } from "./Figuras";
 
 // Escala de las figuras (px de pista por unidad del SVG). Exageradas para que se lean.
 export const ESCALA_FIGURA = 1.12;
@@ -51,7 +51,8 @@ function azar(n, semilla) {
 }
 
 // ---------------------------------------------------------------------------
-// Escena "clase": el profe lanza bolas del carro y dos alumnos las devuelven.
+// Escena "clase": el profe coge bolas del carro, las deja caer y las alimenta con la pala;
+// dos alumnos las devuelven.
 // ---------------------------------------------------------------------------
 
 const PROFE = { x: 118, y: 178 };
@@ -62,15 +63,36 @@ const ALUMNOS = [
 ];
 
 const CADENCIA = 1550; // ms entre bola y bola
-// Fases de cada bola (ms desde que sale de la mano del profe)
-const VUELO = 820; // mano → bote en el lado de los alumnos
+// Fases de cada bola (ms desde que la pala del profe la golpea)
+const VUELO = 820; // pala → bote en el lado de los alumnos
 const SUBIDA = 380; // bote → pala
 const VUELTA = 980; // pala → bote en el lado del profe
 const RODAR = 520; // bote final y desaparece
 const VIDA = VUELO + SUBIDA + VUELTA + RODAR;
 
-// Mano del profe al soltar (brazo arriba) y pala del alumno en el golpe.
-const MANO_PROFE = desdeSvg(49, 16.5);
+// Gira un punto del SVG alrededor de un pivote (grados, positivo = sentido horario, como CSS).
+function girar([x, y], [px, py], grados) {
+  const a = grados * RAD;
+  const dx = x - px;
+  const dy = y - py;
+  return [px + dx * Math.cos(a) - dy * Math.sin(a), py + dx * Math.sin(a) + dy * Math.cos(a)];
+}
+
+// Profe: ángulos de los brazos en las posturas (deben coincidir con weatherCourt3d.css).
+// La bola nace en el centro de la cabeza de la pala en el golpe y cae desde la mano libre.
+const ANG_PALA_GOLPE = -74;
+const ANG_MANO_SACA = -100;
+const PALA_PROFE = desdeSvg(...girar([9.4, 69.5], [13.5, 34], ANG_PALA_GOLPE));
+const MANO_LIBRE = desdeSvg(...girar([41.4, 54.6], [38.5, 34], ANG_MANO_SACA));
+// Momentos del saque respecto al golpe (ms; 0 = la pala toca la bola)
+const CAIDA = 300; // la bola se suelta y cae
+const T_COGE = 1150; // el brazo libre baja al carro
+const T_SACA = 850; // sube con la bola
+const T_PREPARA = 300; // pala atrás (coincide con la suelta)
+const T_GOLPE = 70; // empieza el swing corto
+const T_SIGUE = 230; // recuperación
+
+// Pala del alumno en el golpe.
 const PALA_ALUMNO = desdeSvg(48.6, 30);
 
 function posAlumno(indice, t) {
@@ -89,9 +111,10 @@ function posAlumno(indice, t) {
 }
 
 function bolaDeClase(n, local, geo) {
+  const caida = puntoDeFigura(PROFE, MANO_LIBRE.u * geo.k, MANO_LIBRE.h * geo.k, geo);
   const alumno = n % 2;
   const pie = posAlumno(alumno, n * CADENCIA + VUELO + SUBIDA);
-  const mano = puntoDeFigura(PROFE, MANO_PROFE.u * geo.k, MANO_PROFE.h * geo.k, geo);
+  const mano = puntoDeFigura(PROFE, PALA_PROFE.u * geo.k, PALA_PROFE.h * geo.k, geo);
   const golpe = puntoDeFigura(pie, PALA_ALUMNO.u * geo.k, PALA_ALUMNO.h * geo.k, geo);
   const bote = { x: lerp(mano.x, golpe.x, 0.9) + (azar(n, 2) - 0.5) * 10, y: golpe.y - 24 - azar(n, 3) * 18, z: 0 };
   const destino = { x: 40 + azar(n, 4) * 220, y: 60 + azar(n, 5) * 150, z: 0 };
@@ -99,6 +122,8 @@ function bolaDeClase(n, local, geo) {
   if (Math.abs(destino.x - CARRITO.x) < 40 && Math.abs(destino.y - CARRITO.y) < 40) destino.y += 70;
   const final = { x: destino.x + (destino.x - golpe.x) * 0.12, y: destino.y - 40, z: 0 };
 
+  // Antes del golpe: la bola cae de la mano libre a la pala (aceleración de la gravedad).
+  if (local < 0) return { ...arco(caida, mano, (local + CAIDA) ** 2 / CAIDA ** 2, 0), opacidad: 1 };
   if (local < VUELO) return { ...arco(mano, bote, local / VUELO, 34), opacidad: 1 };
   local -= VUELO;
   if (local < SUBIDA) return { ...arco(bote, golpe, local / SUBIDA, 14), opacidad: 1 };
@@ -109,12 +134,16 @@ function bolaDeClase(n, local, geo) {
   return { ...arco(destino, final, p, 16), opacidad: 1 - suave(p) };
 }
 
+// Postura del profe. d = ms desde el último golpe (de -T_GOLPE a CADENCIA - T_GOLPE: el swing
+// empieza un poco antes del golpe).
 function posturaProfe(t) {
-  const local = (t + 400) % CADENCIA; // 0 = empieza a levantar el brazo, 400 = suelta la bola
-  if (local < 400) return "lanza";
-  if (local < 700) return "suelta";
-  if (local < 1100) return "coge";
-  return "espera";
+  const d = ((t + T_GOLPE) % CADENCIA) - T_GOLPE;
+  if (d < T_SIGUE - T_GOLPE) return "golpe";
+  if (d < CADENCIA - T_COGE) return "espera";
+  if (d < CADENCIA - T_SACA) return "coge";
+  if (d < CADENCIA - T_PREPARA) return "saca";
+  if (d < CADENCIA - T_GOLPE) return "suelta";
+  return "golpe";
 }
 
 function posturaAlumno(indice, t) {
@@ -137,16 +166,16 @@ const clase = {
   ],
   carro: CARRITO,
   pelotas: 3,
-  // Momento elegido para la imagen fija (movimiento reducido): una bola en el aire hacia
-  // un alumno que se prepara y otra volviendo al lado del profe.
-  instanteFijo: CADENCIA * 5 + 620,
+  // Momento elegido para la imagen fija (movimiento reducido): el profe en postura de golpe,
+  // la bola recién salida de la pala y otra volviendo al lado del profe.
+  instanteFijo: CADENCIA * 5 + 140,
   crearAnimador() {
     return (t, geo) => {
       const pelotas = Array.from({ length: this.pelotas }, () => null);
       const k = Math.floor(t / CADENCIA);
-      for (let n = Math.max(0, k - 2); n <= k; n += 1) {
+      for (let n = Math.max(0, k - 2); n <= k + 1; n += 1) {
         const local = t - n * CADENCIA;
-        if (local < 0 || local >= VIDA) continue;
+        if (local < -CAIDA || local >= VIDA) continue;
         pelotas[n % this.pelotas] = bolaDeClase(n, local, geo);
       }
       return {
@@ -223,5 +252,12 @@ export const ESCENAS = { clase, partido };
 
 export const MEDIDAS_FIGURA = {
   figura: { ancho: FIGURA.ancho * ESCALA_FIGURA, alto: FIGURA.alto * ESCALA_FIGURA, pieX: FIGURA.pieX * ESCALA_FIGURA, pieY: FIGURA.pieY * ESCALA_FIGURA },
+  // El profe lleva margen alrededor para que la pala no se recorte al girar el brazo.
+  profe: {
+    ancho: (FIGURA.ancho + MARGEN_PROFE * 2) * ESCALA_FIGURA,
+    alto: (FIGURA.alto + MARGEN_PROFE_V * 2) * ESCALA_FIGURA,
+    pieX: (FIGURA.pieX + MARGEN_PROFE) * ESCALA_FIGURA,
+    pieY: (FIGURA.pieY + MARGEN_PROFE_V) * ESCALA_FIGURA,
+  },
   carro: { ancho: CARRO.ancho * ESCALA_FIGURA, alto: CARRO.alto * ESCALA_FIGURA, pieX: CARRO.pieX * ESCALA_FIGURA, pieY: CARRO.pieY * ESCALA_FIGURA },
 };

@@ -7,6 +7,7 @@
   --cu-libre-fondo: hsl(145 52% 93%);
   --cu-libre-borde: hsl(145 42% 62%);
   --cu-libre-texto: hsl(150 62% 18%);
+  --cu-luz-texto: hsl(32 90% 24%);
   --cu-mia-fondo: var(--color-primary);
   --cu-abierta-fondo: hsl(43 96% 90%);
   --cu-abierta-borde: hsl(38 86% 58%);
@@ -236,6 +237,20 @@ button.cuCelda:focus-visible {
   text-underline-offset: 3px;
 }
 
+/* Con luz: mismo verde de "libre" con una bombilla ámbar y el texto "con luz". */
+.cuCelda > span.cuLuz {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--cu-luz-texto);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.cuLuzIcono {
+  flex-shrink: 0;
+}
+
 .cuCelda.isMia {
   border-color: var(--cu-mia-fondo);
   background: var(--cu-mia-fondo);
@@ -350,6 +365,18 @@ button.cuCelda:focus-visible {
 .cuMuestra.isLibre {
   border-color: hsl(145 42% 62%);
   background: hsl(145 52% 93%);
+}
+
+.cuMuestra.isConLuz {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cu-luz-texto);
+}
+
+.cuMuestra.isConLuz .cuLuzIcono {
+  width: 12px;
+  height: 12px;
 }
 
 .cuMuestra.isMia {

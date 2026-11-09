@@ -127,18 +127,6 @@ function Galeria() {
     return photos.filter((photo) => photo.category === selectedCategory);
   }, [photos, selectedCategory]);
 
-  const coverPhoto = filteredPhotos[0] || photos[0] || null;
-  const featuredStrip = filteredPhotos.slice(0, 3);
-
-  const stats = useMemo(() => {
-    return {
-      total: photos.length,
-      alumnos: photos.filter((photo) => photo.category === "Alumnos").length,
-      clases: photos.filter((photo) => photo.category === "Clases").length,
-      liga: photos.filter((photo) => photo.category === "Liga").length,
-    };
-  }, [photos]);
-
   const openLightbox = (index) => {
     setLightboxIndex(index);
   };
@@ -219,63 +207,7 @@ function Galeria() {
 
   return (
     <section className="galeria">
-      <header className="galeriaHero">
-        <div className="galeriaHeroCopy">
-          <span className="galeriaEyebrow">Escuela de pádel</span>
-          <h1>Galería</h1>
-          <p className="galeriaLead">
-            Fotos de clases, torneos y momentos del club. También puedes enviar tus fotos para que el equipo las revise.
-          </p>
-
-          <div className="galeriaStats">
-            <article className="statCard">
-              <strong>{stats.total}</strong>
-              <span>Imágenes</span>
-            </article>
-            <article className="statCard">
-              <strong>{stats.clases}</strong>
-              <span>Clases</span>
-            </article>
-            <article className="statCard">
-              <strong>{stats.liga}</strong>
-              <span>Liga</span>
-            </article>
-            <article className="statCard">
-              <strong>{stats.alumnos}</strong>
-              <span>Alumnos</span>
-            </article>
-          </div>
-
-          <div className="galeriaHeroActions">
-            <button type="button" className="galleryUploadBtn" onClick={openUpload}>
-              Enviar foto al club
-            </button>
-            {!logged && <span>Inicia sesión para enviar tus fotos al club.</span>}
-          </div>
-        </div>
-
-        <div className="galeriaHeroPanel">
-          {coverPhoto ? (
-            <>
-              <img
-                className="heroPanelImage"
-                src={withPublicUrl(coverPhoto.src)}
-                alt={coverPhoto.title}
-              />
-              <div className="heroPanelOverlay" />
-              <div className="heroPanelContent">
-                <span className="heroPanelTag">{coverPhoto.category}</span>
-                <strong>{coverPhoto.title}</strong>
-                <p>{coverPhoto.desc}</p>
-              </div>
-            </>
-          ) : (
-            <div className="heroPanelEmpty">
-              {manifestLoaded ? "No hay imágenes disponibles todavía." : "Cargando galería..."}
-            </div>
-          )}
-        </div>
-      </header>
+      <h1 className="galeriaTitle">Fotos del club</h1>
 
       <section className="galeriaControls">
         <GalleryFilters
@@ -322,23 +254,6 @@ function Galeria() {
         </section>
       )}
 
-      {featuredStrip.length > 0 && (
-        <section className="featuredStrip" aria-label="Resumen visual">
-          {featuredStrip.map((photo, index) => (
-            <button
-              key={photo.id}
-              type="button"
-              className="featuredCard"
-              onClick={() => openLightbox(index)}
-            >
-              <img src={withPublicUrl(photo.src)} alt={photo.title} />
-              <span>{photo.category}</span>
-              <strong>{photo.title}</strong>
-            </button>
-          ))}
-        </section>
-      )}
-
       <section className="galleryGrid" aria-live="polite">
         {filteredPhotos.map((photo, index) => (
           <article
@@ -351,7 +266,12 @@ function Galeria() {
               onClick={() => openLightbox(index)}
             >
               <div className="galleryImageWrap">
-                <img src={withPublicUrl(photo.src)} alt={photo.title} loading="lazy" />
+                <img
+                  src={withPublicUrl(photo.src)}
+                  alt={photo.title}
+                  loading={index < 2 ? "eager" : "lazy"}
+                  decoding="async"
+                />
                 <div className="galleryImageShade" />
                 <span className="galleryCategory">{photo.category}</span>
               </div>
@@ -365,6 +285,8 @@ function Galeria() {
         ))}
       </section>
 
+      {!manifestLoaded && <p className="galleryToolbarNote" role="status">Cargando fotos...</p>}
+
       {manifestLoaded && filteredPhotos.length === 0 && (
         <section className="galleryEmpty">
           <strong>Aún no hay fotos en esta categoría.</strong>
@@ -373,6 +295,13 @@ function Galeria() {
           </p>
         </section>
       )}
+
+      <footer className="galleryUploadFooter">
+        <button type="button" className="galleryUploadLink" onClick={openUpload}>
+          Enviar una foto al club
+        </button>
+        {!logged && <span>Necesitas iniciar sesión.</span>}
+      </footer>
 
       <GalleryLightbox
         photos={filteredPhotos}

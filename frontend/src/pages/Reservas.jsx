@@ -9,11 +9,11 @@ import { requestNotificationsRefresh } from "../services/notificationEvents";
 import Hoja from "../components/Hoja";
 import Toast from "../components/Toast";
 import MisReservas from "../components/MisReservas";
+import { PRECIO_CON_LUZ, PRECIO_SIN_LUZ, precioTurno } from "../services/precios";
 import { HORAS_RESERVA } from "../services/disponibilidad";
 import CuadranteReservas, { Leyenda, esLibre, plazasLibres as freeSeats } from "../components/CuadranteReservas";
 
 const HOURS = HORAS_RESERVA;
-const PRICE = 10;
 const DURATION = 90;
 const AVATAR_COLORS = ["#2563eb", "#16a34a", "#9333ea", "#dc2626", "#ea580c", "#0891b2", "#be185d"];
 const GAME_LEVELS = [
@@ -248,7 +248,7 @@ function Reservas() {
     <section className={`rs${logged ? " conLateral" : ""}`} ref={raiz}>
       <header className="rsHead">
         <h1>Reservar pista</h1>
-        <p>Elige el día y toca una hora libre. Cada partido dura {DURATION} minutos y cuesta {PRICE} €.</p>
+        <p>Elige el día y toca una hora libre. Cada partido dura {DURATION} minutos: {PRECIO_SIN_LUZ} € sin luz y {PRECIO_CON_LUZ} € con luz.</p>
       </header>
 
       {logged && (
@@ -256,7 +256,7 @@ function Reservas() {
           <MisReservas recarga={misKey} onCambio={loadReservas} mostrarVacio={false} />
           <div className="rsLeyendaCaja">
             <h2>Colores del cuadrante</h2>
-            <Leyenda precio={PRICE} />
+            <Leyenda />
           </div>
         </aside>
       )}
@@ -306,7 +306,7 @@ function Reservas() {
           )}
         </div>
 
-        <Leyenda precio={PRICE} className={logged ? "isSoloMovil" : ""} />
+        <Leyenda className={logged ? "isSoloMovil" : ""} />
 
         {loadError ? (
           <div className="mensajeCaja isError" role="alert">
@@ -336,7 +336,6 @@ function Reservas() {
                   pistas={courts}
                   filas={visibleRows}
                   ahora={isToday ? ahora : null}
-                  precio={PRICE}
                   ocupado={loading}
                   onReservar={openReserve}
                   onDetalle={setDetailSlot}
@@ -388,12 +387,18 @@ function Reservas() {
   );
 }
 
+function TextoPrecio({ slot }) {
+  const { precio, conLuz } = precioTurno(slot.dateISO, slot.start);
+  return <span className="rsPrecio">Precio: <b>{precio} €</b> ({conLuz ? "con luz" : "sin luz"})</span>;
+}
+
 function SlotSummary({ slot }) {
   return (
     <div className="rsResumen">
       <strong>{slot.courtName}</strong>
       <span>{fechaLarga(slot.dateISO)}</span>
-      <span>De {slot.start} a {slot.end} · {DURATION} minutos · {PRICE} €</span>
+      <span>De {slot.start} a {slot.end} · {DURATION} minutos</span>
+      <TextoPrecio slot={slot} />
     </div>
   );
 }
@@ -654,7 +659,8 @@ function DetailSheet({ slot, onClose, onJoin, onCancel, onShared }) {
       ) : (
         <div className="rsResumen">
           <strong>{slot.reservaNombreCliente ? `A nombre de ${slot.reservaNombreCliente}` : "Pista reservada"}</strong>
-          <span>De {slot.start} a {slot.end} · {DURATION} minutos · {PRICE} €</span>
+          <span>De {slot.start} a {slot.end} · {DURATION} minutos</span>
+          <TextoPrecio slot={slot} />
         </div>
       )}
       {slot.notas && (
