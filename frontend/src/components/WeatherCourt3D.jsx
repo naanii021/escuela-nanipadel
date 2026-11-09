@@ -92,8 +92,8 @@ export default function WeatherCourt3D({ weather, night, rain, escena = "clase" 
         k: parseFloat(styles.getPropertyValue("--fig-escala")) || 1,
       };
       const margen = parseFloat(styles.getPropertyValue("--court-margin")) || 12;
-      // En el móvil la losa puede salirse por los lados para que la pista se vea más grande.
-      const conLosa = styles.getPropertyValue("--court-losa").trim() !== "0";
+      // La losa cuenta siempre: la pista se ve entera, con su base, dentro del escenario.
+      const conLosa = true;
       const zona = area.getBoundingClientRect();
       if (!zona.width || !zona.height) return;
 

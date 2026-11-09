@@ -51,7 +51,16 @@ function groupKeyboard(groupId, date) {
   ], [callbackButton("Pasar lista", `attendance:${groupId}:${date}`)]];
 }
 
-function groupText(group, students = null) {
+function canceledLine(session) {
+  const c = session?.cancelacion;
+  return `🚫 Clase cancelada · ${c?.etiqueta || "Otro motivo"}${c?.texto ? ` (${c.texto})` : ""}`;
+}
+
+function groupText(group, students = null, session = null) {
+  if (session?.estado === "cancelada") {
+    const time = String(group.hora_inicio || "").slice(0, 5) || "Sin hora";
+    return `🔴 ${time} · ${group.nombre || group.codigo}\n${canceledLine(session)}\nNo hace falta pasar lista. Se reabre desde el panel web.`;
+  }
   const time = String(group.hora_inicio || "").slice(0, 5) || "Sin hora";
   const court = group.pista_habitual || "Sin pista";
   const pupils = students ? `\nAlumnos: ${students.map((item) => `${item.nombre} ${item.apellidos || ""}`.trim()).join(", ") || "ninguno"}` : "";
@@ -137,7 +146,9 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
       const classDate = onlyToday ? date : nextGroupDate(group, date);
       const data = await loadControlSession(actor(professor), group.id, classDate, promiseDb());
       const heading = onlyToday ? "" : `Próxima clase: ${classDate}\n`;
-      await api.sendMessage(chatId, `${heading}${groupText(group, data.alumnos)}`, { inline_keyboard: groupKeyboard(group.id, classDate) });
+      const canceled = data.sesiones[0]?.estado === "cancelada";
+      await api.sendMessage(chatId, `${heading}${groupText(group, data.alumnos, data.sesiones[0])}`,
+        canceled ? undefined : { inline_keyboard: groupKeyboard(group.id, classDate) });
     }
   }
 
@@ -176,6 +187,11 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
 
   async function beginAttendance(chatId, professor, groupId, date, messageId = null, notice = "") {
     const data = await loadControlSession(actor(professor), groupId, date, promiseDb());
+    if (data.sesiones[0]?.estado === "cancelada") {
+      drafts.delete(`${chatId}:${groupId}:${date.replaceAll("-", "")}`);
+      const text = groupText(data.grupo, null, data.sesiones[0]);
+      return messageId ? api.editMessage(chatId, messageId, text) : api.sendMessage(chatId, text);
+    }
     const group = { ...data.grupo, id: Number(groupId) };
     const stored = Object.fromEntries(data.asistencias.map((item) => [item.alumno_id, item.estado]));
     const draft = {
@@ -235,7 +251,9 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
     if (action === "open" || action === "students") {
       const data = await loadControlSession(actor(professor), groupId, date, promiseDb());
       await api.answerCallback(callback.id);
-      return api.sendMessage(chatId, groupText(data.grupo, data.alumnos), { inline_keyboard: groupKeyboard(groupId, date) });
+      const canceled = data.sesiones[0]?.estado === "cancelada";
+      return api.sendMessage(chatId, groupText(data.grupo, data.alumnos, data.sesiones[0]),
+        canceled ? undefined : { inline_keyboard: groupKeyboard(groupId, date) });
     }
     if (action === "attendance") {
       await api.answerCallback(callback.id);
@@ -260,13 +278,22 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
       return api.editMessage(chatId, messageId || draft.messageId, draftMessage(draft), draftKeyboard(draft));
     }
     if (action === "save") {
-      const result = await saveControlSession({
-        user: actor(professor), groupId, fecha: date,
-        payload: {
-          estado: "dada", profesor_id: professor.id,
-          asistencias: draft.students.map((student) => ({ alumno_id: student.id, estado: draft.states[student.id] })),
-        },
-      });
+      let result;
+      try {
+        result = await saveControlSession({
+          user: actor(professor), groupId, fecha: date,
+          payload: {
+            estado: "dada", profesor_id: professor.id,
+            asistencias: draft.students.map((student) => ({ alumno_id: student.id, estado: draft.states[student.id] })),
+          },
+        });
+      } catch (error) {
+        // La clase se canceló mientras se pasaba lista: se avisa en vez de dejar el botón sin respuesta.
+        if (error.status !== 400) throw error;
+        drafts.delete(key);
+        await api.answerCallback(callback.id, "No se ha guardado");
+        return api.editMessage(chatId, messageId || draft.messageId, `⚠️ ${error.message}`);
+      }
       drafts.delete(key);
       const counts = result.asistencias.reduce((acc, item) => ({ ...acc, [item.estado]: (acc[item.estado] || 0) + 1 }), {});
       await api.answerCallback(callback.id, "Asistencia guardada");

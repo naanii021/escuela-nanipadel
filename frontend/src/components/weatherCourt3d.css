@@ -193,7 +193,7 @@
 /* Losa de la pista: apoya el conjunto sobre el cielo. */
 .weatherCourt3dGround {
   position: absolute;
-  inset: -34px;
+  inset: calc(var(--losa-margen, 34px) * -1);
   border-radius: 6px;
   background: #3a4657;
   transform: translateZ(-2px);

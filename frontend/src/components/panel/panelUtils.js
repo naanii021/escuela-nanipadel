@@ -234,6 +234,22 @@ export function claseMasProxima(grupos, { profesorId = null, ahora = new Date(),
   return [...candidatos].sort((a, b) => distancia(a) - distancia(b) || hecha(a) - hecha(b) || minutosDe(a.hora_inicio) - minutosDe(b.hora_inicio))[0];
 }
 
+// ---------- Clase cancelada ----------
+// El backend guarda el motivo en observaciones como CANCELADA|motivo|texto (ver gestionControl.js).
+export const MOTIVOS_CANCELACION = [
+  { key: "lluvia", label: "Lluvia", corto: "Lluvia" },
+  { key: "profesor", label: "No puedo dar la clase", corto: "Sin profesor" },
+  { key: "pista", label: "Pista no disponible", corto: "Pista no disponible" },
+  { key: "otro", label: "Otro motivo", corto: "Otro motivo" },
+];
+
+// Texto corto para la insignia: "Lluvia", o el texto libre si el motivo es "otro".
+export function motivoCorto(cancelacion) {
+  if (!cancelacion) return "";
+  const motivo = MOTIVOS_CANCELACION.find((item) => item.key === cancelacion.motivo) || MOTIVOS_CANCELACION[3];
+  return motivo.key === "otro" && cancelacion.texto ? cancelacion.texto : motivo.corto;
+}
+
 // ---------- Cupo ----------
 export function estadoCupo(grupo) {
   const cupo = Number(grupo?.cupo || 0);

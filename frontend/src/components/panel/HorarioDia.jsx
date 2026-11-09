@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { DIAS_SEMANA, diaHoy, diasDelGrupo, formatFecha, formatHorario, grupoActivo, minutosDe, nivelClass, nivelLabel, nombreCompleto, nombreGrupo, nombrePista, plural, ultimaFechaDelDia } from "./panelUtils";
+import { useEffect, useMemo, useState } from "react";
+import { apiGet } from "../../services/api";
+import { DIAS_SEMANA, diaHoy, diasDelGrupo, formatFecha, formatHorario, grupoActivo, minutosDe, motivoCorto, nivelClass, nivelLabel, nombreCompleto, nombreGrupo, nombrePista, plural, ultimaFechaDelDia } from "./panelUtils";
 
 const DIAS_CON_CLASE = DIAS_SEMANA.filter((item) => item.key !== "D");
 
@@ -11,7 +12,7 @@ function alumnosDelDia(grupo, dia) {
 }
 
 // Horario por días: se abre en el día de hoy y enseña las clases ordenadas por hora.
-export default function HorarioDia({ grupos, onPasarLista, onVerGrupo }) {
+export default function HorarioDia({ grupos, refresco = 0, onPasarLista, onVerGrupo }) {
   const hoy = diaHoy();
   const [dia, setDia] = useState(DIAS_CON_CLASE.some((item) => item.key === hoy) ? hoy : "L");
 
@@ -24,8 +25,23 @@ export default function HorarioDia({ grupos, onPasarLista, onVerGrupo }) {
     return mapa;
   }, [grupos]);
 
-  const clases = porDia[dia] || [];
+  const clases = porDia[dia];
   const fechaLista = ultimaFechaDelDia(dia);
+
+  // Clases canceladas de ese día (id del grupo -> motivo corto). Una lectura por clase del día elegido.
+  const [canceladas, setCanceladas] = useState({});
+  useEffect(() => {
+    if (!clases.length) { setCanceladas((previo) => (Object.keys(previo).length ? {} : previo)); return undefined; }
+    let cancelado = false;
+    Promise.allSettled(clases.map((grupo) => apiGet(`/api/gestion/control/grupos/${grupo.id}/sesiones?fecha=${fechaLista}`)))
+      .then((resultados) => {
+        if (cancelado) return;
+        setCanceladas(Object.fromEntries(resultados
+          .map((resultado, index) => [clases[index].id, resultado.status === "fulfilled" && resultado.value.sesiones?.[0]?.estado === "cancelada" ? motivoCorto(resultado.value.sesiones[0].cancelacion) : ""])
+          .filter(([, motivo]) => motivo)));
+      });
+    return () => { cancelado = true; };
+  }, [clases, fechaLista, refresco]);
 
   return (
     <section className="ppSection" aria-labelledby="pp-horario-title">
@@ -60,6 +76,7 @@ export default function HorarioDia({ grupos, onPasarLista, onVerGrupo }) {
                 <div className="ppScheduleTime">{formatHorario(grupo.hora_inicio, grupo.duracion_min)}</div>
                 <div className="ppScheduleBody">
                   <strong>{nombreGrupo(grupo)}</strong>
+                  {canceladas[grupo.id] && <span className="ppBadgeCancel">Cancelada · {canceladas[grupo.id]}</span>}
                   <span className="ppMetaLine">
                     {grupo.nivel && <span className={nivelClass(grupo.nivel)}>{nivelLabel(grupo.nivel)}</span>}
                     <span>{nombrePista(grupo.pista_habitual)}</span>
@@ -71,7 +88,7 @@ export default function HorarioDia({ grupos, onPasarLista, onVerGrupo }) {
                 </div>
                 <div className="ppScheduleActions">
                   <button type="button" className="ppBtn ppBtnPrimary" onClick={() => onPasarLista(grupo, fechaLista)}>
-                    Pasar lista{dia === hoy ? "" : ` del ${formatFecha(fechaLista)}`}
+                    {canceladas[grupo.id] ? "Ver la clase" : "Pasar lista"}{dia === hoy ? "" : ` del ${formatFecha(fechaLista)}`}
                   </button>
                   <button type="button" className="ppBtn" onClick={() => onVerGrupo(grupo)}>Ver grupo</button>
                 </div>

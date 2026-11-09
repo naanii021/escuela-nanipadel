@@ -621,7 +621,7 @@ function StudentClassesDashboard({ classData, user, loading }) {
             <article className="studentMiniRow" key={sesion.id}>
               <strong>{fechaClase(sesion.fecha)}</strong>
               <span>De {horaClase(sesion.hora_inicio, sesion.duracion_min || grupo?.duracion_min || 60)} · {sesion.pista_habitual || grupo?.pista_habitual || "Pista por confirmar"}</span>
-              {sesion.estado && sesion.estado !== "programada" && <em className={`estadoInsignia estado-${sesion.estado}`}>{estadoTexto(sesion.estado)}</em>}
+              {sesion.estado && sesion.estado !== "programada" && <em className={`estadoInsignia estado-${sesion.estado}`}>{estadoTexto(sesion.estado)}{sesion.estado === "cancelada" && sesion.cancelacion?.etiqueta ? ` · ${sesion.cancelacion.etiqueta}` : ""}</em>}
             </article>
           )) : <p className="softEmpty">Todavía no hay próximas clases registradas.</p>}
         </div>
