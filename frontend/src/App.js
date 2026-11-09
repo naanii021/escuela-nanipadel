@@ -1,5 +1,6 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { TIENDA_VISIBLE } from "./config/club";
 import Layout from "./components/Layout"; // Importamos el Layout
 
 import Home from "./pages/Home";
@@ -29,7 +30,7 @@ function App() {
         <Route path="/reservas" element={<Reservas />} />
         <Route path="/clases" element={<Clases />} />
         <Route path="/torneos" element={<Torneos />} />
-        <Route path="/tienda" element={<Tienda />} />
+        <Route path="/tienda" element={TIENDA_VISIBLE ? <Tienda /> : <Navigate to="/" replace />} />
         <Route path="/galeria" element={<Galeria />} />
         <Route path="/estado-pista" element={<EstadoPista />} />
         <Route path="/avisos" element={<Avisos />} />

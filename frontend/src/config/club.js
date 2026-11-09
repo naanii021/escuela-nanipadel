@@ -3,6 +3,10 @@
 // la web muestra "Próximamente" o lo oculta; nunca sale un enlace roto.
 // El teléfono y el WhatsApp están en services/whatsappLinks.js (variables REACT_APP_CLUB_*).
 
+// Interruptor de la tienda: mientras sea false no hay enlace en el menú y /tienda redirige a la portada.
+// Pon true cuando haya material real (la página pages/Tienda.jsx sigue intacta).
+export const TIENDA_VISIBLE = false;
+
 const CLUB = {
   nombre: "Escuela NaniPadel",
 

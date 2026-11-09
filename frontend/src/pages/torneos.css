@@ -749,7 +749,7 @@
 
 .pairCard em {
   color: #166534;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-style: normal;
   font-weight: 900;
 }
@@ -927,7 +927,7 @@
   display: block;
   margin-bottom: 0.18rem;
   color: #64748b;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 850;
 }
 
@@ -1482,7 +1482,7 @@
   background: #f1f5f9;
   border: 1px solid rgba(15, 23, 42, 0.08);
   color: #475569;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 600;
 }
 
@@ -2428,4 +2428,57 @@
   .torneosMetrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* Estado vacío: sin torneos publicados */
+.torneosEmpty {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  padding: 2.2rem 1.2rem;
+  text-align: center;
+}
+
+.torneosEmpty strong {
+  color: #0f172a;
+  font-size: 1.1rem;
+}
+
+.torneosEmpty p {
+  margin: 0;
+  max-width: 38ch;
+}
+
+.torneosEmptyAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 0.9rem;
+  padding: 0.65rem 1.2rem;
+  border-radius: 999px;
+  background: #15803d;
+  color: #ffffff;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.torneosEmptyAction:hover {
+  background: #166534;
+}
+
+/* Panel de administración: botones táctiles y contraste */
+.torneosAdminTabs button {
+  min-height: 44px;
+  color: #475569;
+}
+
+.adminCreateBtn {
+  min-height: 44px;
+  background: linear-gradient(135deg, #14532d, #15803d);
+}
+
+.torneosAdminSummary span {
+  color: #15803d;
+  font-size: 0.82rem;
 }
