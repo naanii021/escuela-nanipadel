@@ -1,0 +1,399 @@
+/* Formulario "Encuentra tu grupo": una columna, botones grandes y campos de 16 px. */
+.egForm {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 46rem;
+}
+
+.egPregunta {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: #f8faf8;
+  min-width: 0;
+}
+
+.egPregunta:focus {
+  outline: none;
+}
+
+.egPregunta legend {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0 0.35rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--color-text);
+}
+
+.egNumero {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.egAyuda,
+.egSubtitulo small {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.egSubtitulo {
+  margin: 0.4rem 0 0;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--color-text);
+}
+
+.egSubtitulo small {
+  display: block;
+  font-weight: 500;
+}
+
+/* ---------- Opciones de selección rápida ---------- */
+.egOpciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.egOpciones.isColumna {
+  flex-direction: column;
+}
+
+.egOpcion {
+  position: relative;
+  display: block;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.egOpciones.isColumna .egOpcion {
+  width: 100%;
+}
+
+.egOpcion input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.egOpcion span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0.6rem 1.1rem;
+  border: 2px solid #b9c9be;
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  transition: transform 120ms var(--ease-out), background-color 120ms ease, border-color 120ms ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.egOpciones.isColumna .egOpcion span {
+  justify-content: flex-start;
+}
+
+.egOpcion.isCorto span {
+  min-width: 56px;
+  padding-inline: 0.5rem;
+}
+
+.egOpcion input:checked + span {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.egOpcion input:checked + span::before {
+  content: "";
+  flex-shrink: 0;
+  width: 0.4em;
+  height: 0.75em;
+  margin-right: 0.55em;
+  border: solid currentColor;
+  border-width: 0 2.5px 2.5px 0;
+  transform: translateY(-0.08em) rotate(45deg);
+}
+
+.egOpcion.isCorto input:checked + span::before {
+  display: none;
+}
+
+.egOpcion input:focus-visible + span {
+  outline: 3px solid var(--color-secondary-dark);
+  outline-offset: 2px;
+}
+
+.egOpcion:active span {
+  transform: scale(0.97);
+}
+
+/* ---------- Campos de texto ---------- */
+.egCampo {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.egCampo > label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.egCampo > label small {
+  font-weight: 500;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+}
+
+.egInput {
+  width: 100%;
+  min-height: 52px;
+  padding: 0.7rem 0.9rem;
+  border: 2px solid #b9c9be;
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.3;
+  box-sizing: border-box;
+}
+
+.egInput:focus-visible {
+  outline: 3px solid var(--color-secondary-dark);
+  outline-offset: 1px;
+  border-color: var(--color-primary);
+}
+
+.egInput[aria-invalid="true"] {
+  border-color: #b42318;
+}
+
+.egEdad {
+  max-width: 9rem;
+}
+
+.egTexto {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.egError {
+  margin: 0;
+  color: #b42318;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.egResumen {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid #f1b8b2;
+  border-radius: 12px;
+  background: #fef3f2;
+  color: #912018;
+  font-weight: 700;
+}
+
+/* Trampa anti-bots: fuera de pantalla, nunca display:none (algunos bots lo detectan). */
+.egTrampa {
+  position: absolute;
+  left: -9999px;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.egTrampa input {
+  width: 0;
+  height: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* ---------- Avisos ---------- */
+.egAviso {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #b9c9be;
+  border-radius: 14px;
+  background: var(--color-secondary-light);
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+.egAviso.isError {
+  border-color: #f1b8b2;
+  background: #fef3f2;
+  color: #7a271a;
+}
+
+.egAviso:focus {
+  outline: none;
+}
+
+/* ---------- Botones ---------- */
+.egAcciones {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.egBoton {
+  min-height: 56px;
+  font-size: 1.05rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.egBoton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.2rem;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 800;
+  transition: transform 120ms var(--ease-out), background-color 120ms ease, opacity 120ms ease;
+}
+
+.egEnviar {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.egSecundario {
+  border-color: #b9c9be;
+  background: #ffffff;
+  color: var(--color-text);
+}
+
+button.egBoton:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+
+button.egBoton:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.egBoton.isPrincipal {
+  min-height: 60px;
+  box-shadow: var(--shadow-2);
+}
+
+.egPie {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 1rem;
+}
+
+.egPie a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-text);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* ---------- Éxito ---------- */
+.egExito {
+  display: grid;
+  gap: 0.8rem;
+  max-width: 46rem;
+  padding: 1.25rem;
+  border: 2px solid var(--color-secondary-dark);
+  border-radius: 16px;
+  background: var(--color-secondary-light);
+  color: var(--color-text);
+}
+
+.egExito:focus {
+  outline: none;
+}
+
+.egExito h3 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.egExito p {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .egOpcion:hover span {
+    border-color: var(--color-primary);
+  }
+
+  .egEnviar:not(:disabled):hover {
+    background: var(--color-primary-soft);
+  }
+}
+
+@media (min-width: 640px) {
+  .egAcciones {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .egAcciones:has(> :only-child) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .egOpciones.isColumna {
+    flex-direction: row;
+  }
+
+  .egOpciones.isColumna .egOpcion {
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .egOpcion span,
+  button.egBoton {
+    transition: none;
+  }
+
+  .egOpcion:active span,
+  button.egBoton:not(:disabled):active {
+    transform: none;
+  }
+}
