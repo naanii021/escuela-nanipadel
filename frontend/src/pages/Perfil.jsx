@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { apiGet, apiPut } from "../services/api";
 import { getToken, logout, updateStoredUser } from "../services/auth";
 import MisReservas from "../components/MisReservas";
+import CambiarPassword from "../components/CambiarPassword";
 import "./perfil.css";
 
 const GAME_LEVELS = [
@@ -425,6 +426,8 @@ export default function Perfil() {
           </div>
         </form>
       )}
+
+      <CambiarPassword />
 
       <section className="profileSession">
         <div>
