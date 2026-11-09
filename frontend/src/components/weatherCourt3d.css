@@ -568,6 +568,27 @@
 .weatherCourt3d.isRaining .weatherCourtPlayer,
 .weatherCourt3d.isRaining .weatherCourtPlayerShade,
 .weatherCourt3d.isRaining .weatherCourtBall,
-.weatherCourt3d.isRaining .weatherCourtBallShadow {
-  opacity: 0;
+.weatherCourt3d.isRaining .weatherCourtBallShadow,
+.weatherCourt3d.isWet .weatherCourtPlayer,
+.weatherCourt3d.isWet .weatherCourtPlayerShade,
+.weatherCourt3d.isWet .weatherCourtBall,
+.weatherCourt3d.isWet .weatherCourtBallShadow {
+  /* !important: la animación les pone la opacidad directamente en el elemento. */
+  opacity: 0 !important;
+}
+
+/* Pista mojada con el cielo despejado: brillo de agua, un poco más oscura y sin clase. */
+.weatherCourt3d.isWet .weatherCourtWet {
+  opacity: 1;
+  animation: weatherCourtSheen 6s linear infinite;
+}
+
+.weatherCourt3d.isWet .weatherCourt3dTurf {
+  filter: saturate(1.15) brightness(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weatherCourt3d.isWet .weatherCourtWet {
+    animation: none;
+  }
 }

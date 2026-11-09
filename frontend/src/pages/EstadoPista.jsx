@@ -110,6 +110,14 @@ function EstadoPista() {
           : "-",
     },
     { label: "Estado pista", value: weather?.pista || "-" },
+    {
+      label: "Agua en la pista",
+      value: weather?.playability
+        ? weather.playability.aguaMm > 1
+          ? `${String(weather.playability.aguaMm).replace(".", ",")} mm`
+          : "Seca"
+        : "-",
+    },
   ];
 
   const sensorConnected = sensor && isRecentReading(sensor.creado_en);
@@ -131,7 +139,7 @@ function EstadoPista() {
           <h1>{verdict}</h1>
           <p>
             {weather?.playability?.reason
-              ? `${weather.playability.reason}. Lluvia ${weather.precipitationProbability ?? "-"} %, viento ${Math.round(weather.windSpeed ?? 0)} km/h.`
+              ? `${weather.playability.reason.replace(/\.$/, "")}. Lluvia ${weather.precipitationProbability ?? "-"} %, viento ${Math.round(weather.windSpeed ?? 0)} km/h.`
               : "Mira la lluvia, el viento y la recomendación antes de reservar o salir hacia el club."}
           </p>
           <div className="estadoHeroActions">

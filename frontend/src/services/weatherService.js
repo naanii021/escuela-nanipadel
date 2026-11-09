@@ -1,11 +1,17 @@
 // Servicio del tiempo usando Open-Meteo
+import { evaluarPista } from "./estadoPista";
+
+// Horas pasadas y futuras que se piden para saber cuánta agua hay en la pista y cuándo se seca.
+const HORAS_PASADAS = 96;
+const HORAS_FUTURAS = 48;
+
 export async function getWeatherForClub(lat, lon) {
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,wind_speed_10m,surface_pressure,pressure_msl,weather_code,is_day,uv_index` +
-    `&hourly=temperature_2m,precipitation_probability,wind_speed_10m,weather_code,is_day` +
+    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,precipitation_probability,wind_speed_10m,surface_pressure,pressure_msl,weather_code,is_day,uv_index` +
+    `&hourly=temperature_2m,precipitation,precipitation_probability,wind_speed_10m,weather_code,is_day` +
     `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max` +
-    `&forecast_days=7&forecast_hours=12&wind_speed_unit=kmh&timezone=auto`;
+    `&forecast_days=7&past_hours=${HORAS_PASADAS}&forecast_hours=${HORAS_FUTURAS}&wind_speed_unit=kmh&timezone=auto`;
 
   const res = await fetch(url, { method: "GET" });
   const json = await res.json();
@@ -28,9 +34,32 @@ export async function getWeatherForClub(lat, lon) {
   const uvIndex = current.uv_index;
 
   const mapped = mapWeatherCodeToText(weatherCode);
+  const precipitationMm = Number(current.precipitation) || 0;
+
+  // Horas pasadas y futuras, para saber cuánta agua hay en la pista y cuándo se seca.
+  const hours = json.hourly || {};
+  const todas = (hours.time || []).map((time, i) => ({
+    time,
+    temperature: hours.temperature_2m?.[i],
+    precipitationMm: Number(hours.precipitation?.[i]) || 0,
+    precipitationProbability: hours.precipitation_probability?.[i],
+    windSpeed: hours.wind_speed_10m?.[i],
+    weatherCode: hours.weather_code?.[i],
+    isDay: hours.is_day?.[i],
+  }));
+  const horaActual = String(current.time || "").slice(0, 13);
+  let indiceAhora = todas.findIndex((hora) => hora.time.slice(0, 13) === horaActual);
+  if (indiceAhora < 0) indiceAhora = Math.min(HORAS_PASADAS, Math.max(0, todas.length - 1));
+  // La hora en curso usa lo que mide la estación ahora mismo, no la media de la hora.
+  if (todas[indiceAhora]) {
+    todas[indiceAhora] = { ...todas[indiceAhora], precipitationMm: Math.max(todas[indiceAhora].precipitationMm, precipitationMm) };
+  }
 
   // Estado de pista
-  const playability = getPlayability({ weatherCode, precipitationProbability, windSpeed });
+  const pista = todas.length
+    ? evaluarPista(todas, indiceAhora)
+    : getPlayability({ weatherCode, precipitationProbability, windSpeed });
+  const { horas: horasSimuladas, ...playability } = pista.horas ? pista : { horas: [], ...pista };
   const pistaRiesgo = !playability.playable;
 
   // Recomendación de juego
@@ -41,6 +70,7 @@ export async function getWeatherForClub(lat, lon) {
     humidity,
     weatherCode,
     uvIndex,
+    playability,
   });
 
   // Previsión semanal
@@ -61,22 +91,8 @@ export async function getWeatherForClub(lat, lon) {
     }
   }
 
-  // Próximas horas (la API devuelve desde la hora actual)
-  const hourly = [];
-  const hours = json.hourly || {};
-  if (hours.time) {
-    for (let i = 0; i < hours.time.length; i++) {
-      const hour = {
-        time: hours.time[i],
-        temperature: hours.temperature_2m[i],
-        precipitationProbability: hours.precipitation_probability[i],
-        windSpeed: hours.wind_speed_10m[i],
-        weatherCode: hours.weather_code[i],
-        isDay: hours.is_day[i],
-      };
-      hourly.push({ ...hour, playable: getPlayability(hour).playable });
-    }
-  }
+  // Próximas horas desde la actual, cada una con su estado de pista (lluvia, mojada, viento…)
+  const hourly = horasSimuladas.slice(indiceAhora, indiceAhora + 12);
 
   return {
     ok: true,
@@ -86,6 +102,7 @@ export async function getWeatherForClub(lat, lon) {
     apparentTemperature,
     humidity,
     precipitationProbability,
+    precipitationMm,
     windSpeed,
     pressure,
     weatherCode,
@@ -103,24 +120,38 @@ export async function getWeatherForClub(lat, lon) {
 
 const RAIN_CODES = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99];
 
-// ¿Llueve (o es muy probable)? Lo comparten el veredicto y la pista 3D.
-export function isRainy({ weatherCode, precipitationProbability }) {
-  return RAIN_CODES.includes(Number(weatherCode)) || Number(precipitationProbability || 0) >= 50;
+// ¿Está lloviendo ahora mismo? Lo usa la pista 3D para dibujar la lluvia. Que pueda llover más tarde
+// o que haya quedado agua no cuenta aquí: eso lo dice `playability`.
+export function isRainy({ weatherCode, precipitationMm }) {
+  return RAIN_CODES.includes(Number(weatherCode)) || Number(precipitationMm || 0) >= 0.3;
 }
 
-// Veredicto simple para el alumno: ¿se puede jugar ahora?
+// Veredicto sin datos de lluvia por horas (solo si la fuente no los trae).
 export function getPlayability({ weatherCode, precipitationProbability, windSpeed }) {
-  if (isRainy({ weatherCode, precipitationProbability })) {
-    return { playable: false, reason: "Lluvia: la pista estará mojada" };
+  if (RAIN_CODES.includes(Number(weatherCode)) || Number(precipitationProbability || 0) >= 50) {
+    return { playable: false, estado: "lloviendo", reason: "Lluvia: la pista estará mojada", lloviendo: true, mojada: false };
   }
   if (Number(windSpeed) >= 30) {
-    return { playable: false, reason: "Viento fuerte" };
+    return { playable: false, estado: "viento", reason: "Viento fuerte", lloviendo: false, mojada: false };
   }
-  return { playable: true, reason: "Pista seca y sin viento fuerte" };
+  return { playable: true, estado: "seca", reason: "Pista seca y sin viento fuerte", lloviendo: false, mojada: false };
 }
 
 // Recomendación de juego basada en condiciones
-function getRecomendacion({ temperature, precipitationProbability, windSpeed, humidity, weatherCode, uvIndex }) {
+function getRecomendacion({ temperature, precipitationProbability, windSpeed, humidity, weatherCode, uvIndex, playability }) {
+  // El agua en la pista manda sobre todo lo demás: aunque salga el sol, no se juega hasta que se seque.
+  if (playability?.estado === "encharcada" || playability?.estado === "mojada") {
+    return {
+      nivel: "malo",
+      titulo: playability.estado === "encharcada" ? "Pista encharcada" : "Pista mojada",
+      mensaje: playability.reason,
+      icono: "💧",
+    };
+  }
+  if (playability?.estado === "lloviendo") {
+    return { nivel: "malo", titulo: "No recomendado", mensaje: "Está lloviendo. Espera a que pare y a que la pista se seque.", icono: "🌧️" };
+  }
+
   // Tormenta
   if ([95, 96, 99].includes(weatherCode)) {
     return {
