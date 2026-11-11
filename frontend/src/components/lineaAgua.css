@@ -1,0 +1,78 @@
+.lineaAgua {
+  --la-ok: hsl(145 60% 40%);
+  --la-ok-oscuro: hsl(145 63% 24%);
+  --la-ok-fondo: hsl(145 55% 90%);
+  --la-no: hsl(6 78% 52%);
+  --la-agua: hsl(205 85% 50%);
+  --la-agua-oscuro: hsl(210 80% 32%);
+  --la-eje: hsl(215 14% 52%);
+  --la-tinta: hsl(222 30% 16%);
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.lineaAguaLectura {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.9rem;
+  align-items: baseline;
+  min-height: 2.6rem;
+  color: var(--la-tinta);
+  font-size: 0.95rem;
+}
+
+.lineaAguaPista { color: hsl(215 16% 36%); }
+.lineaAguaLectura .esOk { color: var(--la-ok-oscuro); font-weight: 800; }
+.lineaAguaLectura .esNo { color: hsl(6 70% 38%); font-weight: 800; }
+
+.lineaAguaSvg {
+  display: block;
+  max-width: 100%;
+  touch-action: pan-y;
+  cursor: crosshair;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.lineaAguaTxt {
+  fill: hsl(215 16% 34%);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.lineaAguaFuerte { fill: var(--la-tinta); font-weight: 800; }
+.lineaAguaSeca { fill: var(--la-ok-oscuro); }
+.lineaAguaHalo { paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
+
+.lineaAguaCortina {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: lineaAguaRevela 900ms cubic-bezier(0.22, 1, 0.36, 1) 250ms backwards;
+}
+
+@keyframes lineaAguaRevela {
+  from { transform: scaleX(0); }
+}
+
+.lineaAguaLeyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: hsl(215 16% 30%);
+  font-size: 0.85rem;
+}
+
+.lineaAguaLeyenda li { display: inline-flex; align-items: center; gap: 0.4rem; }
+.lineaAguaLeyenda i { width: 14px; height: 10px; border-radius: 3px; }
+.lineaAguaLeyenda .esOk { background: var(--la-ok); }
+.lineaAguaLeyenda .esNo { background: repeating-linear-gradient(45deg, var(--la-no) 0 2px, #fde8e6 2px 5px); border: 1px solid var(--la-no); }
+.lineaAguaLeyenda .esAgua { background: var(--la-agua-oscuro); height: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lineaAguaCortina { animation: none; }
+}
