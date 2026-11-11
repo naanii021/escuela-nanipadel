@@ -1,627 +1,478 @@
+/* Tiempo y pista: primero el veredicto, luego cuánto falta, luego los datos. */
+
 .estadoPistaPage {
+  --ok: hsl(145 60% 40%);
+  --ok-tinta: hsl(145 63% 22%);
+  --no: hsl(6 78% 52%);
+  --no-tinta: hsl(6 70% 34%);
+  --ep-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ep-sub: hsl(215 16% 32%);
   display: grid;
-  gap: 1.6rem;
+  gap: 1.1rem;
+  max-width: 900px;
+  margin-inline: auto;
   padding: 1.1rem 0 2.8rem;
 }
 
-.estadoHero {
+@keyframes epEntra {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.estadoPistaPage > * {
+  min-width: 0;
+  animation: epEntra 480ms var(--ep-ease) backwards;
+}
+.estadoPistaPage > :nth-child(2) { animation-delay: 70ms; }
+.estadoPistaPage > :nth-child(3) { animation-delay: 140ms; }
+.estadoPistaPage > :nth-child(4) { animation-delay: 200ms; }
+.estadoPistaPage > :nth-child(n + 5) { animation-delay: 240ms; }
+
+/* ---------- Veredicto ---------- */
+
+.epVeredicto {
   display: grid;
-  grid-template-columns: minmax(0, 1.02fr) minmax(320px, 0.98fr);
-  gap: 1rem;
-  align-items: stretch;
+  gap: 0.7rem;
+  justify-items: start;
+  padding: 1.5rem;
+  border: 1px solid hsl(215 20% 85%);
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
 }
 
-.estadoHeroMain,
-.estadoNowCard,
-.estadoSensorCard,
-.estadoPanel,
-.estadoForecastCard,
-.estadoModuleCard,
-.estadoPhotoCard,
-.estadoPhotoPlaceholder {
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+.epVeredicto.isOk {
+  border-color: hsl(145 45% 72%);
+  background: linear-gradient(160deg, hsl(145 55% 95%), hsl(145 50% 90%));
+  color: var(--ok-tinta);
 }
 
-.estadoHeroMain {
-  padding: 2rem;
-  border-radius: 30px;
-  color: #ffffff;
-  background:
-    radial-gradient(circle at top right, rgba(74, 222, 128, 0.18), transparent 34%),
-    linear-gradient(138deg, #061911 0%, #0a2e18 52%, #0d3b20 100%);
+.epVeredicto.isNo {
+  border-color: hsl(6 70% 82%);
+  background: linear-gradient(160deg, hsl(6 80% 97%), hsl(6 75% 93%));
+  color: var(--no-tinta);
 }
 
-.estadoEyebrow,
-.estadoSectionEyebrow,
-.estadoNowLabel {
-  display: inline-flex;
-  margin-bottom: 0.45rem;
-  font-size: 0.76rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
+.epEyebrow,
+.epSeccion {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.estadoEyebrow,
-.estadoNowLabel {
-  color: #86efac;
-}
+.epEyebrow { color: var(--ep-sub); }
+.epVeredicto.isOk .epEyebrow { color: var(--ok-tinta); }
+.epVeredicto.isNo .epEyebrow { color: var(--no-tinta); }
+.epSeccion { color: var(--ep-sub); }
 
-.estadoHeroMain h1 {
-  margin: 0 0 0.8rem;
-  max-width: 12ch;
-  font-size: clamp(2rem, 4vw, 3.5rem);
-  line-height: 0.98;
-  letter-spacing: -0.05em;
-}
-
-.estadoHeroMain p {
+.epTitulo {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
   margin: 0;
-  max-width: 56ch;
-  color: rgba(255, 255, 255, 0.76);
-  line-height: 1.65;
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 8vw, 4.4rem);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  text-transform: none;
+  color: inherit;
 }
 
-.estadoHeroActions {
+.epIcono {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 0.8em;
+  height: 0.8em;
+  border-radius: 50%;
+  background: hsl(215 14% 60%);
+  animation: epPop 520ms var(--ep-ease) 200ms backwards;
+}
+
+.isOk .epIcono { background: var(--ok); }
+.isNo .epIcono { background: var(--no); }
+
+.epIcono svg {
+  width: 62%;
+  height: 62%;
+  fill: #fff;
+  stroke: #fff;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.epIcono path { fill: none; }
+
+@keyframes epPop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+.epMotivo {
+  margin: 0;
+  max-width: 60ch;
+  color: hsl(222 30% 16%);
+  font-size: 1.1rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.epConsejo {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.65);
+  color: hsl(222 30% 16%);
+  line-height: 1.45;
+}
+
+.epAcciones {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 1.2rem;
+  gap: 0.5rem 1.2rem;
+  align-items: center;
+  margin-top: 0.3rem;
 }
 
-.estadoGhostBtn {
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
+.epAcciones .btn {
+  min-height: 48px;
 }
 
-.estadoNowCard {
-  padding: 1.5rem;
-  border-radius: 28px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(244, 248, 245, 0.98));
+.epEnlace {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: hsl(222 30% 16%);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.estadoNowTop,
-.estadoPanelHead,
-.estadoSectionHead {
+/* ---------- Tarjetas ---------- */
+
+.epTarjeta {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  border: 1px solid hsl(215 20% 88%);
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+}
+
+.estadoPistaPage h2 {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: clamp(1.3rem, 4.5vw, 1.7rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-transform: none;
+  color: hsl(222 30% 16%);
+}
+
+.estadoPistaPage .epH2 {
+  font-size: 1.15rem;
+  margin-bottom: 0.2rem;
+}
+
+.epSub {
+  margin: 0 0 0.4rem;
+  color: var(--ep-sub);
+  line-height: 1.5;
+}
+
+/* ---------- Hora a hora ---------- */
+
+.epHorasLista {
   display: flex;
+  gap: 0.45rem;
+  margin: 0.4rem -1rem 0;
+  padding: 0.2rem 1rem 0.6rem;
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.epHorasLista::-webkit-scrollbar { display: none; }
+
+.epHorasLista li {
+  display: grid;
+  flex: 1 0 4.3rem;
+  justify-items: center;
+  gap: 0.15rem;
+  padding: 0.6rem 0.3rem 0.7rem;
+  border: 1px solid hsl(215 20% 86%);
+  border-top: 5px solid var(--ok);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  scroll-snap-align: start;
+}
+
+.epHorasLista li.isNo {
+  border-top-color: var(--no);
+  background: hsl(6 80% 97%);
+}
+
+.epHoraH {
+  color: hsl(222 30% 16%);
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.epHorasLista i {
+  font-style: normal;
+  font-size: 1.15rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+.epHorasLista .isOk i { color: var(--ok-tinta); }
+.epHorasLista .isNo i { color: var(--no-tinta); }
+
+.epHorasLista strong {
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: center;
+}
+.epHorasLista .isOk strong { color: var(--ok-tinta); }
+.epHorasLista .isNo strong { color: var(--no-tinta); }
+
+/* ---------- Ahora mismo y datos ---------- */
+
+.epAhoraCab {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.8rem;
-  align-items: flex-start;
-  flex-wrap: wrap;
 }
 
-.estadoNowTop h2,
-.estadoSectionHead h3,
-.estadoPanelHead h3 {
-  margin: 0;
-  color: var(--text);
-  font-size: clamp(1.35rem, 2.5vw, 1.9rem);
-  line-height: 1.08;
-  letter-spacing: -0.03em;
+.epEmoji { font-size: 2.6rem; line-height: 1; }
+
+.epDatos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-top: 0.4rem;
 }
 
-.estadoBadge {
-  padding: 0.4rem 0.8rem;
-  border-radius: 999px;
-  background: rgba(34, 197, 94, 0.12);
-  border: 1px solid rgba(34, 197, 94, 0.24);
-  color: #15803d;
-  font-size: 0.8rem;
-  font-weight: 900;
+.epDato {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid hsl(215 20% 90%);
+  border-radius: 14px;
+  background: hsl(210 30% 98%);
 }
 
-.estadoBadgeRisk {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.2);
-  color: #b91c1c;
-}
-
-.estadoLoading,
-.estadoError,
-.estadoEmpty {
-  margin: 1rem 0 0;
-  color: var(--muted);
-}
-
-.estadoNowMain {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  margin: 1.1rem 0 1rem;
-}
-
-.estadoNowIcon {
-  font-size: 3.6rem;
-}
-
-.estadoNowTemp {
-  margin: 0;
-  font-size: 2.45rem;
-  font-weight: 900;
-  line-height: 1;
-  color: var(--text);
-}
-
-.estadoNowDesc,
-.estadoNowFeel,
-.estadoPanelHead p {
-  margin: 0.28rem 0 0;
-  color: var(--muted);
-  line-height: 1.55;
-}
-
-.estadoHighlights {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.9rem;
-}
-
-.estadoChip {
-  padding: 0.4rem 0.72rem;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.05);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  color: #334155;
-  font-size: 0.8rem;
+.epDato span {
+  color: var(--ep-sub);
+  font-size: 0.85rem;
   font-weight: 700;
 }
 
-.estadoAdvice {
-  padding: 1rem 1.05rem;
-  border-radius: 18px;
-  margin-bottom: 0.95rem;
+.epDato strong {
+  color: hsl(222 30% 16%);
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
-.estadoAdvice strong {
-  display: block;
-  margin-bottom: 0.3rem;
+.epDato small {
+  color: var(--ep-sub);
+  font-size: 0.85rem;
 }
 
-.estadoAdvice p,
-.estadoUpdated {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.55;
+.epActualizado {
+  margin: 0.3rem 0 0;
+  color: var(--ep-sub);
+  font-size: 0.85rem;
 }
 
-.estadoPanel,
-.estadoSensorCard,
-.estadoForecastCard,
-.estadoModuleCard,
-.estadoPhotoPlaceholder {
-  padding: 1.45rem;
-  border-radius: 26px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 250, 252, 0.98));
-}
-
-.estadoSensorCard {
-  display: grid;
-  gap: 1rem;
-}
-
-.estadoSensorHead,
-.estadoSensorFooter {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.9rem;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
-
-.estadoSensorHead h2 {
-  margin: 0;
-  color: var(--text);
-  font-size: clamp(1.35rem, 2.5vw, 1.9rem);
-  line-height: 1.08;
-}
-
-.estadoSensorBadge {
-  padding: 0.42rem 0.82rem;
+.epPildora {
+  flex: none;
+  padding: 0.35rem 0.75rem;
   border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.1);
-  font-size: 0.8rem;
-  font-weight: 950;
-}
-
-.estadoSensorBadge.isConnected {
-  background: #ecfdf5;
-  border-color: rgba(22, 163, 74, 0.22);
-  color: #166534;
-}
-
-.estadoSensorBadge.isOffline {
-  background: #fef2f2;
-  border-color: rgba(239, 68, 68, 0.18);
-  color: #b91c1c;
-}
-
-.estadoSensorGrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.85rem;
-}
-
-.estadoSensorFooter {
-  padding: 0.9rem;
-  border-radius: 18px;
-  background: #f8fafc;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-}
-
-.estadoSensorFooter div {
-  display: grid;
-  gap: 0.22rem;
-}
-
-.estadoSensorFooter span {
-  color: #64748b;
-  font-size: 0.76rem;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.estadoSensorFooter strong {
-  color: #0f172a;
-  font-size: 0.95rem;
-}
-
-.estadoMetricsGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.85rem;
-  margin-top: 1.1rem;
-}
-
-.estadoMetricCard {
-  padding: 1rem;
-  border-radius: 18px;
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-}
-
-.estadoMetricCard span {
-  display: block;
-  margin-bottom: 0.25rem;
-  color: #64748b;
-  font-size: 0.76rem;
+  background: hsl(145 55% 92%);
+  color: var(--ok-tinta);
+  font-size: 0.85rem;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
-.estadoMetricCard strong {
-  display: block;
-  color: var(--text);
-  font-size: 1.05rem;
-  font-weight: 900;
+.epAviso {
+  margin: 0.2rem 0 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  background: hsl(40 90% 93%);
+  color: hsl(30 80% 20%);
+  line-height: 1.45;
 }
 
-.estadoDetailLayout {
+/* ---------- 7 días ---------- */
+
+.epDias {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
-  gap: 1rem;
+  gap: 0.45rem;
+  margin: 0.3rem 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.estadoForecastList,
-.estadoModuleList {
-  margin-top: 1rem;
-}
-
-.estadoForecastList {
+.epDia {
   display: grid;
-  gap: 0.65rem;
-}
-
-.estadoForecastRow {
-  display: grid;
-  grid-template-columns: 78px 36px minmax(0, 1fr) auto;
-  gap: 0.7rem;
+  grid-template-columns: 5.6rem 2rem minmax(0, 1fr) auto;
+  grid-template-areas:
+    "nombre icono texto temp"
+    "nombre icono lluvia temp";
   align-items: center;
-  padding: 0.85rem 0.9rem;
+  column-gap: 0.7rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid hsl(215 20% 88%);
   border-radius: 16px;
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
 }
 
-.estadoForecastDay,
-.estadoForecastTemp {
-  font-weight: 800;
-  color: var(--text);
-}
-
-.estadoForecastIcon {
-  font-size: 1.3rem;
-  text-align: center;
-}
-
-.estadoForecastText {
-  color: var(--muted);
-}
-
-.estadoModuleList {
-  padding-left: 1.1rem;
-  color: var(--muted);
-}
-
-.estadoModuleList li + li {
-  margin-top: 0.6rem;
-}
-
-.estadoPhotosGrid {
+.epDiaNombre {
+  grid-area: nombre;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.9rem;
+  color: hsl(222 30% 16%);
+  font-weight: 800;
+  text-transform: capitalize;
+}
+.epDiaNombre small {
+  color: var(--ep-sub);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: none;
+}
+.epDiaIcono { grid-area: icono; font-size: 1.6rem; text-align: center; }
+.epDiaTexto { grid-area: texto; color: hsl(222 30% 16%); font-weight: 600; }
+.epDiaLluvia { grid-area: lluvia; color: var(--ep-sub); font-size: 0.85rem; }
+.epDiaTemp {
+  grid-area: temp;
+  color: var(--ep-sub);
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.epDiaTemp strong { color: hsl(222 30% 16%); font-size: 1.1rem; }
+
+/* ---------- Consejos y fotos ---------- */
+
+.epConsejos ul {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.3rem 0 0;
+  padding-left: 1.1rem;
+  color: hsl(222 30% 20%);
+  line-height: 1.5;
 }
 
-.estadoPhotoCard {
+.epVacio { margin: 0; color: var(--ep-sub); }
+
+.epFotosGrid {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 0.4rem;
+}
+
+.epFoto {
   overflow: hidden;
-  border-radius: 24px;
-  background: #ffffff;
+  border: 1px solid hsl(215 20% 88%);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+}
+.epFoto img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.epFoto div { padding: 0.8rem 1rem 1rem; }
+.epFoto p { margin: 0.2rem 0 0; color: var(--ep-sub); }
+
+/* ---------- Respuesta al pulsar ---------- */
+
+.epHorasLista li,
+.epDia,
+.epDato {
+  transition: transform 140ms var(--ep-ease);
+}
+.epHorasLista li:active,
+.epDia:active,
+.epDato:active {
+  transform: scale(0.97);
 }
 
-.estadoPhotoImage {
-  width: 100%;
-  height: 220px;
-  object-fit: cover;
-  display: block;
-}
+.epAcciones .btn:active { transform: scale(0.97); }
 
-.estadoPhotoBody {
-  padding: 1rem;
-}
+/* ---------- Pantallas anchas ---------- */
 
-.estadoPhotoBody strong {
-  display: block;
-  margin-bottom: 0.3rem;
-  color: var(--text);
-}
-
-.estadoPhotoBody p,
-.estadoPhotoPlaceholder p {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.58;
-}
-
-.estadoPhotoPlaceholder strong {
-  display: block;
-  margin-bottom: 0.3rem;
-  color: var(--text);
-}
-
-@media (max-width: 1024px) {
-  .estadoHero,
-  .estadoDetailLayout {
-    grid-template-columns: 1fr;
+@media (min-width: 720px) {
+  .estadoPistaPage {
+    gap: 1.4rem;
   }
 
-  .estadoMetricsGrid,
-  .estadoSensorGrid,
-  .estadoPhotosGrid {
+  .epVeredicto {
+    padding: 2rem;
+  }
+
+  .epDatos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .epDatosDos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .epHorasLista {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  .epDia {
+    grid-template-columns: 8rem 2.2rem minmax(0, 1fr) 7rem 7rem;
+    grid-template-areas: "nombre icono texto lluvia temp";
+  }
+
+  .epDiaLluvia { font-size: 0.95rem; }
+  .epDiaTemp { text-align: right; }
+
+  .epFotosGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 720px) {
-  .estadoPistaPage {
-    gap: 1.2rem;
-    padding-top: 0.8rem;
-  }
-
-  .estadoHeroMain,
-  .estadoNowCard,
-  .estadoSensorCard,
-  .estadoPanel,
-  .estadoForecastCard,
-  .estadoModuleCard,
-  .estadoPhotoPlaceholder {
-    padding: 1.15rem;
-  }
-
-  .estadoMetricsGrid,
-  .estadoSensorGrid,
-  .estadoPhotosGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .estadoForecastRow {
-    grid-template-columns: 68px 30px minmax(0, 1fr);
-  }
-
-  .estadoForecastTemp {
-    grid-column: 1 / -1;
+@media (max-width: 380px) {
+  .epDia {
+    grid-template-columns: 5rem 1.8rem minmax(0, 1fr) auto;
+    column-gap: 0.5rem;
+    padding-inline: 0.7rem;
   }
 }
 
-/* Mobile-first compact pass for XIAO sensor and weather state. */
-@media (max-width: 768px) {
-  .estadoPistaPage {
-    gap: 0.95rem;
-    padding: 0.6rem 0 2rem;
+@media (prefers-reduced-motion: reduce) {
+  .estadoPistaPage > *,
+  .epIcono {
+    animation: none;
   }
 
-  .estadoHero,
-  .estadoDetailLayout {
-    gap: 0.75rem;
+  .epHorasLista li,
+  .epDia,
+  .epDato {
+    transition: none;
   }
 
-  .estadoHeroMain,
-  .estadoNowCard,
-  .estadoSensorCard,
-  .estadoPanel,
-  .estadoForecastCard,
-  .estadoModuleCard,
-  .estadoPhotoPlaceholder {
-    padding: 0.9rem;
-    border-radius: 18px;
-  }
-
-  .estadoHeroTitle {
-    max-width: none;
-    font-size: clamp(1.5rem, 8vw, 2.05rem);
-    line-height: 1.05;
-  }
-
-  .estadoHeroText,
-  .estadoHeroMain p,
-  .estadoPanel p,
-  .estadoForecastText {
-    font-size: 0.86rem;
-    line-height: 1.45;
-  }
-
-  .estadoMetricsGrid,
-  .estadoSensorGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.55rem;
-  }
-
-  .estadoMetric,
-  .estadoSensorMetric {
-    padding: 0.68rem;
-    border-radius: 14px;
-  }
-
-  .estadoMetric strong,
-  .estadoSensorMetric strong {
-    font-size: 1.05rem;
-  }
-
-  .estadoNowTemp {
-    font-size: 2rem;
-  }
-
-  .estadoSensorStatus,
-  .estadoStatusPill {
-    padding: 0.32rem 0.62rem;
-    font-size: 0.74rem;
-  }
-
-  .estadoForecastList,
-  .estadoModuleList {
-    margin-top: 0.7rem;
-  }
-
-  .estadoForecastRow {
-    grid-template-columns: 54px 28px minmax(0, 1fr) auto;
-    gap: 0.45rem;
-    padding: 0.64rem;
-    border-radius: 13px;
-  }
-
-  .estadoPhotosGrid {
-    gap: 0.6rem;
-  }
-
-  .estadoPhotoImage {
-    height: 150px;
-  }
-}
-
-@media (max-width: 480px) {
-  .estadoPistaPage {
-    gap: 0.8rem;
-  }
-
-  .estadoHeroMain,
-  .estadoNowCard,
-  .estadoSensorCard,
-  .estadoPanel,
-  .estadoForecastCard,
-  .estadoModuleCard,
-  .estadoPhotoPlaceholder {
-    padding: 0.82rem;
-    border-radius: 16px;
-  }
-
-  .estadoMetricsGrid,
-  .estadoSensorGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .estadoForecastRow {
-    grid-template-columns: 1fr auto;
-  }
-
-  .estadoForecastIcon,
-  .estadoForecastText {
-    display: none;
-  }
-}
-
-/* Final mobile polish for XIAO and weather cards. */
-@media (max-width: 768px) {
-  .estadoHeroMain h1 {
-    max-width: 18ch;
-    font-size: clamp(1.45rem, 8vw, 1.95rem);
-    line-height: 1.05;
-    letter-spacing: 0;
-  }
-
-  .estadoHeroActions {
-    gap: 0.5rem;
-    margin-top: 0.85rem;
-  }
-
-  .estadoNowMain {
-    gap: 0.75rem;
-    margin: 0.75rem 0;
-  }
-
-  .estadoNowIcon {
-    font-size: 2.6rem;
-  }
-
-  .estadoHighlights {
-    gap: 0.35rem;
-    margin-bottom: 0.7rem;
-  }
-
-  .estadoChip {
-    padding: 0.32rem 0.58rem;
-    font-size: 0.74rem;
-  }
-
-  .estadoAdvice,
-  .estadoSensorFooter {
-    padding: 0.72rem;
-    border-radius: 14px;
-  }
-
-  .estadoSensorHead h2,
-  .estadoNowTop h2 {
-    font-size: 1.18rem;
-  }
-
-  .estadoMetricCard {
-    padding: 0.68rem;
-    border-radius: 14px;
-  }
-
-  .estadoMetricCard strong {
-    font-size: 1.05rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .estadoHeroActions .btn {
-    flex: 1 1 145px;
-    min-height: 40px;
-    padding: 0.62rem 0.78rem;
-  }
-
-  .estadoNowTop,
-  .estadoSensorHead,
-  .estadoSensorFooter {
-    gap: 0.5rem;
-  }
-
-  .estadoSensorBadge,
-  .estadoBadge {
-    padding: 0.34rem 0.58rem;
-    font-size: 0.72rem;
+  .epHorasLista li:active,
+  .epDia:active,
+  .epDato:active,
+  .epAcciones .btn:active {
+    transform: none;
   }
 }

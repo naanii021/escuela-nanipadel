@@ -2,7 +2,7 @@ import express from "express";
 import bcrypt from "bcrypt";
 import { db } from "../db/connection.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
-import gestionControlRouter from "./gestionControl.js";
+import gestionControlRouter, { getProfessorId } from "./gestionControl.js";
 
 const router = express.Router();
 const query = (sql, params = []) => db.promise().query(sql, params);
@@ -1087,6 +1087,167 @@ router.post("/alumnos/:id/crear-acceso", requireAdmin, async (req, res) => {
     await connection.rollback();
     console.error("Error POST /api/gestion/alumnos/:id/crear-acceso:", e);
     res.status(500).json({ ok: false, message: e.message });
+  } finally {
+    connection.release();
+  }
+});
+
+const MIN_PASSWORD_PROFESOR = 8;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function professorStatus(row) {
+  const hasAccess = Boolean(row.usuario_id);
+  return {
+    id: row.id,
+    nombre: row.nombre,
+    apellidos: row.apellidos,
+    nombre_completo: `${row.nombre || ""} ${row.apellidos || ""}`.trim(),
+    activo: Number(row.activo ?? 1) === 1,
+    email: row.usuario_email || row.email || null,
+    usuario_id: row.usuario_id || null,
+    tiene_acceso: hasAccess,
+    rol_acceso: hasAccess ? row.usuario_rol || null : null,
+    telegram_vinculado: row.telegram_chat_id != null && row.telegram_chat_id !== "",
+    telegram_username: row.telegram_username || null,
+  };
+}
+
+router.get("/profesores", requireAdmin, async (req, res) => {
+  try {
+    const columns = await getTableColumns("profesores");
+    const select = ["id", "nombre", "apellidos", "activo", "usuario_id", "email", "telegram_chat_id", "telegram_username"]
+      .map((field) => buildSelect("p", columns, field));
+    const join = columns.has("usuario_id") ? "LEFT JOIN usuarios u ON u.id = p.usuario_id" : "";
+    const [rows] = await query(
+      `SELECT ${select.join(", ")}${join ? ", u.email AS usuario_email, u.rol AS usuario_rol" : ""}
+       FROM profesores p
+       ${join}
+       ORDER BY ${columns.has("activo") ? "p.activo DESC, " : ""}p.nombre, p.apellidos`
+    );
+    res.json({ ok: true, profesores: rows.map(professorStatus) });
+  } catch (e) {
+    console.error("Error GET /api/gestion/profesores:", e);
+    res.status(500).json({ ok: false, message: "No se han podido cargar los profesores" });
+  }
+});
+
+// Estado de Telegram de quien tiene la sesión (profesor o admin con ficha de profesor).
+router.get("/telegram/estado", async (req, res) => {
+  try {
+    const columns = await getTableColumns("profesores");
+    const professorId = await getProfessorId(db.promise(), req.user);
+    const username = String(process.env.TELEGRAM_BOT_USERNAME || "").replace(/^@/, "") || null;
+    if (!professorId) return res.json({ ok: true, tiene_ficha: false, vinculado: false, telegram_username: null, bot_username: username });
+    let linked = false;
+    let telegramUsername = null;
+    if (columns.has("telegram_chat_id")) {
+      const [rows] = await query(
+        `SELECT telegram_chat_id, ${columns.has("telegram_username") ? "telegram_username" : "NULL AS telegram_username"}
+         FROM profesores WHERE id = ? LIMIT 1`,
+        [professorId]
+      );
+      linked = rows[0]?.telegram_chat_id != null && rows[0]?.telegram_chat_id !== "";
+      telegramUsername = linked ? rows[0].telegram_username || null : null;
+    }
+    res.json({ ok: true, tiene_ficha: true, vinculado: linked, telegram_username: telegramUsername, bot_username: username });
+  } catch (e) {
+    console.error("Error GET /api/gestion/telegram/estado:", e);
+    res.status(500).json({ ok: false, message: "No se ha podido comprobar Telegram" });
+  }
+});
+
+router.post("/profesores/:id/crear-acceso", requireAdmin, async (req, res) => {
+  const connection = await db.promise().getConnection();
+
+  try {
+    const profesorColumns = await getTableColumns("profesores", connection);
+    const usuarioColumns = await getTableColumns("usuarios", connection);
+
+    if (!profesorColumns.has("usuario_id")) {
+      return res.status(400).json({ ok: false, message: "La tabla profesores no tiene usuario_id para enlazar cuentas" });
+    }
+
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const password = String(req.body?.password || "");
+
+    if (!email || !password) {
+      return res.status(400).json({ ok: false, message: "Email y contraseña son obligatorios" });
+    }
+    if (!EMAIL_REGEX.test(email) || email.length > 190) {
+      return res.status(400).json({ ok: false, message: "Escribe un email válido" });
+    }
+    if (password.length < MIN_PASSWORD_PROFESOR) {
+      return res.status(400).json({ ok: false, message: `La contraseña debe tener al menos ${MIN_PASSWORD_PROFESOR} caracteres` });
+    }
+
+    await connection.beginTransaction();
+
+    const [profesores] = await connection.query(
+      `SELECT id, nombre, apellidos, usuario_id${profesorColumns.has("activo") ? ", activo" : ""}
+       FROM profesores WHERE id = ? FOR UPDATE`,
+      [req.params.id]
+    );
+
+    if (profesores.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ ok: false, message: "Profesor no encontrado" });
+    }
+
+    const profesor = profesores[0];
+
+    if (profesor.usuario_id) {
+      await connection.rollback();
+      return res.status(409).json({ ok: false, message: "Este profesor ya tiene acceso a la plataforma" });
+    }
+    if (profesorColumns.has("activo") && Number(profesor.activo) !== 1) {
+      await connection.rollback();
+      return res.status(409).json({ ok: false, message: "La ficha de este profesor está desactivada" });
+    }
+
+    const [existingUsers] = await connection.query("SELECT id FROM usuarios WHERE email = ? LIMIT 1", [email]);
+
+    if (existingUsers.length > 0) {
+      await connection.rollback();
+      return res.status(409).json({ ok: false, message: "Ya existe un usuario con ese email" });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const payload = {
+      nombre: `${profesor.nombre || ""} ${profesor.apellidos || ""}`.trim() || profesor.nombre,
+      email,
+      password_hash: passwordHash,
+      rol: "profesor",
+      activo: 1,
+    };
+    const { fields, values } = pickWritableFields(payload, ["nombre", "email", "password_hash", "rol", "activo"], usuarioColumns);
+
+    const [userResult] = await connection.query(
+      `INSERT INTO usuarios (${fields.join(", ")}) VALUES (${fields.map(() => "?").join(", ")})`,
+      values
+    );
+
+    if (profesorColumns.has("email")) {
+      await connection.query("UPDATE profesores SET usuario_id = ?, email = ? WHERE id = ?", [userResult.insertId, email, profesor.id]);
+    } else {
+      await connection.query("UPDATE profesores SET usuario_id = ? WHERE id = ?", [userResult.insertId, profesor.id]);
+    }
+
+    await connection.commit();
+
+    res.status(201).json({
+      ok: true,
+      user_id: userResult.insertId,
+      email,
+      message: "Acceso creado y enlazado al profesor correctamente",
+    });
+  } catch (e) {
+    await connection.rollback();
+    if (e?.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ ok: false, message: "Ya existe un usuario con ese email" });
+    }
+    // Nunca se registra el cuerpo de la petición: contiene la contraseña.
+    console.error("Error POST /api/gestion/profesores/:id/crear-acceso:", e.message);
+    res.status(500).json({ ok: false, message: "No se ha podido crear el acceso. Vuelve a intentarlo." });
   } finally {
     connection.release();
   }

@@ -6,6 +6,8 @@ import AvisoGuardado, { useAvisoGuardado } from "../components/panel/AvisoGuarda
 import ConfirmarDialogo from "../components/panel/ConfirmarDialogo";
 import HorarioDia from "../components/panel/HorarioDia";
 import PasarLista from "../components/panel/PasarLista";
+import ProfesoresAcceso from "../components/panel/ProfesoresAcceso";
+import TelegramPasarLista from "../components/panel/TelegramPasarLista";
 import Recuperaciones from "../components/panel/Recuperaciones";
 import { IcAtras, IcBuscar, IcMensaje, IcTelefono } from "../components/panel/Iconos";
 import {
@@ -50,6 +52,7 @@ const PANEL_SECTIONS = [
   { key: "horario", label: "Horario" },
   { key: "recuperaciones", label: "Recuperaciones" },
   { key: "seguimiento", label: "Seguimiento" },
+  { key: "profesores", label: "Profesores", soloAdmin: true },
 ];
 const SECTION_KEYS = PANEL_SECTIONS.map((item) => item.key);
 
@@ -132,7 +135,10 @@ export default function PanelProfesor() {
 
   // /panel?seccion=control&grupo=ID abre directamente la lista de ese grupo (atajo de la portada).
   const [urlParams] = useState(() => new URLSearchParams(window.location.search));
-  const [activeSection, setActiveSection] = useState(() => sectionFromUrl(urlParams) || "control");
+  const [activeSection, setActiveSection] = useState(() => {
+    const fromUrl = sectionFromUrl(urlParams);
+    return fromUrl === "profesores" && !isAdmin ? "control" : fromUrl || "control";
+  });
   const [scrollTick, setScrollTick] = useState(() => (sectionFromUrl(urlParams) ? 1 : 0));
   const [controlPeticion, setControlPeticion] = useState(() => (
     urlParams.get("grupo") ? { grupoId: urlParams.get("grupo"), fecha: urlParams.get("fecha") || hoyISO(), n: 1 } : null
@@ -188,9 +194,6 @@ export default function PanelProfesor() {
   const [formError, setFormError] = useState("");
 
   const [trackingGroupId, setTrackingGroupId] = useState("");
-  const [telegramLink, setTelegramLink] = useState(null);
-  const [telegramBusy, setTelegramBusy] = useState(false);
-  const [telegramError, setTelegramError] = useState("");
 
   const { aviso, mostrar: mostrarAviso, cerrar: cerrarAviso } = useAvisoGuardado();
   const anchorRef = useRef(null);
@@ -664,18 +667,6 @@ export default function PanelProfesor() {
     }
   };
 
-  const createTelegramLink = async () => {
-    try {
-      setTelegramBusy(true);
-      setTelegramError("");
-      setTelegramLink(await apiPost("/api/gestion/control/telegram/link-code", {}));
-    } catch (e) {
-      setTelegramError(e.message || "No se ha podido generar el código. Vuelve a intentarlo.");
-    } finally {
-      setTelegramBusy(false);
-    }
-  };
-
   if (!token || !canAccess({ rol: userRole })) return null;
 
   const cursoTexto = `Curso ${curso?.nombre || "2026/27"} · ${sede?.nombre || "Seminario Diocesano"}`;
@@ -754,7 +745,7 @@ export default function PanelProfesor() {
       <div ref={anchorRef} className="ppAnchor" aria-hidden="true" />
       <nav className="ppTabs" aria-label="Secciones del panel">
         <div className="ppTabsScroll" ref={tabsRef}>
-          {PANEL_SECTIONS.map((section) => (
+          {PANEL_SECTIONS.filter((section) => !section.soloAdmin || isAdmin).map((section) => (
             <button
               key={section.key}
               type="button"
@@ -783,6 +774,13 @@ export default function PanelProfesor() {
               onAviso={mostrarAviso}
               onGuardada={() => { setListasTick((n) => n + 1); loadRecoveries(); }}
             />
+          )}
+
+          {activeSection === "profesores" && isAdmin && (
+            <div className="ppStack">
+              <TelegramPasarLista esAdmin onAviso={mostrarAviso} />
+              <ProfesoresAcceso onAviso={mostrarAviso} />
+            </div>
           )}
 
           {activeSection === "horario" && (
@@ -1124,27 +1122,7 @@ export default function PanelProfesor() {
         </div>
       )}
 
-      {!isAdmin && !loading && (
-        <details className="ppTelegram">
-          <summary>Pasar lista desde Telegram</summary>
-          <div className="ppTelegramBody">
-            <p>Une tu usuario a un chat privado de Telegram con un código que sirve una sola vez.</p>
-            {telegramError && <p className="ppInlineError" role="alert">{telegramError}</p>}
-            {telegramLink ? (
-              <div className="ppTelegramCode">
-                <code>{telegramLink.command}</code>
-                {telegramLink.link && <a className="ppBtn ppBtnPrimary" href={telegramLink.link} target="_blank" rel="noreferrer">Abrir Telegram</a>}
-                <button className="ppBtn" type="button" onClick={createTelegramLink} disabled={telegramBusy}>Generar otro código</button>
-                <small>El código caduca en {telegramLink.expires_in_minutes} minutos.</small>
-              </div>
-            ) : (
-              <button className="ppBtn" type="button" onClick={createTelegramLink} disabled={telegramBusy}>
-                {telegramBusy ? "Generando..." : "Generar código de Telegram"}
-              </button>
-            )}
-          </div>
-        </details>
-      )}
+      {!isAdmin && !loading && !loadError && <TelegramPasarLista onAviso={mostrarAviso} />}
 
       <nav className="ppLinks" aria-label="Otras páginas">
         <span>Otras páginas:</span>

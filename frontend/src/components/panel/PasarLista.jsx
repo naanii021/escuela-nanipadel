@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { apiGet, apiPost, apiPut } from "../../services/api";
-import CancelarClaseHoja from "./CancelarClaseHoja";
+import CancelarClaseHoja, { textoAvisoFamilias } from "./CancelarClaseHoja";
 import { IcAviso, IcCheck, IcNota, IcX } from "./Iconos";
 import { claseMasProxima, diaDeFecha, diasDelGrupo, formatDias, formatFecha, formatHorario, hora, hoyISO, iniciales, minutosDe, momentoClase, motivoCorto, nivelLabel, nombreCompleto, nombreGrupo, nombrePista, plural } from "./panelUtils";
 
@@ -217,18 +217,18 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
   const cancelada = sesion?.estado === "cancelada";
   const cancelacion = cancelada ? sesion.cancelacion || { motivo: "otro", texto: "" } : null;
 
-  const cancelarClase = async ({ motivo, texto, recuperable }) => {
+  const cancelarClase = async ({ motivo, texto, recuperable, avisar_familias }) => {
     if (!grupo || cancelando) return;
     try {
       setCancelando(true);
       setCancelarError("");
-      const data = await apiPost(`/api/gestion/control/grupos/${grupo.id}/sesiones/cancelar`, { fecha, motivo, texto, recuperable });
+      const data = await apiPost(`/api/gestion/control/grupos/${grupo.id}/sesiones/cancelar`, { fecha, motivo, texto, recuperable, avisar_familias });
       setSesion(data.sesion || null);
       setCancelarAbierto(false);
       const creadas = Number(data.recuperaciones_creadas || 0);
       onAviso?.(creadas
-        ? `Clase cancelada. ${plural(creadas, "alumno puede", "alumnos pueden")} recuperarla.`
-        : "Clase cancelada.");
+        ? `Clase cancelada. ${plural(creadas, "alumno puede", "alumnos pueden")} recuperarla. ${textoAvisoFamilias(data.aviso)}`.trim()
+        : `Clase cancelada. ${textoAvisoFamilias(data.aviso)}`.trim());
       onGuardada?.();
     } catch (e) {
       setCancelarError(`${e.message || "No se ha podido cancelar la clase."} No se ha cancelado nada: puedes volver a intentarlo.`);
@@ -472,6 +472,8 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
       )}
       <CancelarClaseHoja
         abierto={cancelarAbierto}
+        grupoId={grupo?.id}
+        fecha={fecha}
         grupoNombre={grupo ? nombreGrupo(grupo) : ""}
         fechaTexto={formatFecha(fecha)}
         ocupado={cancelando}

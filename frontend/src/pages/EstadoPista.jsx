@@ -2,46 +2,84 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet } from "../services/api";
 import { getWeatherForClub } from "../services/weatherService";
+import { cuandoTexto } from "../services/estadoPista";
+import LineaAgua from "../components/LineaAgua";
+import { getSerieAgua } from "../components/lineaAguaDatos";
 import "./estadoPista.css";
 
 const CLUB_LAT = 39.483017;
 const CLUB_LON = -6.364445;
 const COURT_PHOTOS_MANIFEST = `${process.env.PUBLIC_URL}/court-photos-manifest.json`;
 
+const MOTIVOS_LARGOS = {
+  Lluvia: "lluvia",
+  Mojada: "pista mojada",
+  Agua: "agua en la pista",
+  Viento: "viento",
+  Tormenta: "tormenta",
+};
+
 function formatUpdatedAt(value) {
-  if (!value) return "-";
-  return new Date(value).toLocaleString("es-ES");
+  if (!value) return "";
+  return new Date(value).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+}
+
+function minutesAgo(value) {
+  if (!value) return null;
+  const t = new Date(value).getTime();
+  if (Number.isNaN(t)) return null;
+  return Math.max(0, Math.round((Date.now() - t) / 60000));
 }
 
 function isRecentReading(value) {
-  if (!value) return false;
-  const createdAt = new Date(value).getTime();
-  if (Number.isNaN(createdAt)) return false;
-  return Date.now() - createdAt < 15 * 60 * 1000;
+  const m = minutesAgo(value);
+  return m !== null && m < 15;
 }
 
-function formatSensorValue(value, suffix = "") {
+function num(value, suffix = "") {
   if (value === null || value === undefined || value === "") return "-";
-  const number = Number(value);
-  if (!Number.isFinite(number)) return `${value}${suffix}`;
-  return `${Math.round(number * 10) / 10}${suffix}`;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return `${value}${suffix}`;
+  return `${String(Math.round(n * 10) / 10).replace(".", ",")}${suffix}`;
 }
 
-function getSensorRecommendation(sensor) {
-  if (!sensor) return "Esperando la última lectura del sensor.";
-  if (Number(sensor.humedad) > 80) return "Pista húmeda, revisar antes de jugar.";
-  if (Number(sensor.temperatura) > 35) return "Mucho calor, hidrátate.";
-  if (Number(sensor.bateria_porcentaje) < 20) return "Batería baja del sensor.";
-  return "Condiciones buenas para jugar.";
+function mmTexto(v) {
+  return v >= 10 ? `${Math.round(v)} mm` : `${v.toFixed(1).replace(".", ",")} mm`;
+}
+
+function horasTexto(h) {
+  return h <= 1 ? "1 hora" : `${h} horas`;
+}
+
+// Frase corta sobre cuánto falta para poder jugar, a partir de la serie de 48 h.
+function resumenAgua(serie, playability) {
+  if (!serie?.horas?.length || !playability) return null;
+  const { horas, secaA } = serie;
+  if (playability.playable) {
+    const mala = horas.findIndex((h) => !h.playable);
+    if (mala < 0) return { titulo: "Se puede jugar en las próximas 48 horas", detalle: "No se espera lluvia ni agua en la pista." };
+    const h = horas[mala];
+    return {
+      titulo: "Ahora se puede jugar",
+      detalle: `Ojo: ${cuandoTexto(h.time, horas[0].time)} dejará de poder (${MOTIVOS_LARGOS[h.motivoCorto] || "mal tiempo"}).`,
+    };
+  }
+  const iSeca = secaA ? horas.findIndex((h) => h.time === secaA) : -1;
+  if (iSeca > 0) {
+    return {
+      titulo: `Se podrá jugar en unas ${horasTexto(iSeca)}`,
+      detalle: `La pista se secará hacia ${cuandoTexto(secaA, horas[0].time)}.`,
+    };
+  }
+  return { titulo: "Hoy no se podrá jugar", detalle: playability.secaTexto || "La pista no se secará en las próximas 48 horas." };
 }
 
 function EstadoPista() {
   const [weather, setWeather] = useState(null);
+  const [serie, setSerie] = useState(null);
   const [sensor, setSensor] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sensorLoading, setSensorLoading] = useState(true);
-  const [sensorError, setSensorError] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -52,27 +90,20 @@ function EstadoPista() {
         setLoading(true);
         setError("");
 
-        const [weatherResult, sensorResult, photosResponse] = await Promise.all([
+        const [weatherResult, serieResult, sensorResult, photosResponse] = await Promise.all([
           getWeatherForClub(CLUB_LAT, CLUB_LON).then((data) => ({ ok: true, data })).catch((err) => ({ ok: false, err })),
-          apiGet("/api/meteo-xiao/latest").then((data) => ({ ok: true, data })).catch((err) => ({ ok: false, err })),
+          getSerieAgua(CLUB_LAT, CLUB_LON).catch(() => null),
+          apiGet("/api/meteo-xiao/latest").then((data) => ({ ok: true, data })).catch(() => ({ ok: false })),
           fetch(COURT_PHOTOS_MANIFEST, { cache: "no-store" }).catch(() => null),
         ]);
 
         if (!mounted) return;
 
-        if (weatherResult.ok) {
-          setWeather(weatherResult.data);
-        } else {
-          setError(weatherResult.err?.message || "No hemos podido cargar el tiempo online.");
-        }
+        if (weatherResult.ok) setWeather(weatherResult.data);
+        else setError(weatherResult.err?.message || "No hemos podido cargar el tiempo.");
 
-        if (sensorResult.ok) {
-          setSensor(sensorResult.data?.meteo || null);
-          setSensorError(sensorResult.data?.meteo ? "" : "No hay lecturas del sensor todavía.");
-        } else {
-          setSensor(null);
-          setSensorError("No hemos podido cargar la lectura del sensor.");
-        }
+        setSerie(serieResult);
+        setSensor(sensorResult.ok ? sensorResult.data?.meteo || null : null);
 
         if (photosResponse?.ok) {
           const manifest = await photosResponse.json();
@@ -81,13 +112,9 @@ function EstadoPista() {
           setPhotos([]);
         }
       } catch (err) {
-        if (!mounted) return;
-        setError(err.message || "No hemos podido cargar el estado de pista.");
+        if (mounted) setError(err.message || "No hemos podido cargar el estado de la pista.");
       } finally {
-        if (mounted) {
-          setLoading(false);
-          setSensorLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     }
 
@@ -97,253 +124,205 @@ function EstadoPista() {
     };
   }, []);
 
-  const overviewItems = [
-    { label: "Temperatura", value: weather ? `${Math.round(weather.temperature)}°C` : "-" },
-    { label: "Humedad", value: weather ? `${weather.humidity}%` : "-" },
-    { label: "Presión", value: weather?.pressure ? `${Math.round(weather.pressure)} hPa` : "-" },
-    { label: "Viento", value: weather?.windSpeed != null ? `${weather.windSpeed} km/h` : "-" },
-    {
-      label: "Lluvia",
-      value:
-        weather?.precipitationProbability != null
-          ? `${weather.precipitationProbability}%`
-          : "-",
-    },
-    { label: "Estado pista", value: weather?.pista || "-" },
-    {
-      label: "Agua en la pista",
-      value: weather?.playability
-        ? weather.playability.aguaMm > 1
-          ? `${String(weather.playability.aguaMm).replace(".", ",")} mm`
-          : "Seca"
-        : "-",
-    },
+  const playability = weather?.playability || null;
+  const playable = playability ? playability.playable : null;
+  const stateClass = playable === null ? "isPending" : playable ? "isOk" : "isNo";
+  let verdict = "Consultando el tiempo…";
+  if (error) verdict = "No hemos podido ver el tiempo";
+  else if (playable === true) verdict = "Hoy se puede jugar";
+  else if (playable === false) verdict = "Hoy mejor no jugar";
+
+  const agua = playability?.aguaMm ?? 0;
+  const aguaTexto = playability ? (agua > 1 ? mmTexto(agua) : "Seca") : "-";
+  const resumen = resumenAgua(serie, playability);
+  const horasTarjetas = serie?.horas?.length ? serie.horas.slice(0, 24) : weather?.hourly || [];
+
+  const sensorReciente = sensor && isRecentReading(sensor.creado_en);
+  const sensorMinutos = sensorReciente ? minutesAgo(sensor.creado_en) : null;
+  const sensorAviso = sensorReciente
+    ? Number(sensor.humedad) > 80
+      ? "El sensor marca mucha humedad: puede haber agua o rocío en la pista."
+      : Number(sensor.bateria_porcentaje) < 20
+        ? "Al sensor le queda poca batería."
+        : ""
+    : "";
+
+  const datos = [
+    { label: "Temperatura", value: weather ? `${Math.round(weather.temperature)}°` : "-", nota: weather ? `Sensación ${Math.round(weather.apparentTemperature)}°` : "" },
+    { label: "Viento", value: weather?.windSpeed != null ? `${Math.round(weather.windSpeed)} km/h` : "-", nota: Number(weather?.windSpeed) >= 30 ? "Fuerte" : Number(weather?.windSpeed) >= 20 ? "Moderado" : "Flojo" },
+    { label: "Lluvia", value: weather?.precipitationProbability != null ? `${weather.precipitationProbability}%` : "-", nota: "Probabilidad" },
+    { label: "Agua en la pista", value: aguaTexto, nota: agua > 1 ? "Hay que esperar" : "Sin charcos" },
+    { label: "Humedad", value: weather ? `${weather.humidity}%` : "-", nota: "Del aire" },
+    { label: "Sol (UV)", value: weather?.uvIndex != null ? num(weather.uvIndex) : "-", nota: Number(weather?.uvIndex) >= 6 ? "Alto: crema" : "Bajo" },
   ];
 
-  const sensorConnected = sensor && isRecentReading(sensor.creado_en);
-  const sensorMetrics = [
-    { label: "Temperatura", value: formatSensorValue(sensor?.temperatura, "°C") },
-    { label: "Humedad", value: formatSensorValue(sensor?.humedad, "%") },
-    { label: "Presión", value: formatSensorValue(sensor?.presion, " hPa") },
-    { label: "Batería", value: formatSensorValue(sensor?.bateria_porcentaje, "%") },
-  ];
-
-  const playable = weather?.playability ? weather.playability.playable : null;
-  const verdict = playable === true ? "Hoy se puede jugar" : playable === false ? "Hoy mejor no jugar" : "¿Se puede jugar hoy?";
+  const rec = weather?.recomendacion;
+  const showRec = rec && playable === true;
+  const vistaTarde = (day) => new Date(`${day.date}T12:00:00`);
 
   return (
     <section className="estadoPistaPage">
-      <section className="estadoHero">
-        <div className="estadoHeroMain">
-          <span className="estadoEyebrow">Tiempo y pista</span>
-          <h1>{verdict}</h1>
-          <p>
-            {weather?.playability?.reason
-              ? `${weather.playability.reason.replace(/\.$/, "")}. Lluvia ${weather.precipitationProbability ?? "-"} %, viento ${Math.round(weather.windSpeed ?? 0)} km/h.`
-              : "Mira la lluvia, el viento y la recomendación antes de reservar o salir hacia el club."}
-          </p>
-          <div className="estadoHeroActions">
-            <Link className="btn btn-primary" to="/reservas">
-              {playable === false ? "Reservar otro día" : "Reservar pista"}
-            </Link>
-            <Link className="btn btn-ghost estadoGhostBtn" to="/">
-              Volver al inicio
-            </Link>
-          </div>
-        </div>
-
-        <div className="estadoNowCard">
-          <div className="estadoNowTop">
-            <div>
-              <span className="estadoNowLabel">Ahora mismo</span>
-              <h2>En la pista</h2>
-            </div>
-            <span className={`estadoBadge ${weather?.pista === "RIESGO" ? "estadoBadgeRisk" : ""}`}>
-            {weather?.pista || "Todavía no hay datos disponibles"}
-            </span>
-          </div>
-
-          {loading && <p className="estadoLoading">Cargando estado de pista...</p>}
-          {!loading && error && <p className="estadoError">{error}</p>}
-
-          {!loading && !error && weather && (
-            <>
-              <div className="estadoNowMain">
-                <div className="estadoNowIcon" aria-hidden="true">
-                  {weather.emoji}
-                </div>
-                <div>
-                  <p className="estadoNowTemp">{Math.round(weather.temperature)}°C</p>
-                  <p className="estadoNowDesc">{weather.description}</p>
-                  <p className="estadoNowFeel">
-                    Sensación térmica: {Math.round(weather.apparentTemperature)}°C
-                  </p>
-                </div>
-              </div>
-
-              <div className="estadoHighlights">
-                <span className="estadoChip">UV: {weather.uvIndex ?? "-"}</span>
-                <span className="estadoChip">Viento: {weather.windSpeed} km/h</span>
-                <span className="estadoChip">
-                  Lluvia: {weather.precipitationProbability ?? "-"}%
-                </span>
-              </div>
-
-              {weather.recomendacion && (
-                <div className={`estadoAdvice rec-${weather.recomendacion.nivel}`}>
-                  <strong>{weather.recomendacion.titulo}</strong>
-                  <p>{weather.recomendacion.mensaje}</p>
-                </div>
-              )}
-
-              <p className="estadoUpdated">Última actualización: {formatUpdatedAt(weather.updatedAt)}</p>
-            </>
-          )}
-        </div>
-      </section>
-
-      {sensorConnected && (
-      <section className="estadoSensorCard">
-        <div className="estadoSensorHead">
-          <div>
-            <span className="estadoSectionEyebrow">Sensor del club</span>
-            <h2>Medidas en la pista</h2>
-          </div>
-          <span className={`estadoSensorBadge ${sensorConnected ? "isConnected" : "isOffline"}`}>
-            Medido hace poco
+      <section className={`epVeredicto ${stateClass}`} aria-labelledby="ep-titulo">
+        <span className="epEyebrow">Tiempo y pista</span>
+        <h1 id="ep-titulo" className="epTitulo">
+          <span className="epIcono" aria-hidden="true">
+            {playable === false ? (
+              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            ) : playable === true ? (
+              <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+            ) : (
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.6" /></svg>
+            )}
           </span>
-        </div>
+          {verdict}
+        </h1>
+        <p className="epMotivo" aria-live="polite">
+          {loading
+            ? "Un momento, estamos mirando el tiempo y la pista."
+            : error
+              ? "Prueba de nuevo en unos minutos o llama al club."
+              : playability?.reason
+                ? `${playability.reason.replace(/\.$/, "")}.`
+                : "Mira la lluvia y el viento antes de salir hacia el club."}
+        </p>
 
-        {sensorLoading ? (
-          <p className="estadoLoading">Cargando lectura del sensor...</p>
-        ) : sensorError ? (
-          <p className="estadoError">{sensorError}</p>
-        ) : sensor ? (
-          <>
-            <div className="estadoSensorGrid">
-              {sensorMetrics.map((item) => (
-                <article className="estadoMetricCard" key={item.label}>
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </article>
-              ))}
-            </div>
-
-            <div className="estadoSensorFooter">
-              <div>
-                <span>Estado</span>
-                <strong>{sensor.estado || "Lectura recibida"}</strong>
-              </div>
-              <div>
-                <span>Última actualización</span>
-                <strong>{formatUpdatedAt(sensor.creado_en)}</strong>
-              </div>
-            </div>
-
-            <div className={`estadoAdvice ${sensorConnected ? "rec-bueno" : "rec-regular"}`}>
-              <strong>Recomendación</strong>
-              <p>{getSensorRecommendation(sensor)}</p>
-            </div>
-          </>
-        ) : (
-          <p className="estadoEmpty">Aún no hay medidas de la pista.</p>
+        {showRec && (
+          <p className={`epConsejo rec-${rec.nivel}`}>
+            <strong>{rec.titulo}.</strong> {rec.mensaje}
+          </p>
         )}
+
+        <div className="epAcciones">
+          <Link className="btn btn-primary" to="/reservas">
+            {playable === false ? "Reservar otro día" : "Reservar pista"}
+          </Link>
+          <Link className="epEnlace" to="/">
+            Volver al inicio
+          </Link>
+        </div>
       </section>
+
+      {resumen && (
+        <section className="epTarjeta epAgua" aria-labelledby="ep-agua">
+          <span className="epSeccion">Agua en la pista</span>
+          <h2 id="ep-agua">{resumen.titulo}</h2>
+          <p className="epSub">{resumen.detalle}</p>
+          <LineaAgua horas={serie.horas} secaA={serie.secaA} />
+        </section>
       )}
 
-      <section className="estadoPanel">
-        <div className="estadoPanelHead">
-          <div>
-              <span className="estadoSectionEyebrow">Resumen</span>
-            <h3>Datos útiles para decidir si jugar</h3>
-          </div>
-          <p>
-            Una lectura rápida de las condiciones que más influyen en pista.
-          </p>
-        </div>
+      {horasTarjetas.length > 0 && (
+        <section className="epHoras" aria-labelledby="ep-horas">
+          <h2 id="ep-horas" className="epH2">Hora a hora</h2>
+          <ol className="epHorasLista">
+            {horasTarjetas.map((h) => (
+              <li key={h.time} className={h.playable ? "isOk" : "isNo"}>
+                <span className="epHoraH">{String(h.time).slice(11, 16)}</span>
+                <i aria-hidden="true">{h.playable ? "✓" : "✕"}</i>
+                <strong>{h.playable ? "Se puede" : h.motivoCorto || "No"}</strong>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
-        <div className="estadoMetricsGrid">
-          {overviewItems.map((item) => (
-            <article className="estadoMetricCard" key={item.label}>
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
+      <section className="epTarjeta epAhora" aria-labelledby="ep-ahora">
+        <div className="epAhoraCab">
+          <div>
+            <span className="epSeccion">Ahora mismo</span>
+            <h2 id="ep-ahora">{weather ? weather.description : "Cargando…"}</h2>
+          </div>
+          {weather && (
+            <span className="epEmoji" aria-hidden="true">{weather.emoji}</span>
+          )}
+        </div>
+        <div className="epDatos">
+          {datos.map((d) => (
+            <article key={d.label} className="epDato">
+              <span>{d.label}</span>
+              <strong>{d.value}</strong>
+              {d.nota && <small>{d.nota}</small>}
             </article>
           ))}
         </div>
+        {weather && <p className="epActualizado">Actualizado a las {formatUpdatedAt(weather.updatedAt)}</p>}
       </section>
 
-      <section className="estadoDetailLayout">
-        <article className="estadoForecastCard">
-          <div className="estadoSectionHead">
-            <span className="estadoSectionEyebrow">Previsión</span>
-            <h3>Previsión de los próximos días</h3>
+      {sensorReciente && (
+        <section className="epTarjeta epSensor" aria-labelledby="ep-sensor">
+          <div className="epAhoraCab">
+            <div>
+              <span className="epSeccion">Medido en la pista</span>
+              <h2 id="ep-sensor">Sensor del club</h2>
+            </div>
+            <span className="epPildora">{sensorMinutos < 2 ? "Ahora mismo" : `Hace ${sensorMinutos} min`}</span>
           </div>
-
-          <div className="estadoForecastList">
-            {weather?.forecast?.length ? (
-              weather.forecast.map((day) => (
-                <div className="estadoForecastRow" key={day.date}>
-                  <span className="estadoForecastDay">
-                    {new Date(day.date).toLocaleDateString("es-ES", {
-                      weekday: "short",
-                      day: "2-digit",
-                    })}
-                  </span>
-                  <span className="estadoForecastIcon">{day.emoji}</span>
-                  <span className="estadoForecastText">{day.description}</span>
-                  <span className="estadoForecastTemp">
-                    {Math.round(day.tempMax)}° / {Math.round(day.tempMin)}°
-                  </span>
-                </div>
-              ))
-            ) : (
-              <p className="estadoEmpty">La previsión aparecerá aquí cuando haya datos disponibles.</p>
-            )}
+          <div className="epDatos epDatosDos">
+            <article className="epDato">
+              <span>Temperatura</span>
+              <strong>{num(sensor.temperatura, "°")}</strong>
+            </article>
+            <article className="epDato">
+              <span>Humedad</span>
+              <strong>{num(sensor.humedad, "%")}</strong>
+            </article>
           </div>
-        </article>
+          {sensorAviso && <p className="epAviso">{sensorAviso}</p>}
+        </section>
+      )}
 
-        <article className="estadoModuleCard">
-          <div className="estadoSectionHead">
-            <span className="estadoSectionEyebrow">Consejos</span>
-            <h3>Antes de entrar en pista</h3>
-          </div>
-
-          <ul className="estadoModuleList">
-            <li>Revisa viento y lluvia antes de salir de casa.</li>
-            <li>Si hay calor, hidrata bien y evita las horas más duras.</li>
-            <li>Con frío, calienta unos minutos más antes de jugar.</li>
-            <li>Si la pista aparece en riesgo, consulta con el club antes de reservar.</li>
-          </ul>
-        </article>
+      <section className="epSemana" aria-labelledby="ep-semana">
+        <h2 id="ep-semana" className="epH2">Próximos 7 días</h2>
+        {weather?.forecast?.length ? (
+          <ol className="epDias">
+            {weather.forecast.map((day, i) => (
+              <li key={day.date} className="epDia">
+                <span className="epDiaNombre">
+                  {i === 0 ? "Hoy" : vistaTarde(day).toLocaleDateString("es-ES", { weekday: "long" })}
+                  <small>{vistaTarde(day).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}</small>
+                </span>
+                <span className="epDiaIcono" aria-hidden="true">{day.emoji}</span>
+                <span className="epDiaTexto">{day.description}</span>
+                <span className="epDiaLluvia">
+                  {day.precipitationProbability != null ? `Lluvia ${day.precipitationProbability}%` : ""}
+                </span>
+                <span className="epDiaTemp">
+                  <strong>{Math.round(day.tempMax)}°</strong> / {Math.round(day.tempMin)}°
+                </span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="epVacio">La previsión aparecerá aquí cuando haya datos.</p>
+        )}
       </section>
 
-      <section className="estadoPhotosSection">
-        <div className="estadoSectionHead">
-          <span className="estadoSectionEyebrow">Pistas</span>
-          <h3>Fotos del entorno de juego</h3>
-        </div>
+      <section className="epTarjeta epConsejos" aria-labelledby="ep-consejos">
+        <h2 id="ep-consejos" className="epH2">Antes de salir de casa</h2>
+        <ul>
+          <li>Mira la lluvia y el viento un rato antes de salir.</li>
+          <li>Con calor, bebe agua y evita las horas centrales.</li>
+          <li>Con frío, calienta unos minutos más.</li>
+          <li>Si dudas, llama al club antes de reservar.</li>
+        </ul>
+      </section>
 
-        {photos.length > 0 ? (
-          <div className="estadoPhotosGrid">
+      {photos.length > 0 && (
+        <section className="epFotos" aria-labelledby="ep-fotos">
+          <h2 id="ep-fotos" className="epH2">Las pistas</h2>
+          <div className="epFotosGrid">
             {photos.map((photo) => (
-              <article className="estadoPhotoCard" key={photo.id}>
-                <img src={photo.src} alt={photo.title} className="estadoPhotoImage" />
-                <div className="estadoPhotoBody">
+              <article className="epFoto" key={photo.id}>
+                <img src={photo.src} alt={photo.title} loading="lazy" />
+                <div>
                   <strong>{photo.title}</strong>
                   <p>{photo.desc}</p>
                 </div>
               </article>
             ))}
           </div>
-        ) : (
-          <div className="estadoPhotoPlaceholder">
-            <strong>Aún no hay fotos de pista.</strong>
-            <p>
-              Cuando el club añada fotos del entorno de juego, aparecerán aquí.
-            </p>
-          </div>
-        )}
-      </section>
+        </section>
+      )}
     </section>
   );
 }

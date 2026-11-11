@@ -1014,8 +1014,7 @@
 }
 
 .ppMoreFilters > summary,
-.ppMore > summary,
-.ppTelegram > summary {
+.ppMore > summary {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1030,12 +1029,10 @@
 }
 
 .ppMoreFilters > summary::-webkit-details-marker,
-.ppMore > summary::-webkit-details-marker,
-.ppTelegram > summary::-webkit-details-marker { display: none; }
+.ppMore > summary::-webkit-details-marker { display: none; }
 
 .ppMoreFilters > summary::before,
-.ppMore > summary::before,
-.ppTelegram > summary::before {
+.ppMore > summary::before {
   content: "";
   flex: none;
   width: 0.55rem;
@@ -1047,8 +1044,7 @@
 }
 
 .ppMoreFilters[open] > summary::before,
-.ppMore[open] > summary::before,
-.ppTelegram[open] > summary::before { transform: rotate(45deg); }
+.ppMore[open] > summary::before { transform: rotate(45deg); }
 
 .ppMoreFiltersBody {
   display: grid;
@@ -1297,34 +1293,144 @@
 
 .ppTracking > div { display: grid; gap: 0.5rem; align-content: start; }
 
-/* Telegram (solo profesor) */
-.ppTelegram {
-  padding: 0.4rem 1rem;
-  border: 1px solid var(--pp-line);
-  border-radius: var(--pp-radius);
-  background: var(--pp-surface);
+/* Profesores y Pasar lista por Telegram */
+.ppStack {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
 }
 
-.ppTelegramBody {
+.ppTelegramCard { gap: 0.8rem; }
+
+.ppTelegramStatus { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+.ppTelegramHow {
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.ppTelegramSteps {
+  display: grid;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.ppSteps {
   display: grid;
   gap: 0.6rem;
-  padding: 0.2rem 0 0.8rem;
-  font-size: 0.9375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: pp-paso;
 }
 
-.ppTelegramCode {
+.ppSteps li {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: flex-start;
+  gap: 0.7rem;
+  font-size: 1rem;
+  counter-increment: pp-paso;
+}
+
+.ppSteps li::before {
+  content: counter(pp-paso);
+  display: grid;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--pp-ok-soft);
+  color: var(--pp-ok-ink);
+  font-size: 0.9375rem;
+  font-weight: 800;
+}
+
+.ppSteps li > span { padding-top: 0.2rem; min-width: 0; overflow-wrap: anywhere; }
+
+.ppTelegramCode {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.9rem;
+  border: 1px solid var(--pp-line);
+  border-radius: 12px;
+  background: var(--pp-soft);
+  animation: pp-codigo-in 220ms var(--pp-ease-out);
 }
 
 .ppTelegramCode code {
-  padding: 0.5rem 0.7rem;
+  display: block;
+  padding: 0.6rem 0.75rem;
   border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid var(--pp-line-strong);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  user-select: all;
+  -webkit-user-select: all;
+}
+
+.ppTelegramActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@keyframes pp-codigo-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.ppProfeRow { align-items: center; }
+
+.ppProfeEstado {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ppProfeEstado .ppTag { max-width: 100%; overflow-wrap: anywhere; }
+
+.ppModalNarrow { width: min(520px, 100%); }
+.ppFormOne { grid-template-columns: minmax(0, 1fr); }
+
+.ppCredenciales {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.ppCredenciales > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.2rem 0.6rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--pp-line);
+  border-radius: 12px;
   background: var(--pp-soft);
-  font-size: 1rem;
-  overflow-wrap: break-word;
+}
+
+.ppCredenciales dt {
+  grid-column: 1 / -1;
+  color: var(--pp-muted);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.ppCredenciales dd { margin: 0; min-width: 0; }
+
+.ppCredenciales code {
+  display: block;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  user-select: all;
+  -webkit-user-select: all;
 }
 
 /* ---------- Fichas y formularios ---------- */
@@ -1544,6 +1650,14 @@
   .ppCupo,
   .ppGroupLevel h3 { font-size: 0.875rem; }
   .ppTag { font-size: 0.8125rem; }
+  .ppSteps li,
+  .ppTelegramHow { font-size: 0.9375rem; }
+  .ppSteps li::before { width: 28px; height: 28px; font-size: 0.875rem; }
+  .ppTelegramCode { padding: 0.7rem; }
+  .ppTelegramCode code,
+  .ppCredenciales code { font-size: 1rem; }
+  .ppTelegramActions .ppBtn { flex: 1 1 9rem; }
+  .ppCredenciales dt { font-size: 0.875rem; }
   .ppAvatar { width: 34px; height: 34px; font-size: 0.8125rem; }
   .ppLink { min-height: 44px; padding: 0.3rem 0.7rem; font-size: 0.875rem; }
 
@@ -1646,6 +1760,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ppSkeleton { animation: none; }
+  .ppTelegramCode { animation: none; }
   .ppPanel .ppBtn:active:not(:disabled),
   .ppPickItem:active:not(:disabled) { transform: none; }
 }

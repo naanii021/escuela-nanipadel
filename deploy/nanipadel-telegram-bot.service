@@ -1,0 +1,18 @@
+[Unit]
+Description=NaniPadel - bot de Telegram para profesores (polling)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dani
+WorkingDirectory=/srv/nanipadel/backend
+# El token se lee de /srv/nanipadel/backend/.env (config/env.js). No se guarda aquí.
+ExecStart=/usr/bin/node scripts/telegram-bot.js
+Environment=NODE_ENV=production
+Restart=on-failure
+RestartSec=5
+# Solo puede haber UNA instancia de polling: no lances también "npm run telegram:bot" a mano.
+
+[Install]
+WantedBy=multi-user.target

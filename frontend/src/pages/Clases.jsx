@@ -3,135 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet } from "../services/api";
 import { getUser, isLogged } from "../services/auth";
-import { buildClubWhatsappUrl } from "../services/whatsappLinks";
-import { fechaLarga } from "../services/fechas";
-import ContactoClub from "../components/ContactoClub";
-import EncuentraGrupoForm from "../components/EncuentraGrupoForm";
+import ClasesPublica from "../components/clases/ClasesPublica";
+import ClasesAlumno from "../components/clases/ClasesAlumno";
+import {
+  DAY_LABELS, IcArrow, IcCalendar, IcClock, IcCourt, IcSearch, IcUser,
+  formatDias, formatHora, nivelBadgeClass, nivelLabel, proximaDia,
+} from "../components/clases/clasesComun";
 
-const DAY_LABELS = { L: "Lunes", M: "Martes", X: "Miércoles", J: "Jueves", V: "Viernes", S: "Sábado", D: "Domingo" };
 const STAFF_ROLES = ["admin", "profesor", "profe"];
-const CONTACT_HREF = buildClubWhatsappUrl("Hola, quiero información sobre clases de pádel");
-
-const PUBLIC_LEVELS = [
-  { title: "Niños", text: "Aprendizaje seguro y divertido, con juegos, técnica básica y hábitos de pista." },
-  { title: "Iniciación", text: "Para quienes empiezan desde cero o quieren ganar confianza con los golpes básicos." },
-  { title: "Medio", text: "Para jugadores que ya pelotean y buscan mejorar colocación, consistencia y toma de decisiones." },
-  { title: "Avanzado", text: "Ritmo alto, patrones tácticos y trabajo específico para competir mejor." },
-  { title: "Competición", text: "Entrenamientos exigentes para jugadores que compiten o quieren preparar partidos." },
-];
-
-const CLASS_FORMATS = [
-  { title: "Grupos 1 día/semana", text: "Ideal para mantener ritmo y mejorar poco a poco.", badge: "Ritmo semanal", icon: "calendar" },
-  { title: "Grupos 2 días/semana", text: "La opción más completa para progresar con continuidad.", badge: "Más progreso", icon: "repeat" },
-  { title: "Clases particulares", text: "Entrenamientos personalizados para trabajar objetivos concretos.", badge: "A medida", icon: "target" },
-  { title: "Tecnificación", text: "Sesiones enfocadas en golpes, táctica y situaciones reales de partido.", badge: "Detalle técnico", icon: "court" },
-  { title: "Intensivos", text: "Entrenamientos puntuales para avanzar en periodos concretos.", badge: "Por temporada", icon: "spark" },
-];
-
-const METHOD_ITEMS = [
-  { title: "Grupos organizados por nivel", text: "Buscamos que entrenes con alumnos de ritmo parecido para que la clase fluya." },
-  { title: "Seguimiento del progreso", text: "El objetivo es que cada alumno sepa qué está trabajando y qué debe reforzar." },
-  { title: "Avisos y comunicación con el profesor", text: "Cuando formes parte de la escuela, tendrás tu zona para consultar información de clase." },
-  { title: "Entrenamientos adaptados a cada grupo", text: "No todos los grupos necesitan lo mismo: ajustamos técnica, táctica y partido." },
-];
-
-const PRICE_ITEMS = [
-  { title: "Clases en grupo", text: "Consultar cuota según días y grupo" },
-  { title: "Clases particulares", text: "Consultar disponibilidad" },
-  { title: "Intensivos", text: "Según temporada" },
-  { title: "Tecnificación", text: "Consultar plazas" },
-];
-
-const ORIENTATIVE_SCHEDULES = [
-  { title: "Tardes entre semana", text: "La mayor parte de grupos se organiza en franjas de tarde." },
-  { title: "Grupos por nivel", text: "Te orientamos hacia el grupo que mejor encaje con tu juego." },
-  { title: "Opciones para niños y adultos", text: "Clases pensadas para diferentes edades, objetivos y ritmos." },
-  { title: "Intensivos puntuales", text: "Puede haber sesiones especiales en periodos concretos." },
-];
-
-function formatDias(d1, d2) {
-  if (!d2) return DAY_LABELS[d1] || d1 || "-";
-  return `${DAY_LABELS[d1] || d1} y ${DAY_LABELS[d2] || d2}`;
-}
-
-function formatHora(horaInicio, duracionMin) {
-  if (!horaInicio) return "-";
-  const [hh, mm] = String(horaInicio).split(":");
-  const start = new Date();
-  start.setHours(Number(hh), Number(mm), 0, 0);
-  const end = new Date(start.getTime() + Number(duracionMin || 60) * 60000);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${pad(start.getHours())}:${pad(start.getMinutes())} - ${pad(end.getHours())}:${pad(end.getMinutes())}`;
-}
-
-// Estados de la base de datos traducidos a frases normales.
-const ESTADO_TEXTO = {
-  programada: "Programada",
-  dada: "Dada",
-  cancelada: "Cancelada",
-  suspendida: "Suspendida",
-  presente: "Asististe",
-  falta: "Faltaste",
-  justificada: "Falta justificada",
-  pendiente: "Pendiente",
-  asignada: "Con fecha",
-  recuperada: "Recuperada",
-};
-
-const MOTIVO_TEXTO = {
-  falta_justificada: "Falta justificada",
-  lluvia: "Clase suspendida por lluvia",
-  suspendida: "Clase suspendida",
-};
-
-function estadoTexto(estado, porDefecto = "") {
-  if (!estado) return porDefecto;
-  return ESTADO_TEXTO[estado] || String(estado).charAt(0).toUpperCase() + String(estado).slice(1).replace(/_/g, " ");
-}
-
-function motivoTexto(motivo) {
-  if (!motivo) return "Recuperación";
-  return MOTIVO_TEXTO[motivo] || String(motivo).charAt(0).toUpperCase() + String(motivo).slice(1).replace(/_/g, " ");
-}
-
-function fechaClase(valor) {
-  return fechaLarga(valor) || "Fecha pendiente";
-}
-
-function horaClase(horaInicio, duracionMin) {
-  return formatHora(horaInicio, duracionMin).replace(" - ", " a ");
-}
-
-function nivelLabel(nivel) {
-  const map = { ninos: "Niños", iniciacion: "Iniciación", medio: "Medio", avanzado: "Avanzado", competicion: "Competición", avanzado_plus: "Avanzado +" };
-  return map[nivel] || nivel || "-";
-}
-
-function nivelBadgeClass(nivel) {
-  const map = { ninos: "badgeKids", iniciacion: "badgeInit", medio: "badgeInit", avanzado: "badgeAdv", competicion: "badgeComp", avanzado_plus: "badgePlus" };
-  return map[nivel] || "badgeDefault";
-}
-
-function proximaDia(dia1, dia2) {
-  const dayMap = { L: 1, M: 2, X: 3, J: 4, V: 5, S: 6, D: 0 };
-  const today = new Date().getDay();
-  const dias = [dia1, dia2].filter(Boolean);
-  const next = dias
-    .map((d) => {
-      const target = dayMap[d];
-      if (target === undefined) return null;
-      let diff = target - today;
-      if (diff < 0) diff += 7;
-      return { d, diff };
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.diff - b.diff)[0];
-
-  if (!next) return null;
-  if (next.diff === 0) return "Hoy";
-  if (next.diff === 1) return "Mañana";
-  return DAY_LABELS[next.d] || null;
-}
 
 function capacidadReal(cupo, nivel) {
   if (Number(cupo) > 0) return Number(cupo);
@@ -146,27 +25,6 @@ function occupancyInfo(alumnos, cupo, nivel) {
   const statusCls = pct >= 90 ? "occStatusFull" : pct >= 60 ? "occStatusMid" : "occStatusFree";
   const label = pct >= 90 ? "Completo" : pct >= 60 ? "Casi lleno" : "Disponible";
   return { a, c, pct, barCls, statusCls, label };
-}
-
-const IcCalendar = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
-const IcClock = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
-const IcCourt = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="2" y1="12" x2="22" y2="12"/></svg>;
-const IcUser = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
-const IcSearch = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>;
-const IcArrow = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>;
-const IcTarget = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>;
-const IcRepeat = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>;
-const IcSpark = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m12 3 1.9 5.3L19 10.2l-5.1 1.9L12 17.5l-1.9-5.4L5 10.2l5.1-1.9L12 3Z"/><path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z"/></svg>;
-
-function PublicFormatIcon({ type }) {
-  const icons = {
-    calendar: <IcCalendar />,
-    repeat: <IcRepeat />,
-    target: <IcTarget />,
-    court: <IcCourt />,
-    spark: <IcSpark />,
-  };
-  return icons[type] || <IcCourt />;
 }
 
 function GroupCard({ grupo }) {
@@ -202,181 +60,6 @@ function GroupCard({ grupo }) {
         </div>
       </div>
     </article>
-  );
-}
-
-function StudentGroupCard({ grupo }) {
-  const proxima = proximaDia(grupo.dia1, grupo.dia2);
-
-  return (
-    <article className="studentClassCard" data-nivel={grupo.nivel || "default"}>
-      <div className="studentClassTop">
-        <span className={`badge ${nivelBadgeClass(grupo.nivel)}`}>{nivelLabel(grupo.nivel)}</span>
-        {proxima && <span className={`studentNextPill${proxima === "Hoy" ? " today" : ""}`}><IcClock /> {proxima}</span>}
-      </div>
-      <h3>{grupo.nombre || "Grupo de clases"}</h3>
-      <div className="studentClassMeta">
-        <div><span><IcCalendar /> Días</span><strong>{formatDias(grupo.dia1, grupo.dia2)}</strong></div>
-        <div><span><IcClock /> Hora</span><strong>{formatHora(grupo.hora_inicio, grupo.duracion_min)}</strong></div>
-        <div><span><IcCourt /> Pista</span><strong>{grupo.pista_habitual || "Pendiente"}</strong></div>
-        <div><span><IcUser /> Profesor</span><strong>{grupo.profesor || "Pendiente"}</strong></div>
-      </div>
-    </article>
-  );
-}
-
-// Formulario de 4 preguntas: enviar al club por correo o escribir por WhatsApp.
-function EncuentraGrupo() {
-  return (
-    <section className="encuentraGrupo" aria-labelledby="encuentra-grupo-titulo">
-      <h2 id="encuentra-grupo-titulo">Encuentra tu grupo</h2>
-      <p>Respóndenos a 4 preguntas rápidas, casi todo con un toque. Te llamamos con los grupos que encajan.</p>
-      <EncuentraGrupoForm />
-    </section>
-  );
-}
-
-function PublicClassesLanding({ notice }) {
-  return (
-    <section className="clases clasesPublicas">
-      <header className="clasesHero publicHero">
-        <div className="heroContent">
-          <div className="heroText">
-            <span className="publicEyebrow">Escuela NaniPadel</span>
-            <h1 className="heroTitle">Clases de pádel para todos los niveles</h1>
-            <p className="heroSub">Entrena en grupos reducidos, mejora tu juego y encuentra el horario que mejor encaje contigo.</p>
-            <div className="heroActions">
-              <a href="#encuentra-grupo-titulo" className="heroCtaBtn">Encontrar mi grupo <IcArrow /></a>
-              <Link to="/login" className="heroSecondaryBtn">Ya soy alumno: entrar</Link>
-            </div>
-            <div className="publicHeroBadges" aria-label="Tipos de clases disponibles">
-              <span>Niños y adultos</span>
-              <span>Grupos por nivel</span>
-              <span>Clases particulares</span>
-              <span>Tecnificación</span>
-            </div>
-          </div>
-          <div className="publicHeroVisual" aria-hidden="true">
-            <div className="courtCard">
-              <div className="courtLines"><span /></div>
-              <div className="trainingNote">
-                <strong>Busca tu grupo</strong>
-                <span>Te orientamos por nivel, edad y disponibilidad.</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {notice && (
-        <div className="accountNotice">
-          <strong>Tu cuenta aún no está vinculada como alumno de la escuela.</strong>
-          <p>{notice}</p>
-          <a href={CONTACT_HREF} className="inlineHelpBtn" target="_blank" rel="noopener noreferrer">Contactar con el club</a>
-        </div>
-      )}
-
-      <EncuentraGrupo />
-
-      <section className="publicSection" id="niveles">
-        <div className="sectionHeaderStack">
-          <span className="publicEyebrow">Niveles</span>
-          <h2 className="sectionTitle">Entrena con alumnos de tu nivel</h2>
-          <p>Si no tienes claro dónde encajas, cuéntanos cómo juegas y te ayudamos a encontrar el grupo adecuado.</p>
-        </div>
-        <div className="publicGrid levelGrid">
-          {PUBLIC_LEVELS.map((item) => (
-            <article className="publicInfoCard" key={item.title}>
-              <span>{item.title}</span>
-              <p>{item.text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <details className="publicMas">
-        <summary>Más información: tipos de clase, cómo trabajamos, precios y horarios</summary>
-      <section className="publicSection">
-        <div className="sectionHeaderStack">
-          <span className="publicEyebrow">Formatos</span>
-          <h2 className="sectionTitle">¿Qué tipo de clase buscas?</h2>
-          <p>Clases para niños, adultos y jugadores de competición, con opciones para entrenar de forma regular o trabajar objetivos concretos.</p>
-        </div>
-        <div className="publicFormatGrid">
-          {CLASS_FORMATS.map((item) => (
-            <article className="publicFormatCard" key={item.title}>
-              <div className="publicIcon"><PublicFormatIcon type={item.icon} /></div>
-              <span className="publicCardBadge">{item.badge}</span>
-              <h3>{item.title}</h3>
-              <p>{item.text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="publicSection publicMethod">
-        <div className="sectionHeaderStack">
-          <span className="publicEyebrow">Método</span>
-          <h2 className="sectionTitle">Cómo trabajamos en la escuela</h2>
-          <p>Clases con estructura, correcciones claras y ejercicios pensados para que notes mejora en pista.</p>
-        </div>
-        <div className="methodList">
-          {METHOD_ITEMS.map((item, index) => (
-            <article className="methodItem" key={item.title}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <div>
-                <h3>{item.title}</h3>
-                <p>{item.text}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="publicSection">
-        <div className="sectionHeaderStack">
-          <span className="publicEyebrow">Cuotas</span>
-          <h2 className="sectionTitle">Precios orientativos</h2>
-          <p>Te informamos según grupo y horario. No publicamos precios cerrados porque dependen del formato y de la disponibilidad.</p>
-        </div>
-        <div className="publicPriceGrid">
-          {PRICE_ITEMS.map((item) => (
-            <article className="priceCard" key={item.title}>
-              <h3>{item.title}</h3>
-              <strong>{item.text}</strong>
-            </article>
-          ))}
-        </div>
-        <p className="publicNote">Las cuotas pueden variar según el número de días, tipo de grupo y disponibilidad de pista.</p>
-      </section>
-
-      <section className="publicSection">
-        <div className="sectionHeaderStack">
-          <span className="publicEyebrow">Horarios</span>
-          <h2 className="sectionTitle">Horarios generales</h2>
-          <p>Trabajamos con franjas orientativas y disponibilidad por nivel. Para saber opciones reales, lo mejor es consultarlo con el club.</p>
-        </div>
-        <div className="scheduleGrid">
-          {ORIENTATIVE_SCHEDULES.map((item) => (
-            <article className="scheduleCard" key={item.title}>
-              <IcClock />
-              <h3>{item.title}</h3>
-              <p>{item.text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      </details>
-
-      <section className="publicLoginBox">
-        <div>
-          <h2>¿Ya eres alumno?</h2>
-          <p>Entra a tu zona de clases para consultar tu información.</p>
-        </div>
-        <Link to="/login" className="heroSecondaryBtn">Entrar a mi zona de clases</Link>
-      </section>
-    </section>
   );
 }
 
@@ -507,146 +190,7 @@ function StaffClassesSummary({ classData, grupos, loading, err, q, setQ, nivelFi
   );
 }
 
-function StudentClassesDashboard({ classData, user, loading }) {
-  const alumno = classData?.alumno || {};
-  const grupo = classData?.grupo || null;
-  const misClases = classData?.clases || [];
-  const avisos = classData?.avisos || [];
-  const recuperaciones = classData?.recuperaciones || [];
-  const proximasSesiones = classData?.proximasSesiones || classData?.proximas_clases || [];
-  const asistenciaReciente = classData?.asistenciaReciente || classData?.asistencia || [];
-  const nextSession = proximasSesiones[0] || null;
-  const nextGroup = nextSession
-    ? misClases.find((item) => String(item.id) === String(nextSession.grupo_id)) || grupo
-    : grupo;
-
-  return (
-    <section className="clases clasesAlumno">
-      <header className="clasesHero studentHero">
-        <div className="heroContent">
-          <div className="heroText">
-            <h1 className="heroTitle">Mis clases</h1>
-            <p className="heroSub">Tus grupos, próximas clases y avisos de la escuela en un solo lugar.</p>
-          </div>
-          <div className="heroStats">
-            <div className="statCard"><strong>{loading ? "-" : misClases.length}</strong><span>grupos</span></div>
-            <div className="statCard"><strong>{recuperaciones.length}</strong><span>recuperaciones</span></div>
-          </div>
-        </div>
-      </header>
-
-      <section className="studentNextClassCard">
-        <div>
-          <span className="studentSectionEyebrow">Próxima clase</span>
-          <h2>{nextGroup?.nombre || "Aún sin clase programada"}</h2>
-          <p>
-            {nextSession
-              ? `${fechaClase(nextSession.fecha)} · de ${horaClase(nextSession.hora_inicio, nextSession.duracion_min || nextGroup?.duracion_min || 60)}`
-              : "Aún no tienes una próxima clase registrada."}
-          </p>
-        </div>
-        <div className="studentNextMeta">
-          <div><span>Nivel</span><strong>{nivelLabel(nextGroup?.nivel || alumno.nivel_juego || alumno.nivel)}</strong></div>
-          <div><span>Días</span><strong>{nextGroup ? formatDias(nextGroup.dia1, nextGroup.dia2) : "No disponible"}</strong></div>
-          <div><span>Pista</span><strong>{nextSession?.pista_habitual || nextGroup?.pista_habitual || "Pendiente"}</strong></div>
-          <div><span>Profesor</span><strong>{nextGroup?.profesor || classData?.profesor?.nombre || "Pendiente"}</strong></div>
-        </div>
-      </section>
-
-      <section className="studentProfileCard">
-        <div>
-          <span className={`badge ${nivelBadgeClass(alumno.nivel_juego || alumno.nivel || grupo?.nivel)}`}>{nivelLabel(alumno.nivel_juego || alumno.nivel || grupo?.nivel)}</span>
-          <h2>{[alumno.nombre, alumno.apellidos].filter(Boolean).join(" ") || "Alumno"}</h2>
-          <p>{classData?.mensaje || "Estos son los datos principales de tu clase en la escuela."}</p>
-        </div>
-        <div className="studentInfoGrid">
-          <div><span>Grupo</span><strong>{grupo?.nombre || "Aún sin grupo asignado"}</strong></div>
-          <div><span>Profesor</span><strong>{classData?.profesor?.nombre || grupo?.profesor || "No disponible"}</strong></div>
-          <div><span>Días</span><strong>{grupo ? formatDias(grupo.dia1, grupo.dia2) : "No disponible"}</strong></div>
-          <div><span>Horario</span><strong>{grupo ? formatHora(grupo.hora_inicio, grupo.duracion_min) : "No disponible"}</strong></div>
-          <div><span>Pista</span><strong>{classData?.pista || grupo?.pista_habitual || "No disponible"}</strong></div>
-          <div><span>Estado</span><strong>{Number(alumno.activo ?? 1) ? "Activo" : "Inactivo"}</strong></div>
-        </div>
-      </section>
-
-      <section className="studentAssignedSection">
-        <div className="sectionHeaderRow">
-          <h2 className="sectionTitle">Mis grupos</h2>
-          <span className="resultsBadge">{misClases.length} asignado{misClases.length === 1 ? "" : "s"}</span>
-        </div>
-        {misClases.length ? (
-          <div className="studentClassGrid">
-            {misClases.map((item) => <StudentGroupCard key={item.id} grupo={item} />)}
-          </div>
-        ) : (
-          <div className="studentEmptyState">
-            <IcCourt />
-            <strong>Aún no tienes clases asignadas.</strong>
-            <p>Contacta con el club para más información.</p>
-            <a href={CONTACT_HREF} className="heroCtaBtn" target="_blank" rel="noopener noreferrer">Contactar con el club</a>
-          </div>
-        )}
-      </section>
-
-      <section className="studentPanels">
-        <div className="studentPanel">
-          <h2>Próximas clases</h2>
-          {proximasSesiones.length ? proximasSesiones.map((sesion) => (
-            <article className="studentMiniRow" key={sesion.id}>
-              <strong>{fechaClase(sesion.fecha)}</strong>
-              <span>De {horaClase(sesion.hora_inicio, sesion.duracion_min || grupo?.duracion_min || 60)} · {sesion.pista_habitual || grupo?.pista_habitual || "Pista por confirmar"}</span>
-              {sesion.estado && sesion.estado !== "programada" && <em className={`estadoInsignia estado-${sesion.estado}`}>{estadoTexto(sesion.estado)}{sesion.estado === "cancelada" && sesion.cancelacion?.etiqueta ? ` · ${sesion.cancelacion.etiqueta}` : ""}</em>}
-            </article>
-          )) : <p className="softEmpty">Todavía no hay próximas clases registradas.</p>}
-        </div>
-        <div className="studentPanel">
-          <h2>Avisos del profesor</h2>
-          {avisos.length ? avisos.map((aviso) => (
-            <article className="studentMiniRow" key={aviso.id}>
-              <strong>{aviso.titulo}</strong>
-              <span>{aviso.mensaje}</span>
-            </article>
-          )) : <p className="softEmpty">No tienes avisos nuevos.</p>}
-        </div>
-        <div className="studentPanel">
-          <h2>Recuperaciones pendientes</h2>
-          {recuperaciones.length ? recuperaciones.map((recuperacion) => (
-            <article className="studentMiniRow" key={recuperacion.id}>
-              <strong>{motivoTexto(recuperacion.motivo)}</strong>
-              <span>Clase del {fechaLarga(recuperacion.fecha_original, { capital: false }) || "día pendiente"}</span>
-              <em className={`estadoInsignia estado-${recuperacion.estado || "pendiente"}`}>
-                {recuperacion.fecha_recuperacion
-                  ? `Recuperas el ${fechaLarga(recuperacion.fecha_recuperacion, { capital: false })}`
-                  : estadoTexto(recuperacion.estado, "Pendiente")}
-              </em>
-            </article>
-          )) : <p className="positiveEmpty">No tienes clases pendientes de recuperar.</p>}
-        </div>
-        <div className="studentPanel">
-          <h2>Asistencia reciente</h2>
-          {asistenciaReciente.length ? asistenciaReciente.map((asistencia) => (
-            <article className="studentMiniRow" key={asistencia.id}>
-              <strong>{fechaClase(asistencia.fecha)}</strong>
-              <span>{asistencia.grupo || "Clase"}</span>
-              <em className={`estadoInsignia estado-${asistencia.estado || "pendiente"}`}>{estadoTexto(asistencia.estado, "Sin pasar lista")}</em>
-            </article>
-          )) : <p className="softEmpty">Todavía no hay asistencia registrada.</p>}
-        </div>
-      </section>
-
-      <section className="studentHelpPanel">
-        <div>
-          <h2>¿Necesitas ayuda con tus clases?</h2>
-          <p>Contacta con el club o consulta con tu profesor para cambios de grupo, recuperaciones o dudas de horario.</p>
-        </div>
-        <ContactoClub mensaje="Hola, tengo una duda sobre mis clases de pádel" />
-      </section>
-    </section>
-  );
-}
-
 export default function Clases() {
-  const [publicData, setPublicData] = useState(null);
   const [classData, setClassData] = useState(null);
   const [grupos, setGrupos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -671,8 +215,6 @@ export default function Clases() {
         setErr("");
 
         if (!isLogged()) {
-          const data = await apiGet("/api/clases/publica");
-          setPublicData(data);
           setClassData({ tipoVista: "publica" });
           return;
         }
@@ -682,10 +224,6 @@ export default function Clases() {
         setClassData(profile);
         if (profile.tipoVista === "profesor" || profile.tipoVista === "admin") {
           setGrupos(profile.resumen_profesor?.grupos || profile.resumen?.gruposAsignados || []);
-        }
-        if (profile.tipoVista === "sin_vincular") {
-          const data = await apiGet("/api/clases/publica");
-          setPublicData(data);
         }
       } catch (e) {
         setErr(e.message || "Inténtalo de nuevo en unos segundos.");
@@ -710,7 +248,7 @@ export default function Clases() {
   }
 
   if (tipoVista === "publica" || tipoVista === "sin_vincular") {
-    return <PublicClassesLanding publicData={publicData} notice={tipoVista === "sin_vincular" ? classData?.mensaje : null} />;
+    return <ClasesPublica notice={tipoVista === "sin_vincular" ? classData?.mensaje : null} />;
   }
 
   if (tipoVista === "profesor" || tipoVista === "admin" || isLocalStaff) {
@@ -734,5 +272,5 @@ export default function Clases() {
     );
   }
 
-  return <StudentClassesDashboard classData={classData} user={user} loading={loading} />;
+  return <ClasesAlumno classData={classData} loading={loading} />;
 }

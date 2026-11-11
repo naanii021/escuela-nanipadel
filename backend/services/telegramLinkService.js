@@ -60,9 +60,11 @@ export async function consumeTelegramLinkCode({ code, chatId, username }, pool =
 
 export async function getTelegramProfessor(chatId, executor = db.promise()) {
   const [rows] = await executor.query(
-    `SELECT id, usuario_id, nombre, apellidos, telegram_chat_id, telegram_username
-     FROM profesores
-     WHERE telegram_chat_id = ? AND activo = 1
+    `SELECT p.id, p.usuario_id, p.nombre, p.apellidos, p.telegram_chat_id, p.telegram_username,
+            u.rol AS usuario_rol
+     FROM profesores p
+     LEFT JOIN usuarios u ON u.id = p.usuario_id
+     WHERE p.telegram_chat_id = ? AND p.activo = 1
      LIMIT 1`,
     [String(chatId)]
   );
