@@ -1,65 +1,248 @@
-/* Entrar / crear cuenta */
+/* Entrar / crear cuenta: panel de marca a la izquierda (ordenador) y tarjeta con pestañas. */
+
 .loginPage {
-  display: flex;
-  justify-content: center;
-  padding: 1.5rem 0;
+  --lima: var(--lime, #b8ee58);
+  --verde-oscuro: #17372a;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0.75rem 0 1.5rem;
 }
+
+@keyframes loginEntra {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes loginCambia {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+
+@keyframes loginSacude {
+  20% { transform: translateX(-6px); }
+  45% { transform: translateX(5px); }
+  70% { transform: translateX(-3px); }
+}
+
+@keyframes loginGira {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes loginBota {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-34px, 62px); }
+}
+
+/* ---------- Marca ---------- */
+
+.loginMarca {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.loginMarca strong {
+  display: block;
+  font-size: 1.3rem;
+  line-height: 1.1;
+}
+
+.loginMarca span {
+  font-size: 0.95rem;
+  opacity: 0.8;
+}
+
+.loginLogo {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+}
+
+.loginLado {
+  display: none;
+}
+
+/* ---------- Tarjeta ---------- */
 
 .loginCard {
   width: 100%;
-  max-width: 440px;
-  padding: 1.5rem;
+  max-width: 470px;
+  margin: 0 auto;
+  padding: 1.4rem;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 22px;
   background: #ffffff;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.09), 0 1px 3px rgba(15, 23, 42, 0.05);
+  animation: loginEntra 420ms var(--ease) both;
+}
+
+.loginYa .loginCard {
+  display: grid;
+  gap: 0.2rem;
 }
 
 .loginPage .loginCard h1 {
   margin: 0;
-  font-size: clamp(1.9rem, 6vw, 2.4rem);
+  font-size: clamp(1.7rem, 6vw, 2.1rem);
+  line-height: 1.1;
 }
 
 .loginInfo {
-  margin: 0.5rem 0 1.1rem;
+  margin: 0.45rem 0 1.1rem;
   color: var(--muted);
   font-size: 1.05rem;
+  line-height: 1.4;
 }
+
+.loginPanel {
+  animation: loginCambia 260ms var(--ease) both;
+}
+
+/* ---------- Pestañas ---------- */
+
+.loginTabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin-bottom: 1.4rem;
+  padding: 5px;
+  border-radius: 16px;
+  background: #edf3ef;
+}
+
+.loginTabsFondo {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 5px;
+  width: calc(50% - 5px);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
+  transition: transform 260ms var(--ease);
+}
+
+.loginTabs[data-activa="registro"] .loginTabsFondo {
+  transform: translateX(100%);
+}
+
+.loginTabs button {
+  position: relative;
+  min-height: 54px;
+  padding: 0.5rem 0.6rem;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #3f5249;
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 200ms ease, transform 120ms var(--ease);
+}
+
+.loginTabs button[aria-selected="true"] {
+  color: var(--verde-oscuro);
+  font-weight: 800;
+}
+
+.loginTabs button:active {
+  transform: scale(0.97);
+}
+
+/* ---------- Pasos ---------- */
+
+.loginPasos {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: -0.4rem 0 1.1rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.loginPasosBarra {
+  flex: 1;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #e3ece6;
+}
+
+.loginPasosBarra i {
+  display: block;
+  width: 50%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-secondary-dark);
+  transition: width 320ms var(--ease);
+}
+
+.loginPasosBarra i.full {
+  width: 100%;
+}
+
+/* ---------- Avisos ---------- */
 
 .loginError,
 .loginNotice {
+  display: grid;
+  gap: 0.2rem;
   margin-bottom: 1rem;
   padding: 0.85rem 1rem;
   border: 1px solid;
-  border-radius: 12px;
+  border-radius: 14px;
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.45;
-}
-
-.loginError {
-  border-color: #f0c6c6;
-  background: #fef2f2;
-  color: #991b1b;
 }
 
 .loginNotice {
   border-color: #f2d27a;
   background: #fff8e6;
   color: #6b4e00;
+  animation: loginEntra 320ms var(--ease) both;
+}
+
+.loginError {
+  justify-items: start;
+  border-color: #f0c6c6;
+  background: #fef2f2;
+  color: #991b1b;
+  animation: loginSacude 380ms var(--ease) both;
+}
+
+.loginError .loginLinkBtn {
+  min-height: 44px;
+  color: #991b1b;
 }
 
 .loginForm {
   display: grid;
-  gap: 1rem;
+  gap: 1.1rem;
 }
+
+/* ---------- Campos ---------- */
 
 .field {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .field > label {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
 }
 
@@ -68,22 +251,62 @@
   font-weight: 500;
 }
 
+.fieldAyuda {
+  margin: 0;
+  color: #3f5249;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
 .field input {
   width: 100%;
-  min-height: 52px;
-  padding: 0.7rem 0.9rem;
-  border: 1px solid #b9c9be;
-  border-radius: 12px;
+  min-height: 58px;
+  padding: 0.7rem 1rem;
+  border: 1.5px solid #9fb3a6;
+  border-radius: 14px;
   background: #ffffff;
   color: var(--color-text);
   font: inherit;
-  font-size: 16px;
+  font-size: 17px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .field input:focus {
-  border-color: var(--color-secondary);
-  outline: 3px solid var(--focus-ring, rgba(47, 125, 84, 0.28));
+  border-color: var(--color-secondary-dark);
+  outline: 3px solid var(--focus-ring, rgba(47, 125, 84, 0.3));
   outline-offset: 1px;
+}
+
+.fieldError input {
+  border-color: #b91c1c;
+  background: #fffafa;
+}
+
+.fieldMsg {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0;
+  color: #991b1b;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  animation: loginEntra 240ms var(--ease) both;
+}
+
+.fieldMsg::before {
+  content: "!";
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  margin-top: 0.1rem;
+  border-radius: 50%;
+  background: #991b1b;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 800;
 }
 
 .passwordWrap {
@@ -91,30 +314,59 @@
 }
 
 .passwordWrap input {
-  padding-right: 5.5rem;
+  padding-right: 6rem;
 }
 
 .passwordToggle {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  bottom: 4px;
-  min-width: 4.6rem;
-  padding: 0 0.75rem;
+  top: 5px;
+  right: 5px;
+  bottom: 5px;
+  min-width: 4.8rem;
+  padding: 0 0.8rem;
   border: 0;
-  border-radius: 9px;
+  border-radius: 10px;
   background: #edf3ef;
   color: var(--color-text);
   font: inherit;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
+  transition: transform 120ms var(--ease), background-color 120ms ease;
+}
+
+.loginMedidor {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #e3ece6;
+}
+
+.loginMedidor i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #d99a1c;
+  transition: width 200ms var(--ease), background-color 200ms ease;
+}
+
+.loginMedidor i.ok {
+  background: var(--color-secondary-dark);
 }
 
 .loginHint {
-  margin: -0.6rem 0 0;
-  color: var(--muted);
-  font-size: 0.95rem;
+  margin: 0;
+  color: #3f5249;
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+/* ---------- Botones ---------- */
+
+.loginAcciones,
+.loginStack {
+  display: grid;
+  gap: 0.6rem;
 }
 
 .loginPage .loginBtn,
@@ -123,31 +375,40 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.6rem;
   width: 100%;
-  min-height: 52px;
+  min-height: 60px;
   padding: 0.7rem 1rem;
-  border-radius: 14px;
+  border-radius: 16px;
   font: inherit;
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: 1.15rem;
+  font-weight: 800;
   line-height: 1.2;
   text-align: center;
   text-decoration: none;
   cursor: pointer;
-  transition: transform 120ms var(--ease-out), background-color 120ms ease;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 140ms var(--ease), background-color 140ms ease, box-shadow 140ms ease;
 }
 
 .loginPage .loginBtn {
   border: 0;
-  background: var(--color-primary);
-  color: #ffffff;
-  box-shadow: none;
+  background: var(--lima);
+  color: #10261a;
+  box-shadow: 0 10px 22px rgba(23, 55, 42, 0.22), inset 0 -3px 0 rgba(16, 38, 26, 0.14);
+}
+
+.loginPage .loginBtn:disabled {
+  cursor: progress;
+  opacity: 0.85;
 }
 
 .loginSecondaryBtn {
-  border: 1px solid #b9c9be;
+  border: 1.5px solid #9fb3a6;
   background: #ffffff;
   color: var(--color-text);
+  font-weight: 700;
 }
 
 .loginWhatsBtn {
@@ -156,25 +417,39 @@
   color: #ffffff;
 }
 
-.loginPage .loginBtn:active,
+.loginPage .loginBtn:active:not(:disabled),
 .loginSecondaryBtn:active,
 .loginWhatsBtn:active,
 .passwordToggle:active {
   transform: scale(0.97);
 }
 
+.loginSpinner {
+  width: 1.3rem;
+  height: 1.3rem;
+  border: 3px solid rgba(16, 38, 26, 0.25);
+  border-top-color: #10261a;
+  border-radius: 50%;
+  animation: loginGira 700ms linear infinite;
+}
+
+/* ---------- Contraseña olvidada ---------- */
+
 .loginForgot {
-  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+  margin-top: -0.4rem;
 }
 
 .loginLinkBtn {
+  justify-self: start;
   min-height: 44px;
   padding: 0;
   border: 0;
   background: none;
   color: var(--color-secondary-dark);
   font: inherit;
-  font-size: 1rem;
+  font-size: 1.02rem;
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 4px;
@@ -184,55 +459,157 @@
 .loginForgotBox {
   display: grid;
   gap: 0.75rem;
-  padding: 0.9rem 1rem;
-  border-radius: 12px;
-  background: #f4f7f3;
+  padding: 1rem;
+  border-radius: 14px;
+  background: #f1f6f2;
+  animation: loginEntra 260ms var(--ease) both;
 }
 
 .loginForgotBox p {
   margin: 0;
+  line-height: 1.45;
 }
 
-.loginStack {
-  display: grid;
-  gap: 0.6rem;
+/* ---------- Ya has entrado ---------- */
+
+.loginYa .loginMarca {
+  margin-bottom: 1rem;
 }
 
-.loginSwitch {
-  display: grid;
-  gap: 0.5rem;
-  margin-top: 1.25rem;
-  padding-top: 1.1rem;
-  border-top: 1px solid var(--border);
-  font-size: 1rem;
+.loginYa .loginStack {
+  margin-top: 0.8rem;
+}
+
+.loginPage a.loginBtn {
+  border: 0;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .loginPage .loginBtn:hover:not(:disabled) {
-    background: var(--color-primary-soft);
-    transform: none;
+    box-shadow: 0 14px 28px rgba(23, 55, 42, 0.28), inset 0 -3px 0 rgba(16, 38, 26, 0.14);
+    transform: translateY(-1px);
+    background: #c4f26a;
   }
 
   .loginSecondaryBtn:hover {
     background: #f4f7f3;
   }
+
+  .loginTabs button[aria-selected="false"]:hover {
+    color: var(--verde-oscuro);
+  }
+}
+
+/* ---------- Ordenador: panel de marca ---------- */
+
+@media (min-width: 900px) {
+  .loginPage {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 470px);
+    align-items: stretch;
+    gap: 0;
+    padding: 2rem 0 2.5rem;
+  }
+
+  .loginLado {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    padding: 2.4rem 2.4rem 2rem;
+    overflow: hidden;
+    border-radius: 26px 0 0 26px;
+    background: linear-gradient(160deg, #1f4a37 0%, #17372a 70%);
+    color: #ffffff;
+    animation: loginEntra 420ms var(--ease) both;
+  }
+
+  .loginLado h2 {
+    max-width: 14ch;
+    margin: 1rem 0 0;
+    font-size: 2.3rem;
+    line-height: 1.1;
+  }
+
+  .loginLado ul {
+    display: grid;
+    gap: 0.7rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 1.1rem;
+  }
+
+  .loginLado li {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  .loginLado li::before {
+    content: "";
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--lima);
+  }
+
+  .loginPista {
+    width: 100%;
+    max-width: 300px;
+    margin-top: auto;
+    color: rgba(255, 255, 255, 0.32);
+  }
+
+  .loginBola {
+    animation: loginBota 3.2s ease-in-out infinite;
+  }
+
+  .loginCard {
+    max-width: none;
+    padding: 2.2rem 2rem;
+    border-radius: 0 26px 26px 0;
+  }
 }
 
 @media (max-width: 480px) {
   .loginPage {
-    padding: 0.5rem 0;
+    padding: 0.25rem 0 1rem;
   }
 
   .loginCard {
-    padding: 1.15rem;
+    padding: 1.1rem;
+    border-radius: 20px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .loginCard,
+  .loginLado,
+  .loginPanel,
+  .loginNotice,
+  .loginError,
+  .loginForgotBox,
+  .fieldMsg,
+  .loginBola {
+    animation: none;
+  }
+
+  .loginTabsFondo,
+  .loginPasosBarra i,
+  .loginMedidor i {
+    transition: none;
+  }
+
   .loginPage .loginBtn:active,
   .loginSecondaryBtn:active,
   .loginWhatsBtn:active,
-  .passwordToggle:active {
+  .passwordToggle:active,
+  .loginTabs button:active {
     transform: none;
+  }
+
+  .loginSpinner {
+    animation-duration: 1.6s;
   }
 }
