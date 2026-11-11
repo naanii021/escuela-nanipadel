@@ -596,6 +596,9 @@
 }
 
 .ppCheckRow input { flex: none; width: 24px; height: 24px; accent-color: var(--pp-ok); }
+.ppCheckRowAviso { align-items: flex-start; padding-block: 0.3rem; }
+.ppCheckRowAviso input { margin-top: 0.1rem; }
+.ppCheckSub { display: block; margin-top: 0.15rem; font-size: 0.9375rem; font-weight: 400; color: var(--pp-muted); }
 
 .ppCancelAviso {
   padding: 0.7rem 0.8rem;
