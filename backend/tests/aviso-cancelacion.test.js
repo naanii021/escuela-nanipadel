@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { registerHooks } from "node:module";
 import test from "node:test";
+import { consultaGp } from "./helpers/grupo-profesores.js";
 
 // Claves falsas: nada sale a Meta, fetch está simulado.
 process.env.WHATSAPP_TOKEN = "token-de-prueba";
@@ -19,6 +20,8 @@ let fetchPausaMs = 0;
 const roster = () => alumnosBd.map(({ id, nombre }) => ({ id, nombre, apellidos: "Apellido" }));
 
 async function query(sql, params = []) {
+  const gpRes = consultaGp(sql, params);
+  if (gpRes) return gpRes;
   if (sql.includes("FROM cursos_escolares c")) return [[{ curso_id: 26, sede_id: 4 }]];
   if (sql === "SHOW COLUMNS FROM profesores") return [[{ Field: "id" }, { Field: "usuario_id" }, { Field: "activo" }]];
   if (sql.startsWith("SELECT id FROM profesores WHERE (")) return [[{ id: 51 }]];

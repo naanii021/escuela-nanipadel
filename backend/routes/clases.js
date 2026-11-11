@@ -4,9 +4,16 @@ import { JWT_SECRET } from "../config/security.js";
 import { db } from "../db/connection.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
 import { sesionParaAlumno } from "./gestionControl.js";
+import {
+  anotarProfesores,
+  condicionGruposDelProfesor,
+  esProfesorDelGrupo,
+  existeTablaGrupoProfesores,
+} from "../services/profesoresGrupo.js";
 
 const router = express.Router();
 const query = (sql, params = []) => db.promise().query(sql, params);
+const executor = { query };
 
 const STAFF_ROLES = ["admin", "profesor", "profe"];
 const PUBLIC_LEVELS = [
@@ -81,8 +88,8 @@ async function ensureProfessorCanAccessGroup(user, groupId) {
   if (isAdmin(user)) return true;
   const profesorId = await getProfesorIdForUser(user);
   if (!profesorId) return false;
-  const [rows] = await query("SELECT id FROM grupos WHERE id = ? AND profesor_id = ? LIMIT 1", [groupId, profesorId]);
-  return rows.length > 0;
+  // Profesor principal o profesor compartido del grupo (grupo_profesores, si existe).
+  return esProfesorDelGrupo(executor, groupId, profesorId);
 }
 
 async function getAlumnoForUser(userId) {
@@ -135,8 +142,9 @@ async function getGroupsForStaff(user) {
   const profesorId = await getProfesorIdForUser(user);
   if (!isAdmin(user) && !profesorId) return [];
 
-  const where = isAdmin(user) ? "" : "WHERE g.profesor_id = ?";
-  const params = isAdmin(user) ? [] : [profesorId];
+  const own = isAdmin(user) ? null : condicionGruposDelProfesor(await existeTablaGrupoProfesores(executor), profesorId, "g");
+  const where = own ? `WHERE ${own.sql}` : "";
+  const params = own ? own.params : [];
   const [rows] = await query(
     `SELECT
       g.id,
@@ -164,7 +172,7 @@ async function getGroupsForStaff(user) {
      ORDER BY g.hora_inicio, g.codigo`,
     params
   );
-  return rows;
+  return anotarProfesores(executor, rows);
 }
 
 async function getAvisosForGroups(groupIds, onlyActive = true) {

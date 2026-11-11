@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { registerHooks } from "node:module";
 import test from "node:test";
+import { consultaGp, gp, resetGp } from "./helpers/grupo-profesores.js";
 
 // Qué usuarios puede listar cada rol en GET /api/gestion/usuarios: el coordinador (admin) todos;
 // un profesor, solo los alumnos de sus grupos y ningún otro profesor.
@@ -8,6 +9,8 @@ const calls = [];
 let professorLinked = true;
 
 async function query(sql, params = []) {
+  const gpRes = consultaGp(sql, params);
+  if (gpRes) return gpRes;
   if (sql === "SHOW COLUMNS FROM profesores") return [[{ Field: "id" }, { Field: "usuario_id" }, { Field: "activo" }]];
   if (sql.startsWith("SELECT id FROM profesores WHERE ")) return [professorLinked ? [{ id: 51 }] : []];
   if (sql.includes("FROM usuarios u")) {
@@ -37,6 +40,7 @@ registerHooks({
 
 const { default: router } = await import("../routes/gestion.js");
 const { resetProfessorColumnsCache } = await import("../routes/gestionControl.js");
+const { resetGrupoProfesoresCache } = await import("../services/profesoresGrupo.js");
 
 async function listar(rol, search = {}) {
   const route = router.stack.find((layer) => layer.route?.path === "/usuarios" && layer.route.methods.get).route;
@@ -82,4 +86,27 @@ test("un profesor no puede listar a otros profesores ni a nadie sin ficha de pro
   const sinFicha = await listar("profe", { rol: "alumno" });
   assert.deepEqual(sinFicha.body.usuarios, []);
   assert.equal(calls.length, 0);
+});
+
+test("con la tabla grupo_profesores, un profesor lista también a los alumnos de los grupos que comparte", async () => {
+  resetProfessorColumnsCache?.();
+  resetGrupoProfesoresCache();
+  resetGp();
+  gp.tabla = true;
+  professorLinked = true;
+  calls.length = 0;
+  try {
+    const res = await listar("profesor", { rol: "alumno" });
+    assert.equal(res.statusCode, 200);
+    assert.match(calls[0].sql, /gr\.profesor_id = \? OR EXISTS \(SELECT 1 FROM grupo_profesores gp_gr WHERE gp_gr\.grupo_id = gr\.id AND gp_gr\.profesor_id = \?\)/);
+    assert.deepEqual(calls[0].params, [51, 51, 50]);
+
+    // el admin sigue sin filtro
+    calls.length = 0;
+    await listar("admin", { rol: "alumno" });
+    assert.doesNotMatch(calls[0].sql, /grupo_profesores/);
+  } finally {
+    resetGrupoProfesoresCache();
+    resetGp();
+  }
 });
