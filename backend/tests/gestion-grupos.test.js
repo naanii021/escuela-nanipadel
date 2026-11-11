@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { registerHooks } from "node:module";
 import test from "node:test";
+import { consultaGp } from "./helpers/grupo-profesores.js";
 
 const columns = {
   grupos: [
@@ -12,6 +13,8 @@ let activeContext = [{ curso_id: 3, curso_nombre: "Curso", sede_id: 2, sede_nomb
 let inserted = null;
 
 async function query(sql, params = []) {
+  const gpRes = consultaGp(sql, params);
+  if (gpRes) return gpRes;
   if (sql.startsWith("SHOW COLUMNS FROM ")) {
     return [columns[sql.slice("SHOW COLUMNS FROM ".length)].map((Field) => ({ Field }))];
   }

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { registerHooks } from "node:module";
 import test from "node:test";
+import { consultaGp } from "./helpers/grupo-profesores.js";
 
 let session = null;
 const attendance = new Map();
@@ -19,6 +20,8 @@ const students = [
 ];
 
 async function query(sql, params = []) {
+  const gpRes = consultaGp(sql, params);
+  if (gpRes) return gpRes;
   if (sql.includes("FROM cursos_escolares c")) return [[{ curso_id: 26, sede_id: 4 }]];
   if (sql.includes("FROM grupos g") && sql.includes("g.activo = 1")) {
     if (sql.includes("LEFT JOIN profesores p")) {

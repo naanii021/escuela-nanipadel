@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { registerHooks } from "node:module";
 import test from "node:test";
+import { consultaGp } from "./helpers/grupo-profesores.js";
 
 let session = null;
 let attendance = null;
@@ -10,6 +11,8 @@ let commits = 0;
 let rollbacks = 0;
 
 async function query(sql, params = []) {
+  const gpRes = consultaGp(sql, params);
+  if (gpRes) return gpRes;
   if (sql.includes("FROM cursos_escolares c")) return [[{ curso_id: 26, sede_id: 4 }]];
   if (sql === "SHOW COLUMNS FROM profesores") {
     return [[{ Field: "id" }, { Field: "usuario_id" }, { Field: "activo" }]];

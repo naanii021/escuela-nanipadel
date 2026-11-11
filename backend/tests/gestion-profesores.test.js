@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { registerHooks } from "node:module";
 import test from "node:test";
+import { consultaGp } from "./helpers/grupo-profesores.js";
 import bcrypt from "bcrypt";
 
 const profesores = [];
@@ -30,6 +31,8 @@ const columns = {
 };
 
 async function query(sql, params = []) {
+  const gpRes = consultaGp(sql, params);
+  if (gpRes) return gpRes;
   if (sql.startsWith("SHOW COLUMNS FROM ")) {
     return [columns[sql.slice("SHOW COLUMNS FROM ".length)].map((Field) => ({ Field }))];
   }
