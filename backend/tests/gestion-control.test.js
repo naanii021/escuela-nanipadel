@@ -10,6 +10,8 @@ let inserts = 0;
 let professorActive = true;
 let professorLinked = true;
 let showColumnsQueries = 0;
+// Profesor habitual del grupo 8 en estos tests (null = sin profesor asignado).
+let groupProfessorId = null;
 const students = [
   { id: 1, nombre: "Ana", apellidos: "A", asiste_dia1: 1, asiste_dia2: 0 },
   { id: 2, nombre: "Beto", apellidos: "B", asiste_dia1: 0, asiste_dia2: 1 },
@@ -20,11 +22,14 @@ async function query(sql, params = []) {
   if (sql.includes("FROM cursos_escolares c")) return [[{ curso_id: 26, sede_id: 4 }]];
   if (sql.includes("FROM grupos g") && sql.includes("g.activo = 1")) {
     if (sql.includes("LEFT JOIN profesores p")) {
-      assert.deepEqual(params, [26, 4]);
-      return [[{ id: 8, nombre: "Grupo", profesor_id: null, dia1: "L", dia2: "M" }]];
+      // Un profesor solo pide los grupos en los que es el habitual (el SQL filtra por su ficha).
+      const own = /AND g\.profesor_id = \?/.test(sql);
+      assert.deepEqual(params, own ? [26, 4, 51] : [26, 4]);
+      const group = { id: 8, nombre: "Grupo", profesor_id: groupProfessorId, dia1: "L", dia2: "M" };
+      return [own && groupProfessorId !== 51 ? [] : [group]];
     }
     assert.deepEqual(params, ["8", 26, 4]);
-    return [[{ id: 8, nombre: "Grupo", profesor_id: null, dia1: "L", dia2: "M", hora_inicio: "18:00:00", duracion_min: 60 }]];
+    return [[{ id: 8, nombre: "Grupo", profesor_id: groupProfessorId, dia1: "L", dia2: "M", hora_inicio: "18:00:00", duracion_min: 60 }]];
   }
   if (sql.includes("FROM grupo_alumnos ga")) {
     assert.match(sql, /COALESCE\(ac\.estado, ''\) <> 'baja'/);
@@ -178,7 +183,8 @@ test("el lunes muestra otra lista y no crea sesión fuera del horario del grupo"
   assert.equal(inserts, 1);
 });
 
-test("profesor activo puede controlar un grupo sin profesor habitual y queda como docente de la sesión", async () => {
+test("profesor activo controla su grupo y queda como docente de la sesión", async () => {
+  groupProfessorId = 51;
   const groups = await call("get", "/grupos", {}, "profesor");
   assert.equal(groups.statusCode, 200);
   assert.deepEqual(groups.body.grupos.map((group) => group.id), [8]);
@@ -205,6 +211,39 @@ test("profesor activo puede controlar un grupo sin profesor habitual y queda com
     fecha: "2026-09-21", estado: "dada",
   }, "profe");
   assert.equal(professorUpdate.body.sesion.profesor_id, 51);
+  groupProfessorId = null;
+});
+
+test("un profesor no ve ni toca grupos ajenos ni grupos sin profesor; el coordinador (admin) sí", async () => {
+  for (const owner of [77, null]) {
+    groupProfessorId = owner;
+    const groups = await call("get", "/grupos", {}, "profesor");
+    assert.equal(groups.statusCode, 200);
+    assert.deepEqual(groups.body.grupos, []);
+
+    const load = await call("get", path, { fecha: "2026-09-21" }, "profe");
+    assert.equal(load.statusCode, 403);
+    assert.match(load.body.message, /no es tuyo/);
+
+    const before = inserts;
+    const save = await call("post", path, { fecha: "2026-09-21", estado: "dada", asistencias: [] }, "profesor");
+    assert.equal(save.statusCode, 403);
+    assert.equal(inserts, before);
+
+    const cancel = await call("post", `${path}/cancelar`, { fecha: "2026-09-21", motivo: "lluvia" }, "profesor");
+    assert.equal(cancel.statusCode, 403);
+    assert.equal(inserts, before);
+
+    const reopen = await call("post", `${path}/reabrir`, { fecha: "2026-09-21" }, "profesor");
+    assert.equal(reopen.statusCode, 403);
+
+    // El coordinador sigue viéndolo todo.
+    const adminGroups = await call("get", "/grupos", {}, "admin");
+    assert.deepEqual(adminGroups.body.grupos.map((group) => group.id), [8]);
+    const adminLoad = await call("get", path, { fecha: "2026-09-21" }, "admin");
+    assert.equal(adminLoad.statusCode, 200);
+  }
+  groupProfessorId = null;
 });
 
 test("profesor inactivo o usuario ajeno a staff no accede", async () => {

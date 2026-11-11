@@ -126,6 +126,14 @@ export async function getProfessorId(connection, user) {
   return rows[0]?.id || 0;
 }
 
+// Un profesor solo gestiona los grupos en los que es el profesor habitual; el coordinador (admin) los ve
+// todos. Un grupo sin profesor asignado también es solo del coordinador.
+function assertGrupoPropio(group, professorId) {
+  if (professorId && Number(group.profesor_id) !== Number(professorId)) {
+    fail(403, "Ese grupo no es tuyo: solo puedes ver y pasar lista de tus clases");
+  }
+}
+
 export async function requireStaffProfessor(connection, user) {
   const role = String(user?.rol || "").toLowerCase();
   if (role !== "admin" && role !== "profesor" && role !== "profe") fail(403, "No tienes acceso al control de clases");
@@ -147,6 +155,7 @@ async function getGroup(connection, user, groupId, lock = false) {
   );
   const group = rows[0];
   if (!group) fail(404, "Grupo activo no encontrado en el curso y sede actuales");
+  assertGrupoPropio(group, professorId);
   return { group, context, professorId };
 }
 
@@ -160,8 +169,9 @@ export async function listControlGroups(user, connection = db.promise()) {
      FROM grupos g
      LEFT JOIN profesores p ON p.id = g.profesor_id
      WHERE g.curso_id = ? AND g.sede_id = ? AND g.activo = 1
+       ${professorId ? "AND g.profesor_id = ?" : ""}
      ORDER BY g.hora_inicio, g.nombre`,
-    [context.curso_id, context.sede_id]
+    professorId ? [context.curso_id, context.sede_id, professorId] : [context.curso_id, context.sede_id]
   );
   return { grupos, profesor_actual_id: professorId, context };
 }
@@ -305,8 +315,10 @@ router.get("/grupos/:grupoId/sesiones", async (req, res) => {
 });
 
 export async function listControlRecoveries(user, connection = db.promise()) {
-  await requireStaffProfessor(connection, user);
+  const professorId = await requireStaffProfessor(connection, user);
   const context = await getContext(connection);
+  const ownGroup = professorId ? "AND g.profesor_id = ?" : "";
+  const ownParams = professorId ? [professorId] : [];
   const [recuperaciones] = await connection.query(
       `SELECT r.id, r.alumno_id, r.grupo_id, r.sesion_origen_id,
               r.sesion_recuperacion_id,
@@ -317,19 +329,19 @@ export async function listControlRecoveries(user, connection = db.promise()) {
               g.nombre AS grupo_origen
        FROM recuperaciones_clase r
        JOIN grupos g ON g.id = r.grupo_id
-         AND g.curso_id = ? AND g.sede_id = ?
+         AND g.curso_id = ? AND g.sede_id = ? ${ownGroup}
        LEFT JOIN alumnos a ON a.id = r.alumno_id
        ORDER BY r.fecha_original DESC, r.id DESC`,
-      [context.curso_id, context.sede_id]
+      [context.curso_id, context.sede_id, ...ownParams]
     );
   const [sesiones] = await connection.query(
       `SELECT s.id, s.grupo_id, DATE_FORMAT(s.fecha, '%Y-%m-%d') AS fecha,
               s.hora_inicio, s.estado, s.observaciones, g.nombre AS grupo_nombre
        FROM sesiones_clase s
        JOIN grupos g ON g.id = s.grupo_id
-         AND g.curso_id = ? AND g.sede_id = ?
+         AND g.curso_id = ? AND g.sede_id = ? ${ownGroup}
        ORDER BY s.fecha DESC, s.hora_inicio, s.id`,
-      [context.curso_id, context.sede_id]
+      [context.curso_id, context.sede_id, ...ownParams]
     );
   return { recuperaciones, sesiones: sesiones.map(withCancelacion) };
 }
@@ -354,16 +366,18 @@ router.patch("/recuperaciones/:id", async (req, res) => {
     }
     connection = await db.promise().getConnection();
     await connection.beginTransaction();
-    await requireStaffProfessor(connection, req.user);
+    const professorId = await requireStaffProfessor(connection, req.user);
     const context = await getContext(connection);
+    const ownGroup = professorId ? "AND g.profesor_id = ?" : "";
+    const ownParams = professorId ? [professorId] : [];
     const [rows] = await connection.query(
       `SELECT r.id, r.estado, r.fecha_recuperacion, r.sesion_origen_id,
               r.sesion_recuperacion_id, r.observaciones
        FROM recuperaciones_clase r
        JOIN grupos g ON g.id = r.grupo_id
-         AND g.curso_id = ? AND g.sede_id = ?
+         AND g.curso_id = ? AND g.sede_id = ? ${ownGroup}
        WHERE r.id = ? LIMIT 1 FOR UPDATE`,
-      [context.curso_id, context.sede_id, id]
+      [context.curso_id, context.sede_id, ...ownParams, id]
     );
     const recovery = rows[0];
     if (!recovery) fail(404, "Recuperacion no encontrada en el curso actual");
@@ -385,9 +399,9 @@ router.patch("/recuperaciones/:id", async (req, res) => {
         `SELECT s.id, DATE_FORMAT(s.fecha, '%Y-%m-%d') AS fecha
          FROM sesiones_clase s
          JOIN grupos g ON g.id = s.grupo_id
-           AND g.curso_id = ? AND g.sede_id = ?
+           AND g.curso_id = ? AND g.sede_id = ? ${ownGroup}
          WHERE s.id = ? LIMIT 1`,
-        [context.curso_id, context.sede_id, targetId]
+        [context.curso_id, context.sede_id, ...ownParams, targetId]
       );
       if (!targets.length) fail(400, "La sesion de recuperacion no pertenece al curso actual");
       if (fecha && fecha !== targets[0].fecha) {

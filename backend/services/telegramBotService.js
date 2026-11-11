@@ -218,14 +218,24 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
     return { inline_keyboard: rows };
   }
 
+  // El servidor ya impide cargar un grupo ajeno (403 "no es tuyo"); aquí se convierte en el aviso amable del bot.
+  async function cargarSesion(professor, groupId, date) {
+    try {
+      return await loadControlSession(actor(professor), groupId, date, promiseDb());
+    } catch (error) {
+      if (error.status === 403 && /no es tuyo/.test(String(error.message))) return null;
+      throw error;
+    }
+  }
+
   function denyForeignGroup(chatId, messageId = null) {
     const text = "Ese grupo no es tuyo, así que no puedes pasar lista. Si lo estás sustituyendo, pídele a la administración que te lo asigne.";
     return messageId ? api.editMessage(chatId, messageId, text) : api.sendMessage(chatId, text);
   }
 
   async function beginAttendance(chatId, professor, groupId, date, messageId = null, notice = "") {
-    const data = await loadControlSession(actor(professor), groupId, date, promiseDb());
-    if (!canUseGroup(professor, data.grupo)) return denyForeignGroup(chatId, messageId);
+    const data = await cargarSesion(professor, groupId, date);
+    if (!data || !canUseGroup(professor, data.grupo)) return denyForeignGroup(chatId, messageId);
     if (data.sesiones[0]?.estado === "cancelada") {
       drafts.delete(`${chatId}:${groupId}:${date.replaceAll("-", "")}`);
       const text = groupText(data.grupo, null, data.sesiones[0]);
@@ -291,9 +301,9 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
       return api.answerCallback(callback.id, "Acción no válida");
     }
     if (action === "open" || action === "students") {
-      const data = await loadControlSession(actor(professor), groupId, date, promiseDb());
+      const data = await cargarSesion(professor, groupId, date);
       await api.answerCallback(callback.id);
-      if (!canUseGroup(professor, data.grupo)) return denyForeignGroup(chatId);
+      if (!data || !canUseGroup(professor, data.grupo)) return denyForeignGroup(chatId);
       const canceled = data.sesiones[0]?.estado === "cancelada";
       return api.sendMessage(chatId, groupText(data.grupo, data.alumnos, data.sesiones[0]),
         canceled ? undefined : { inline_keyboard: groupKeyboard(groupId, date) });
@@ -332,6 +342,11 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
         });
       } catch (error) {
         // La clase se canceló mientras se pasaba lista: se avisa en vez de dejar el botón sin respuesta.
+        if (error.status === 403) {
+          drafts.delete(key);
+          await api.answerCallback(callback.id, "No se ha guardado");
+          return denyForeignGroup(chatId, messageId || draft.messageId);
+        }
         if (error.status !== 400) throw error;
         drafts.delete(key);
         await api.answerCallback(callback.id, "No se ha guardado");

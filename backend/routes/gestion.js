@@ -558,10 +558,25 @@ router.get("/usuarios", async (req, res) => {
     const where = ["COALESCE(u.activo, 1) = 1"];
     const params = [];
 
+    // Un profesor solo ve a los alumnos de sus grupos (y a ningún otro profesor); el coordinador, a todos.
+    const staffProfessorId = isAdmin(req) ? null : await getProfessorId(db.promise(), req.user);
+    if (!isAdmin(req) && (!staffProfessorId || roleFilter === "profesor" || roleFilter === "profesores")) {
+      return res.json({ ok: true, usuarios: [] });
+    }
+
     if (roleFilter === "alumno" || roleFilter === "alumnos") {
       where.push("(u.rol IN ('alumno', 'usuario') OR a.id IS NOT NULL)");
     } else if (roleFilter === "profesor" || roleFilter === "profesores") {
       where.push("u.rol IN ('profesor', 'profe')");
+    }
+
+    if (staffProfessorId) {
+      where.push(`EXISTS (
+        SELECT 1 FROM grupo_alumnos gp
+        JOIN grupos gr ON gr.id = gp.grupo_id AND COALESCE(gr.activo, 1) = 1
+        WHERE gp.alumno_id = a.id AND COALESCE(gp.activo, 1) = 1 AND gr.profesor_id = ?
+      )`);
+      params.push(staffProfessorId);
     }
 
     if (search) {
