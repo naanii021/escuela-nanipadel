@@ -11,6 +11,7 @@ import FotosClub from "../components/FotosClub";
 import NoticiasPadel from "../components/NoticiasPadel";
 import { horasLibresHoy } from "../services/disponibilidad";
 import { ahoraMadrid, fechaRelativa } from "../services/fechas";
+import { otrosProfesores, unirNombres } from "../components/panel/panelUtils";
 import "./home.css";
 import "./inicio.css";
 
@@ -174,11 +175,17 @@ function Home() {
     apiGet("/api/gestion/control/grupos")
       .then((data) => {
         const today = DAY_LETTERS[new Date().getDay()];
-        const own = data.profesor_actual_id
-          ? data.grupos.filter((group) => group.profesor_id === data.profesor_actual_id)
+        // Pertenencia: una clase compartida sale para todos sus profesores. Si el servidor no manda la lista, no se filtra de más.
+        const miId = data.profesor_actual_id;
+        const own = miId
+          ? data.grupos.filter((group) => {
+            const ids = group.profesores_ids?.length ? group.profesores_ids : group.profesor_id != null ? [group.profesor_id] : null;
+            return !ids || ids.some((id) => String(id) === String(miId));
+          })
           : data.grupos;
         setTodayClasses(
           own
+            .map((group) => ({ ...group, compartidaCon: otrosProfesores(group, miId) }))
             .filter((group) => group.dia1 === today || group.dia2 === today)
             .sort((a, b) => String(a.hora_inicio).localeCompare(String(b.hora_inicio)))
         );
@@ -271,6 +278,7 @@ function Home() {
                         {label && <b className="inicioHoyEtiqueta">{label}</b>}
                         {nombreSinHora(group.nombre)}
                         {group.pista_habitual ? <small>{group.pista_habitual}</small> : null}
+                        {group.compartidaCon?.length ? <small className="inicioHoyComp">Compartida con {unirNombres(group.compartidaCon)}</small> : null}
                       </span>
                       <em>Pasar lista</em>
                     </Link>

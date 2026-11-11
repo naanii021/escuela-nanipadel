@@ -9,11 +9,11 @@ import PasarLista from "../components/panel/PasarLista";
 import ProfesoresAcceso from "../components/panel/ProfesoresAcceso";
 import TelegramPasarLista from "../components/panel/TelegramPasarLista";
 import Recuperaciones from "../components/panel/Recuperaciones";
-import { IcAtras, IcBuscar, IcMensaje, IcTelefono } from "../components/panel/Iconos";
+import { IcAtras, IcBuscar, IcMensaje, IcPersonas, IcTelefono } from "../components/panel/Iconos";
 import {
-  DIAS_SEMANA, NIVELES, diaHoy, diasDelGrupo, estadoCupo, formatDias, formatFecha, formatHorario,
+  DIAS_SEMANA, NIVELES, diaHoy, diasDelGrupo, esCompartido, estadoCupo, formatDias, formatFecha, formatHorario,
   formatHorariosTexto, grupoActivo, hora, hoyISO, iniciales, minutosDe, motivoCorto, nivelClass,
-  nivelKey, nivelLabel, nombreCompleto, nombrePista, opcionesNivel, plural, sinAcentos, telHref,
+  nivelKey, nivelLabel, nombreCompleto, nombrePilaDe, nombrePista, opcionesNivel, plural, sinAcentos, telHref,
   textoCupo, ultimaFechaDelDia, whatsappHref,
 } from "../components/panel/panelUtils";
 import "../components/panel/panelComponentes.css";
@@ -56,8 +56,10 @@ const PANEL_SECTIONS = [
 ];
 const SECTION_KEYS = PANEL_SECTIONS.map((item) => item.key);
 
+const MAX_PROFESORES_GRUPO = 4;
+
 const emptyGroupForm = {
-  codigo: "", nombre: "", nivel: "", profesor_id: "", dia1: "L", dia2: "",
+  codigo: "", nombre: "", nivel: "", profesores_ids: [], dia1: "L", dia2: "",
   hora_inicio: "18:00", duracion_min: 60, pista_habitual: "", cupo: 4, activo: 1,
 };
 const emptyStudentForm = {
@@ -79,7 +81,7 @@ function toGroupForm(group) {
     codigo: group.codigo || "",
     nombre: group.nombre || "",
     nivel: group.nivel || "",
-    profesor_id: group.profesor_id || "",
+    profesores_ids: group.profesores_ids?.length ? group.profesores_ids.map(Number) : group.profesor_id ? [Number(group.profesor_id)] : [],
     dia1: group.dia1 || "L",
     dia2: group.dia2 || "",
     hora_inicio: String(group.hora_inicio || "18:00").slice(0, 5),
@@ -162,6 +164,7 @@ export default function PanelProfesor() {
   const [recError, setRecError] = useState("");
   const [listasHoy, setListasHoy] = useState({});
   const [cancelacionesHoy, setCancelacionesHoy] = useState({});
+  const [listasDeOtroHoy, setListasDeOtroHoy] = useState({});
   const [listasTick, setListasTick] = useState(0);
 
   const [search, setSearch] = useState("");
@@ -261,6 +264,31 @@ export default function PanelProfesor() {
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
   }, [catalogos.profesores, grupos]);
 
+  // Profesores que se pueden elegir en un grupo: los activos, más los que el grupo ya tiene.
+  const profesoresElegibles = useMemo(() => {
+    const catalogo = catalogos.profesores?.length ? catalogos.profesores : [];
+    const activos = catalogo
+      .filter((item) => item.activo === undefined || Number(item.activo) === 1 || item.activo === true)
+      .map((item) => ({ id: Number(item.id), name: item.nombre_completo || nombreCompleto(item) }));
+    const mapa = new Map(activos.map((item) => [item.id, item]));
+    groupForm.profesores_ids.forEach((id) => {
+      if (!mapa.has(Number(id))) {
+        const conocido = profesores.find((item) => String(item.id) === String(id));
+        mapa.set(Number(id), { id: Number(id), name: conocido?.name || `Profesor ${id}` });
+      }
+    });
+    if (!mapa.size) profesores.forEach((item) => mapa.set(Number(item.id), { id: Number(item.id), name: item.name }));
+    return Array.from(mapa.values()).sort((a, b) => a.name.localeCompare(b.name, "es"));
+  }, [catalogos.profesores, groupForm.profesores_ids, profesores]);
+
+  const alternarProfesorGrupo = (id) => {
+    setGroupForm((actual) => {
+      const ids = actual.profesores_ids;
+      const ya = ids.some((item) => String(item) === String(id));
+      return { ...actual, profesores_ids: ya ? ids.filter((item) => String(item) !== String(id)) : [...ids, Number(id)] };
+    });
+  };
+
   const nivelOptionsFor = useCallback((actual) => opcionesNivel([...alumnos, ...grupos], actual), [alumnos, grupos]);
 
   const todayClasses = useMemo(() => {
@@ -283,6 +311,15 @@ export default function PanelProfesor() {
           todayClasses[index].id,
           sesionDe(result) && sesionDe(result).estado !== "cancelada" && result.value.asistencias?.length ? "guardada" : "",
         ])));
+        // Clases compartidas cuya lista ya pasó otro profesor (id -> nombre de pila), con los datos que ya llegan.
+        setListasDeOtroHoy(Object.fromEntries(results
+          .map((result, index) => {
+            const cambio = sesionDe(result)?.ultimo_cambio;
+            const otro = esCompartido(todayClasses[index]) && cambio?.hay_asistencia && cambio.estado !== "cancelada"
+              && String(cambio.profesor_id) !== String(result.value.profesor_actual_id ?? "");
+            return [todayClasses[index].id, otro ? nombrePilaDe(cambio.profesor) : ""];
+          })
+          .filter(([, nombre]) => nombre)));
         // Clases de hoy canceladas: id del grupo -> texto corto del motivo (Lluvia, Pista no disponible...).
         setCancelacionesHoy(Object.fromEntries(results
           .map((result, index) => [todayClasses[index].id, sesionDe(result)?.estado === "cancelada" ? motivoCorto(sesionDe(result).cancelacion) : ""])
@@ -324,7 +361,7 @@ export default function PanelProfesor() {
       const matchText = !text || sinAcentos(`${item.nombre} ${item.codigo} ${item.profesor} ${item.pista_habitual} ${alumnosText}`).includes(text);
       const key = nivelKey(item.nivel);
       const matchNivel = !nivel || key === nivel;
-      const matchProfesor = !profesor || item.profesor === profesor;
+      const matchProfesor = !profesor || sinAcentos(item.profesor).includes(sinAcentos(profesor));
       const matchGrupo = !grupo || String(item.id) === String(grupo);
       const cupo = estadoCupo(item);
       const quick = groupQuickFilter;
@@ -509,10 +546,12 @@ export default function PanelProfesor() {
     try {
       setFormSaving(true);
       setFormError("");
+      // El primero de la lista es el principal; profesor_id se manda también por compatibilidad.
+      const cuerpoGrupo = { ...groupForm, profesores_ids: groupForm.profesores_ids, profesor_id: groupForm.profesores_ids[0] ?? "" };
       if (editingGroup) {
-        await apiPut(`/api/gestion/grupos/${editingGroup.id}`, groupForm);
+        await apiPut(`/api/gestion/grupos/${editingGroup.id}`, cuerpoGrupo);
       } else {
-        const data = await apiPost("/api/gestion/grupos", groupForm);
+        const data = await apiPost("/api/gestion/grupos", cuerpoGrupo);
         setSelectedGroupId(data.id);
       }
       setGroupFormOpen(false);
@@ -771,6 +810,7 @@ export default function PanelProfesor() {
               peticion={controlPeticion}
               listasHoy={listasHoy}
               cancelacionesHoy={cancelacionesHoy}
+              listasDeOtroHoy={listasDeOtroHoy}
               onAviso={mostrarAviso}
               onGuardada={() => { setListasTick((n) => n + 1); loadRecoveries(); }}
             />
@@ -904,6 +944,7 @@ export default function PanelProfesor() {
                                   <span className="ppGroupItemMeta">
                                     {formatDias(item.dia1, item.dia2)}, {hora(item.hora_inicio) || "sin hora"} · {nombrePista(item.pista_habitual)}
                                     {item.profesor ? ` · ${item.profesor}` : ""}
+                                    {esCompartido(item) && <> · <span className="ppSharedBadge"><IcPersonas /> Compartida</span></>}
                                     {!grupoActivo(item) ? " · Desactivado" : ""}
                                   </span>
                                 </button>
@@ -948,7 +989,7 @@ export default function PanelProfesor() {
                         <dl className="ppFacts">
                           <div><dt>Días y hora</dt><dd>{formatDias(selectedGroup.dia1, selectedGroup.dia2)}, {formatHorario(selectedGroup.hora_inicio, selectedGroup.duracion_min)}</dd></div>
                           <div><dt>Pista</dt><dd>{nombrePista(selectedGroup.pista_habitual)}</dd></div>
-                          <div><dt>Profesor</dt><dd>{selectedGroup.profesor || "Sin profesor"}</dd></div>
+                          <div><dt>{esCompartido(selectedGroup) ? "Profesores" : "Profesor"}</dt><dd>{selectedGroup.profesor || "Sin profesor"}{esCompartido(selectedGroup) && <> <span className="ppSharedBadge"><IcPersonas /> Compartida</span></>}</dd></div>
                           <div><dt>Plazas</dt><dd>{textoCupo(selectedGroup)}</dd></div>
                         </dl>
 
@@ -1071,6 +1112,9 @@ export default function PanelProfesor() {
                       {grupos.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
                     </select>
                   </label>
+                  {trackingGroup && esCompartido(trackingGroup) && (
+                    <p className="ppSharedBadge"><IcPersonas /> Clase compartida: {trackingGroup.profesor}</p>
+                  )}
                   {trackingGroup && (
                     <div className="ppTracking">
                       <div>
@@ -1191,12 +1235,35 @@ export default function PanelProfesor() {
                   {nivelOptionsFor(groupForm.nivel).map((item) => <option key={item.value || "none"} value={item.value}>{item.label}</option>)}
                 </select>
               </label>
-              <label className="ppField"><span>Profesor</span>
-                <select value={groupForm.profesor_id} onChange={(e) => setGroupForm({ ...groupForm, profesor_id: e.target.value })}>
-                  <option value="">Sin profesor</option>
-                  {profesores.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                </select>
-              </label>
+              <fieldset className="ppProfChips">
+                <legend>Profesores del grupo</legend>
+                <p className="ppFieldNote" id="pp-profes-ayuda">
+                  Elige hasta {MAX_PROFESORES_GRUPO}. El primero que elijas es el principal. Si hay más de uno, la clase es compartida y todos la ven.
+                </p>
+                <div className="ppProfChipList">
+                  {profesoresElegibles.map((item) => {
+                    const posicion = groupForm.profesores_ids.findIndex((id) => String(id) === String(item.id));
+                    const elegido = posicion >= 0;
+                    const lleno = !elegido && groupForm.profesores_ids.length >= MAX_PROFESORES_GRUPO;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className="ppProfChip"
+                        aria-pressed={elegido}
+                        aria-disabled={lleno || undefined}
+                        aria-describedby="pp-profes-ayuda"
+                        onClick={() => { if (!lleno) alternarProfesorGrupo(item.id); }}
+                      >
+                        {elegido && <span className="ppProfChipNum" aria-hidden="true">{posicion + 1}</span>}
+                        <span>{item.name}</span>
+                        {posicion === 0 && <small>Principal</small>}
+                      </button>
+                    );
+                  })}
+                  {profesoresElegibles.length === 0 && <span className="ppFieldNote">No hay profesores activos todavía.</span>}
+                </div>
+              </fieldset>
               <label className="ppField"><span>Primer día</span>
                 <select value={groupForm.dia1} onChange={(e) => setGroupForm({ ...groupForm, dia1: e.target.value })}>
                   {DIAS_SEMANA.map((dia) => <option key={dia.key} value={dia.key}>{dia.label}</option>)}

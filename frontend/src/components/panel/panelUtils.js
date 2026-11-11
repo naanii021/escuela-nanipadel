@@ -220,7 +220,7 @@ export function claseMasProxima(grupos, { profesorId = null, ahora = new Date(),
   const dia = DIA_POR_INDICE[ahora.getDay()];
   const actual = ahora.getHours() * 60 + ahora.getMinutes();
   const deHoy = grupos.filter((grupo) => diasDelGrupo(grupo).includes(dia) && minutosDe(grupo.hora_inicio) !== null);
-  const propios = profesorId ? deHoy.filter((grupo) => String(grupo.profesor_id) === String(profesorId)) : [];
+  const propios = profesorId ? deHoy.filter((grupo) => esDelProfesor(grupo, profesorId)) : [];
   const candidatos = propios.length ? propios : deHoy;
   if (!candidatos.length) return null;
   const distancia = (grupo) => {
@@ -278,4 +278,52 @@ export function textoCupo(grupo) {
 
 export function plural(n, singular, pluralTexto = `${singular}s`) {
   return `${n} ${n === 1 ? singular : pluralTexto}`;
+}
+
+// ---------- Clases compartidas por varios profesores ----------
+export function esDelProfesor(grupo, profesorId) {
+  if (profesorId == null || profesorId === "") return false;
+  const ids = Array.isArray(grupo?.profesores_ids) && grupo.profesores_ids.length ? grupo.profesores_ids : [grupo?.profesor_id];
+  return ids.some((id) => String(id) === String(profesorId));
+}
+
+export function esCompartido(grupo) {
+  return Boolean(grupo?.compartido) || (grupo?.profesores?.length || 0) > 1;
+}
+
+// Nombres de pila de los otros profesores (sin el propio). Si no se conoce al propio, salen todos.
+export function otrosProfesores(grupo, miId) {
+  return (grupo?.profesores || [])
+    .filter((item) => miId == null || String(item.id) !== String(miId))
+    .map((item) => String(item.nombre || "").trim())
+    .filter(Boolean);
+}
+
+export function unirNombres(nombres) {
+  if (nombres.length <= 1) return nombres[0] || "";
+  return `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+}
+
+// "Clase compartida con Juanjo" (o "Clase compartida: Dani y Juanjo" si el que mira no es de los que la dan).
+export function textoCompartida(grupo, miId) {
+  const otros = otrosProfesores(grupo, miId);
+  const todos = (grupo?.profesores || []).length;
+  if (!otros.length) return "Clase compartida";
+  return otros.length === todos ? `Clase compartida: ${unirNombres(otros)}` : `Clase compartida con ${unirNombres(otros)}`;
+}
+
+const FORMATO_HORA = new Intl.DateTimeFormat("es-ES", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+const FORMATO_DIA = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit" });
+
+// "hoy a las 18:40" o "el 12 may a las 18:40" a partir de un instante ISO.
+export function cuandoCambio(iso) {
+  const fecha = new Date(iso);
+  if (!iso || Number.isNaN(fecha.getTime())) return "";
+  const horaTexto = FORMATO_HORA.format(fecha);
+  const dia = FORMATO_DIA.format(fecha);
+  return dia === hoyISO() ? `hoy a las ${horaTexto}` : `el ${formatFecha(dia, { conDia: false })} a las ${horaTexto}`;
+}
+
+export function nombrePilaDe(texto) {
+  return String(texto || "").trim().split(/\s+/)[0] || "Otro profesor";
 }
