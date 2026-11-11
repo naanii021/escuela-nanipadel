@@ -2,6 +2,13 @@ import express from "express";
 import { db } from "../db/connection.js";
 import { createTelegramLinkCode } from "../services/telegramLinkService.js";
 import { avisarCancelacion, estadoAvisos, leerConfigAvisos } from "../services/avisoCancelacionService.js";
+import {
+  anotarProfesores,
+  condicionGruposDelProfesor,
+  esProfesorDelGrupo,
+  existeTablaGrupoProfesores,
+  profesoresDeGrupo,
+} from "../services/profesoresGrupo.js";
 
 const router = express.Router();
 const SEDE = "Seminario Diocesano";
@@ -126,6 +133,15 @@ export async function getProfessorId(connection, user) {
   return rows[0]?.id || 0;
 }
 
+// Un profesor solo gestiona los grupos en los que está (como principal o en grupo_profesores); el
+// coordinador (admin, professorId null) los ve todos. Un grupo sin profesor es solo del coordinador.
+async function assertGrupoPropio(connection, group, professorId) {
+  if (!professorId) return;
+  if (!(await esProfesorDelGrupo(connection, group.id, professorId, group.profesor_id))) {
+    fail(403, "Ese grupo no es tuyo: solo puedes ver y pasar lista de tus clases");
+  }
+}
+
 export async function requireStaffProfessor(connection, user) {
   const role = String(user?.rol || "").toLowerCase();
   if (role !== "admin" && role !== "profesor" && role !== "profe") fail(403, "No tienes acceso al control de clases");
@@ -147,22 +163,26 @@ async function getGroup(connection, user, groupId, lock = false) {
   );
   const group = rows[0];
   if (!group) fail(404, "Grupo activo no encontrado en el curso y sede actuales");
+  await assertGrupoPropio(connection, group, professorId);
   return { group, context, professorId };
 }
 
 export async function listControlGroups(user, connection = db.promise()) {
   const professorId = await requireStaffProfessor(connection, user);
   const context = await getContext(connection);
-  const [grupos] = await connection.query(
+  const own = professorId ? condicionGruposDelProfesor(await existeTablaGrupoProfesores(connection), professorId, "g") : null;
+  const [filas] = await connection.query(
     `SELECT g.id, g.codigo, g.nombre, g.nivel, g.dia1, g.dia2,
             g.hora_inicio, g.duracion_min, g.pista_habitual, g.profesor_id,
             CONCAT(p.nombre, ' ', p.apellidos) AS profesor
      FROM grupos g
      LEFT JOIN profesores p ON p.id = g.profesor_id
      WHERE g.curso_id = ? AND g.sede_id = ? AND g.activo = 1
+       ${own ? `AND ${own.sql}` : ""}
      ORDER BY g.hora_inicio, g.nombre`,
-    [context.curso_id, context.sede_id]
+    [context.curso_id, context.sede_id, ...(own ? own.params : [])]
   );
+  const grupos = await anotarProfesores(connection, filas);
   return { grupos, profesor_actual_id: professorId, context };
 }
 
@@ -191,7 +211,7 @@ async function getRoster(connection, group, context, day) {
 
 async function getSession(connection, groupId, fecha, lock = false) {
   const [rows] = await connection.query(
-    `SELECT id, grupo_id, profesor_id, fecha, hora_inicio, hora_fin, estado, observaciones
+    `SELECT id, grupo_id, profesor_id, fecha, hora_inicio, hora_fin, estado, observaciones, updated_at, created_at
      FROM sesiones_clase WHERE grupo_id = ? AND fecha = ?
      ORDER BY id LIMIT 1 ${lock ? "FOR UPDATE" : ""}`,
     [groupId, fecha]
@@ -208,6 +228,83 @@ async function getAttendance(connection, sessionId) {
   return rows;
 }
 
+function aFecha(valor) {
+  if (!valor) return null;
+  const fecha = valor instanceof Date ? valor : new Date(valor);
+  return Number.isNaN(fecha.getTime()) ? null : fecha;
+}
+
+function horaMadrid(fecha) {
+  return new Intl.DateTimeFormat("es-ES", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit", hour12: false }).format(fecha);
+}
+
+// Quién guardó por última vez la sesión y cuándo: `en` = GREATEST(sesiones_clase.updated_at,
+// MAX(asistencia_clase.updated_at)). Devuelve también el nombre de pila para los mensajes.
+async function leerUltimoCambio(connection, sesion) {
+  if (!sesion?.id) return null;
+  const [conteos] = await connection.query(
+    "SELECT estado, COUNT(*) AS total, MAX(updated_at) AS en FROM asistencia_clase WHERE sesion_id = ? GROUP BY estado",
+    [sesion.id]
+  );
+  const resumen = { presente: 0, falta: 0, justificada: 0 };
+  let total = 0;
+  const instantes = [aFecha(sesion.updated_at) || aFecha(sesion.created_at)];
+  for (const fila of conteos) {
+    const n = Number(fila.total) || 0;
+    total += n;
+    if (Object.prototype.hasOwnProperty.call(resumen, fila.estado)) resumen[fila.estado] += n;
+    instantes.push(aFecha(fila.en));
+  }
+  const validos = instantes.filter(Boolean).map((fecha) => fecha.getTime());
+  const en = validos.length ? new Date(Math.max(...validos)) : null;
+  let profesor = null;
+  let nombre = null;
+  if (sesion.profesor_id) {
+    const [rows] = await connection.query("SELECT nombre, apellidos FROM profesores WHERE id = ? LIMIT 1", [sesion.profesor_id]);
+    if (rows[0]) {
+      profesor = [rows[0].nombre, rows[0].apellidos].filter(Boolean).join(" ") || null;
+      nombre = rows[0].nombre || profesor;
+    }
+  }
+  return {
+    ultimo: {
+      profesor_id: sesion.profesor_id ? Number(sesion.profesor_id) : null,
+      profesor,
+      en: en ? en.toISOString() : null,
+      hay_asistencia: total > 0,
+      estado: sesion.estado,
+      resumen,
+    },
+    en,
+    nombre,
+  };
+}
+
+// Devuelve la sesión con `ultimo_cambio` (null si no hay sesión).
+async function conUltimoCambio(connection, sesion) {
+  if (!sesion) return sesion;
+  const lectura = await leerUltimoCambio(connection, sesion);
+  return { ...sesion, ultimo_cambio: lectura?.ultimo ?? null };
+}
+
+// Grupo compartido + base_cambio: si otro profesor guardó algo después de lo que vio este cliente,
+// no se escribe nada y se responde 409 (la transacción ya tiene la sesión bloqueada con FOR UPDATE).
+async function comprobarConflicto(connection, group, sesion, baseCambio, actorProfesorId) {
+  if (baseCambio === undefined || baseCambio === null || baseCambio === "") return;
+  const base = aFecha(baseCambio);
+  if (!base) fail(400, "base_cambio no es una fecha valida");
+  if (!sesion?.id) return;
+  if ((await profesoresDeGrupo(connection, group.id)).length < 2) return;
+  const lectura = await leerUltimoCambio(connection, sesion);
+  if (!lectura?.en || lectura.en.getTime() <= base.getTime()) return;
+  const otro = sesion.profesor_id && Number(sesion.profesor_id) !== Number(actorProfesorId || 0);
+  if (!otro) return;
+  const error = new Error(`${lectura.nombre || "Otro profesor"} ya guardó cambios en esta clase a las ${horaMadrid(lectura.en)}. Revísalos antes de guardar.`);
+  error.status = 409;
+  error.extra = { conflicto: true, ultimo_cambio: lectura.ultimo };
+  throw error;
+}
+
 export async function loadControlSession(user, groupId, fecha, connection = db.promise()) {
   const day = validDate(String(fecha || ""));
   const { group, context, professorId } = await getGroup(connection, user, groupId);
@@ -216,7 +313,9 @@ export async function loadControlSession(user, groupId, fecha, connection = db.p
     getRoster(connection, group, context, day),
   ]);
   const asistencias = await getAttendance(connection, sesion?.id);
-  return { sesiones: sesion ? [withCancelacion(sesion)] : [], alumnos, asistencias, dia: day, profesor_actual_id: professorId, grupo: group };
+  const [grupo] = await anotarProfesores(connection, [group]);
+  const sesionFinal = sesion ? await conUltimoCambio(connection, withCancelacion(sesion)) : null;
+  return { sesiones: sesionFinal ? [sesionFinal] : [], alumnos, asistencias, dia: day, profesor_actual_id: professorId, grupo };
 }
 
 async function syncRecoveries(connection, sesion, asistencias) {
@@ -254,7 +353,7 @@ async function syncRecoveries(connection, sesion, asistencias) {
 
 function sendError(res, error) {
   if (!error.status || error.status >= 500) console.error("Error control de clases:", error);
-  res.status(error.status || 500).json({ ok: false, message: error.message });
+  res.status(error.status || 500).json({ ok: false, message: error.message, ...(error.extra || {}) });
 }
 
 router.get("/grupos", async (req, res) => {
@@ -297,16 +396,18 @@ router.get("/grupos/:grupoId/sesiones", async (req, res) => {
   try {
     const fecha = String(req.query.fecha || "");
     const result = await loadControlSession(req.user, req.params.grupoId, fecha);
-    const { grupo: _grupo, ...response } = result;
-    res.json({ ok: true, ...response });
+    res.json({ ok: true, ...result });
   } catch (error) {
     sendError(res, error);
   }
 });
 
 export async function listControlRecoveries(user, connection = db.promise()) {
-  await requireStaffProfessor(connection, user);
+  const professorId = await requireStaffProfessor(connection, user);
   const context = await getContext(connection);
+  const own = professorId ? condicionGruposDelProfesor(await existeTablaGrupoProfesores(connection), professorId, "g") : null;
+  const ownGroup = own ? `AND ${own.sql}` : "";
+  const ownParams = own ? own.params : [];
   const [recuperaciones] = await connection.query(
       `SELECT r.id, r.alumno_id, r.grupo_id, r.sesion_origen_id,
               r.sesion_recuperacion_id,
@@ -317,19 +418,19 @@ export async function listControlRecoveries(user, connection = db.promise()) {
               g.nombre AS grupo_origen
        FROM recuperaciones_clase r
        JOIN grupos g ON g.id = r.grupo_id
-         AND g.curso_id = ? AND g.sede_id = ?
+         AND g.curso_id = ? AND g.sede_id = ? ${ownGroup}
        LEFT JOIN alumnos a ON a.id = r.alumno_id
        ORDER BY r.fecha_original DESC, r.id DESC`,
-      [context.curso_id, context.sede_id]
+      [context.curso_id, context.sede_id, ...ownParams]
     );
   const [sesiones] = await connection.query(
       `SELECT s.id, s.grupo_id, DATE_FORMAT(s.fecha, '%Y-%m-%d') AS fecha,
               s.hora_inicio, s.estado, s.observaciones, g.nombre AS grupo_nombre
        FROM sesiones_clase s
        JOIN grupos g ON g.id = s.grupo_id
-         AND g.curso_id = ? AND g.sede_id = ?
+         AND g.curso_id = ? AND g.sede_id = ? ${ownGroup}
        ORDER BY s.fecha DESC, s.hora_inicio, s.id`,
-      [context.curso_id, context.sede_id]
+      [context.curso_id, context.sede_id, ...ownParams]
     );
   return { recuperaciones, sesiones: sesiones.map(withCancelacion) };
 }
@@ -354,16 +455,19 @@ router.patch("/recuperaciones/:id", async (req, res) => {
     }
     connection = await db.promise().getConnection();
     await connection.beginTransaction();
-    await requireStaffProfessor(connection, req.user);
+    const professorId = await requireStaffProfessor(connection, req.user);
     const context = await getContext(connection);
+    const own = professorId ? condicionGruposDelProfesor(await existeTablaGrupoProfesores(connection), professorId, "g") : null;
+    const ownGroup = own ? `AND ${own.sql}` : "";
+    const ownParams = own ? own.params : [];
     const [rows] = await connection.query(
       `SELECT r.id, r.estado, r.fecha_recuperacion, r.sesion_origen_id,
               r.sesion_recuperacion_id, r.observaciones
        FROM recuperaciones_clase r
        JOIN grupos g ON g.id = r.grupo_id
-         AND g.curso_id = ? AND g.sede_id = ?
+         AND g.curso_id = ? AND g.sede_id = ? ${ownGroup}
        WHERE r.id = ? LIMIT 1 FOR UPDATE`,
-      [context.curso_id, context.sede_id, id]
+      [context.curso_id, context.sede_id, ...ownParams, id]
     );
     const recovery = rows[0];
     if (!recovery) fail(404, "Recuperacion no encontrada en el curso actual");
@@ -385,9 +489,9 @@ router.patch("/recuperaciones/:id", async (req, res) => {
         `SELECT s.id, DATE_FORMAT(s.fecha, '%Y-%m-%d') AS fecha
          FROM sesiones_clase s
          JOIN grupos g ON g.id = s.grupo_id
-           AND g.curso_id = ? AND g.sede_id = ?
+           AND g.curso_id = ? AND g.sede_id = ? ${ownGroup}
          WHERE s.id = ? LIMIT 1`,
-        [context.curso_id, context.sede_id, targetId]
+        [context.curso_id, context.sede_id, ...ownParams, targetId]
       );
       if (!targets.length) fail(400, "La sesion de recuperacion no pertenece al curso actual");
       if (fecha && fecha !== targets[0].fecha) {
@@ -454,6 +558,7 @@ export async function saveControlSession({ user, groupId, fecha, payload = {}, s
     if (payload.estado === "cancelada") fail(400, "Para cancelar una clase usa la opcion Cancelar la clase");
     let sesion = await getSession(connection, group.id, normalizedDate, true);
     if (sessionId && Number(sesion?.id) !== Number(sessionId)) fail(404, "Sesion no encontrada");
+    await comprobarConflicto(connection, group, sesion, payload.base_cambio, linkedProfessorId);
     if (sesion?.estado === "cancelada" && (entries !== undefined || payload.estado !== undefined)) {
       fail(400, "La clase esta cancelada: no se puede pasar lista. Reabrela si fue un error");
     }
@@ -493,8 +598,9 @@ export async function saveControlSession({ user, groupId, fecha, payload = {}, s
     sesion = await getSession(connection, group.id, normalizedDate);
     const asistencias = await getAttendance(connection, sesion.id);
     await syncRecoveries(connection, sesion, asistencias);
+    const sesionFinal = await conUltimoCambio(connection, withCancelacion(sesion));
     await connection.commit();
-    return { sesion: withCancelacion(sesion), alumnos, asistencias, dia: day };
+    return { sesion: sesionFinal, alumnos, asistencias, dia: day };
   } catch (error) {
     if (connection) await connection.rollback();
     throw error;
@@ -554,7 +660,7 @@ async function inTransaction(work) {
 }
 
 // Cancela toda la clase de un dia (lluvia, profesor ausente...). No hace falta pasar lista.
-export function cancelControlSession({ user, groupId, fecha, motivo, texto = "", recuperable = true }) {
+export function cancelControlSession({ user, groupId, fecha, motivo, texto = "", recuperable = true, baseCambio = null }) {
   return inTransaction(async (connection) => {
     const normalizedDate = String(fecha || "");
     const day = validDate(normalizedDate);
@@ -565,6 +671,7 @@ export function cancelControlSession({ user, groupId, fecha, motivo, texto = "",
     const observaciones = formatCancelacion(motivo, motivo === "otro" ? texto : "");
     const quiereRecuperar = recuperable !== false && recuperable !== "false" && recuperable !== 0;
     let sesion = await getSession(connection, group.id, normalizedDate, true);
+    await comprobarConflicto(connection, group, sesion, baseCambio, professorId);
     const yaEstabaCancelada = sesion?.estado === "cancelada";
     if (!sesion) {
       const [inserted] = await connection.query(
@@ -578,13 +685,13 @@ export function cancelControlSession({ user, groupId, fecha, motivo, texto = "",
     } else {
       await connection.query(
         `UPDATE sesiones_clase SET profesor_id = ?, estado = ?, observaciones = ? WHERE id = ?`,
-        [sesion.profesor_id ?? professorId ?? null, "cancelada", observaciones, sesion.id]
+        [professorId ?? sesion.profesor_id ?? null, "cancelada", observaciones, sesion.id]
       );
     }
     sesion = await getSession(connection, group.id, normalizedDate);
     const creadas = await syncCancelRecoveries(connection, sesion, alumnos, quiereRecuperar);
     return {
-      sesion: withCancelacion(sesion), alumnos, dia: day, recuperaciones_creadas: creadas,
+      sesion: await conUltimoCambio(connection, withCancelacion(sesion)), alumnos, dia: day, recuperaciones_creadas: creadas,
       // Datos internos para el aviso por WhatsApp; la ruta los quita de la respuesta.
       aviso_interno: { grupo: { id: group.id, nombre: group.nombre, hora_inicio: group.hora_inicio }, yaEstabaCancelada, quiereRecuperar },
     };
@@ -592,17 +699,18 @@ export function cancelControlSession({ user, groupId, fecha, motivo, texto = "",
 }
 
 // Deshace una cancelacion: la clase vuelve a programada y se retiran las recuperaciones aun pendientes.
-export function reopenControlSession({ user, groupId, fecha }) {
+export function reopenControlSession({ user, groupId, fecha, baseCambio = null }) {
   return inTransaction(async (connection) => {
     const normalizedDate = String(fecha || "");
     const day = validDate(normalizedDate);
-    const { group, context } = await getGroup(connection, user, groupId, true);
+    const { group, context, professorId } = await getGroup(connection, user, groupId, true);
     let sesion = await getSession(connection, group.id, normalizedDate, true);
+    await comprobarConflicto(connection, group, sesion, baseCambio, professorId);
     if (!sesion || sesion.estado !== "cancelada") fail(409, "Esa clase no esta cancelada");
     const alumnos = await getRoster(connection, group, context, day);
     await connection.query(
       `UPDATE sesiones_clase SET profesor_id = ?, estado = ?, observaciones = ? WHERE id = ?`,
-      [sesion.profesor_id, "programada", null, sesion.id]
+      [professorId ?? sesion.profesor_id, "programada", null, sesion.id]
     );
     // Solo las pendientes de esta cancelacion; las asignadas o recuperadas no se tocan.
     const [retiradas] = await connection.query(
@@ -611,7 +719,7 @@ export function reopenControlSession({ user, groupId, fecha }) {
       [sesion.id]
     );
     sesion = await getSession(connection, group.id, normalizedDate);
-    return { sesion, alumnos, dia: day, recuperaciones_retiradas: retiradas?.affectedRows ?? 0 };
+    return { sesion: await conUltimoCambio(connection, sesion), alumnos, dia: day, recuperaciones_retiradas: retiradas?.affectedRows ?? 0 };
   });
 }
 
@@ -658,8 +766,8 @@ async function avisoTrasCancelar({ resultado, fecha, motivo, texto }) {
 
 router.post("/grupos/:grupoId/sesiones/cancelar", async (req, res) => {
   try {
-    const { fecha, motivo, texto, recuperable, avisar_familias: avisarFamilias } = req.body || {};
-    const { aviso_interno: interno, ...publico } = await cancelControlSession({ user: req.user, groupId: req.params.grupoId, fecha, motivo, texto, recuperable });
+    const { fecha, motivo, texto, recuperable, avisar_familias: avisarFamilias, base_cambio: baseCambio } = req.body || {};
+    const { aviso_interno: interno, ...publico } = await cancelControlSession({ user: req.user, groupId: req.params.grupoId, fecha, motivo, texto, recuperable, baseCambio });
     const respuesta = { ok: true, ...publico };
     if (quiereAvisar(avisarFamilias)) {
       try {
@@ -696,7 +804,7 @@ router.get("/avisos-whatsapp", async (req, res) => {
 
 router.post("/grupos/:grupoId/sesiones/reabrir", async (req, res) => {
   try {
-    res.json({ ok: true, ...(await reopenControlSession({ user: req.user, groupId: req.params.grupoId, fecha: req.body?.fecha })) });
+    res.json({ ok: true, ...(await reopenControlSession({ user: req.user, groupId: req.params.grupoId, fecha: req.body?.fecha, baseCambio: req.body?.base_cambio })) });
   } catch (error) {
     sendError(res, error);
   }

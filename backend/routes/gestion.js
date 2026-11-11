@@ -3,6 +3,14 @@ import bcrypt from "bcrypt";
 import { db } from "../db/connection.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
 import gestionControlRouter, { getProfessorId } from "./gestionControl.js";
+import {
+  MAX_PROFESORES_GRUPO,
+  anotarProfesores,
+  condicionGruposDelProfesor,
+  condicionJoinProfesoresDeGrupo,
+  existeTablaGrupoProfesores,
+  sincronizarProfesoresGrupo,
+} from "../services/profesoresGrupo.js";
 
 const router = express.Router();
 const query = (sql, params = []) => db.promise().query(sql, params);
@@ -395,8 +403,10 @@ router.get("/resumen", async (req, res) => {
       });
     }
 
-    const scopeWhere = isAdmin ? "" : "AND g.profesor_id = ?";
-    const scopeParams = isAdmin ? [] : [profesorId];
+    const tieneGrupoProfesores = await existeTablaGrupoProfesores(db.promise());
+    const alcance = isAdmin ? null : condicionGruposDelProfesor(tieneGrupoProfesores, profesorId, "g");
+    const scopeWhere = alcance ? `AND ${alcance.sql}` : "";
+    const scopeParams = alcance ? alcance.params : [];
     const alumnoJoinType = isAdmin ? "LEFT JOIN" : "JOIN";
 
     const [alumnos] = await query(
@@ -437,7 +447,7 @@ router.get("/resumen", async (req, res) => {
         AND g.curso_id = ac.curso_id
         AND g.sede_id = ac.sede_id
         ${scopeWhere}
-       LEFT JOIN profesores p ON p.id = g.profesor_id
+       LEFT JOIN profesores p ON ${condicionJoinProfesoresDeGrupo(tieneGrupoProfesores, "g", "p")}
        WHERE ${alumnoColumns.has("activo") ? "a.activo = 1" : "1 = 1"}
        GROUP BY a.id, a.nombre, a.apellidos, a.nivel${alumnoGroupByEmail}${alumnoGroupByTelefono}${alumnoGroupByActivo}${alumnoGroupByUsuario}${alumnoGroupByNivelJuego}${alumnoGroupByObservaciones}${alumnoGroupByMatriculaActiva}
        ORDER BY a.apellidos, a.nombre`,
@@ -484,12 +494,12 @@ router.get("/resumen", async (req, res) => {
        WHERE g.activo = 1
          AND g.curso_id = ?
          AND g.sede_id = ?
-         ${isAdmin ? "" : "AND g.profesor_id = ?"}
+         ${scopeWhere}
        ORDER BY g.hora_inicio, g.codigo, a.apellidos, a.nombre`,
       [cursoId, sedeId, ...scopeParams]
     );
 
-    const grupos = parseGroupRows(groupRows);
+    const grupos = await anotarProfesores(db.promise(), parseGroupRows(groupRows));
     const [profesores] = await query(
       `SELECT id, nombre, apellidos, CONCAT_WS(' ', nombre, apellidos) AS nombre_completo
        FROM profesores
@@ -558,10 +568,26 @@ router.get("/usuarios", async (req, res) => {
     const where = ["COALESCE(u.activo, 1) = 1"];
     const params = [];
 
+    // Un profesor solo ve a los alumnos de sus grupos (y a ningún otro profesor); el coordinador, a todos.
+    const staffProfessorId = isAdmin(req) ? null : await getProfessorId(db.promise(), req.user);
+    if (!isAdmin(req) && (!staffProfessorId || roleFilter === "profesor" || roleFilter === "profesores")) {
+      return res.json({ ok: true, usuarios: [] });
+    }
+
     if (roleFilter === "alumno" || roleFilter === "alumnos") {
       where.push("(u.rol IN ('alumno', 'usuario') OR a.id IS NOT NULL)");
     } else if (roleFilter === "profesor" || roleFilter === "profesores") {
       where.push("u.rol IN ('profesor', 'profe')");
+    }
+
+    if (staffProfessorId) {
+      const alcance = condicionGruposDelProfesor(await existeTablaGrupoProfesores(db.promise()), staffProfessorId, "gr");
+      where.push(`EXISTS (
+        SELECT 1 FROM grupo_alumnos gp
+        JOIN grupos gr ON gr.id = gp.grupo_id AND COALESCE(gr.activo, 1) = 1
+        WHERE gp.alumno_id = a.id AND COALESCE(gp.activo, 1) = 1 AND ${alcance.sql}
+      )`);
+      params.push(...alcance.params);
     }
 
     if (search) {
@@ -610,9 +636,50 @@ router.get("/usuarios", async (req, res) => {
   }
 });
 
+// Valida `profesores_ids` (solo admin): lista de 1..4 ids distintos de profesores activos que existen.
+// Devuelve null si el cuerpo no la trae (comportamiento de siempre con profesor_id).
+async function leerProfesoresIds(body, executor) {
+  if (!Object.prototype.hasOwnProperty.call(body || {}, "profesores_ids")) return null;
+  const crudo = body.profesores_ids;
+  if (!Array.isArray(crudo)) throw requestError(400, "profesores_ids debe ser una lista de ids de profesor");
+  const ids = crudo.map((id) => (typeof id === "number" || (typeof id === "string" && /^\d+$/.test(id.trim())) ? Number(id) : NaN));
+  if (ids.some((id) => !Number.isInteger(id) || id <= 0)) throw requestError(400, "profesores_ids contiene un id no valido");
+  if (new Set(ids).size !== ids.length) throw requestError(400, "profesores_ids tiene profesores repetidos");
+  if (ids.length > MAX_PROFESORES_GRUPO) throw requestError(400, `Un grupo puede tener como maximo ${MAX_PROFESORES_GRUPO} profesores`);
+  if (ids.length > 1 && !(await existeTablaGrupoProfesores(executor))) {
+    throw requestError(409, "Para asignar varios profesores hay que aplicar antes la migración grupo_profesores");
+  }
+  if (ids.length) {
+    const columns = await getTableColumns("profesores", executor);
+    const [rows] = await executor.query(
+      `SELECT id FROM profesores WHERE id IN (${ids.map(() => "?").join(", ")})${columns.has("activo") ? " AND activo = 1" : ""}`,
+      ids
+    );
+    if (rows.length !== ids.length) throw requestError(400, "Algun profesor no existe o no esta activo");
+  }
+  return ids;
+}
+
+// Ejecuta `trabajo(connection)` en una transacción y devuelve su resultado.
+async function enTransaccion(trabajo) {
+  const connection = await db.promise().getConnection();
+  try {
+    await connection.beginTransaction();
+    const resultado = await trabajo(connection);
+    await connection.commit();
+    return resultado;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 router.post("/grupos", requireAdmin, async (req, res) => {
   try {
     const columns = await getTableColumns("grupos");
+    const profesoresIds = await leerProfesoresIds(req.body, db.promise());
     // curso_id y sede_id son obligatorios en grupos: el grupo nace en el curso activo.
     const gestionContext = await getGestionContext();
     if (!gestionContext) {
@@ -624,7 +691,7 @@ router.post("/grupos", requireAdmin, async (req, res) => {
       codigo: req.body.codigo?.trim() || null,
       nombre: req.body.nombre?.trim(),
       nivel: req.body.nivel || null,
-      profesor_id: req.body.profesor_id || null,
+      profesor_id: profesoresIds ? profesoresIds[0] ?? null : req.body.profesor_id || null,
       dia1: req.body.dia1 || null,
       dia2: req.body.dia2 || null,
       hora_inicio: req.body.hora_inicio || null,
@@ -642,13 +709,21 @@ router.post("/grupos", requireAdmin, async (req, res) => {
     const { fields, values } = pickWritableFields(payload, allowed, columns);
 
     const placeholders = fields.map(() => "?").join(", ");
-    const [result] = await query(
-      `INSERT INTO grupos (${fields.join(", ")}) VALUES (${placeholders})`,
-      values
-    );
+    const sqlInsert = `INSERT INTO grupos (${fields.join(", ")}) VALUES (${placeholders})`;
+    let insertId;
+    if (profesoresIds) {
+      insertId = await enTransaccion(async (connection) => {
+        const [result] = await connection.query(sqlInsert, values);
+        await sincronizarProfesoresGrupo(connection, result.insertId, profesoresIds);
+        return result.insertId;
+      });
+    } else {
+      [{ insertId }] = await query(sqlInsert, values);
+    }
 
-    res.status(201).json({ ok: true, id: result.insertId, message: "Grupo creado correctamente" });
+    res.status(201).json({ ok: true, id: insertId, message: "Grupo creado correctamente" });
   } catch (e) {
+    if (e.status) return res.status(e.status).json({ ok: false, message: e.message });
     console.error("Error POST /api/gestion/grupos:", e);
     res.status(500).json({ ok: false, message: e.message });
   }
@@ -658,19 +733,30 @@ router.put("/grupos/:id", requireAdmin, async (req, res) => {
   try {
     const columns = await getTableColumns("grupos");
     const allowed = ["codigo", "nombre", "nivel", "profesor_id", "dia1", "dia2", "hora_inicio", "duracion_min", "pista_habitual", "cupo", "activo"];
-    const { fields, values } = pickWritableFields(req.body, allowed, columns);
+    const profesoresIds = await leerProfesoresIds(req.body, db.promise());
+    // Con profesores_ids, grupos.profesor_id pasa a ser el primero (compatibilidad).
+    const cuerpo = profesoresIds ? { ...req.body, profesor_id: profesoresIds[0] ?? null } : req.body;
+    const { fields, values } = pickWritableFields(cuerpo, allowed, columns);
 
-    if (!fields.length) {
+    if (!fields.length && !profesoresIds) {
       return res.status(400).json({ ok: false, message: "No hay campos validos para actualizar" });
     }
 
-    await query(
-      `UPDATE grupos SET ${fields.map((field) => `${field} = ?`).join(", ")} WHERE id = ?`,
-      [...values, req.params.id]
-    );
+    const sqlUpdate = `UPDATE grupos SET ${fields.map((field) => `${field} = ?`).join(", ")} WHERE id = ?`;
+    if (profesoresIds) {
+      await enTransaccion(async (connection) => {
+        const [existe] = await connection.query("SELECT id FROM grupos WHERE id = ? LIMIT 1 FOR UPDATE", [req.params.id]);
+        if (!existe.length) throw requestError(404, "Grupo no encontrado");
+        if (fields.length) await connection.query(sqlUpdate, [...values, req.params.id]);
+        await sincronizarProfesoresGrupo(connection, req.params.id, profesoresIds);
+      });
+    } else {
+      await query(sqlUpdate, [...values, req.params.id]);
+    }
 
     res.json({ ok: true, message: "Grupo actualizado correctamente" });
   } catch (e) {
+    if (e.status) return res.status(e.status).json({ ok: false, message: e.message });
     console.error("Error PUT /api/gestion/grupos/:id:", e);
     res.status(500).json({ ok: false, message: e.message });
   }

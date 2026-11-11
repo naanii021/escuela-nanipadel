@@ -22,4 +22,5 @@ export const IcAtras = (props) => <svg {...base} {...props}><path d="M15 5l-7 7 
 export const IcAdelante = (props) => <svg {...base} {...props}><path d="M9 5l7 7-7 7" /></svg>;
 export const IcAviso = (props) => <svg {...base} {...props}><path d="M12 3l9.5 17h-19z" /><path d="M12 10v4M12 17.5v.01" /></svg>;
 export const IcMas = (props) => <svg {...base} {...props}><path d="M12 5v14M5 12h14" /></svg>;
+export const IcPersonas = (props) => <svg {...base} {...props}><circle cx="9" cy="8" r="3.2" /><path d="M2.8 20c.4-3.6 3-5.6 6.2-5.6s5.8 2 6.2 5.6" /><path d="M16 4.9a3.2 3.2 0 0 1 0 6.2M18 14.7c1.8.7 3 2.4 3.2 5.3" /></svg>;
 export const IcLista = (props) => <svg {...base} {...props}><path d="M9 6h11M9 12h11M9 18h11" /><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2" /></svg>;

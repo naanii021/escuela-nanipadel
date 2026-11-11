@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { registerHooks } from "node:module";
 import test from "node:test";
+import { consultaGp } from "./helpers/grupo-profesores.js";
 
 let session = null;
 let attendance = null;
@@ -10,6 +11,8 @@ let commits = 0;
 let rollbacks = 0;
 
 async function query(sql, params = []) {
+  const gpRes = consultaGp(sql, params);
+  if (gpRes) return gpRes;
   if (sql.includes("FROM cursos_escolares c")) return [[{ curso_id: 26, sede_id: 4 }]];
   if (sql === "SHOW COLUMNS FROM profesores") {
     return [[{ Field: "id" }, { Field: "usuario_id" }, { Field: "activo" }]];
@@ -19,7 +22,7 @@ async function query(sql, params = []) {
     return [[{ id: 51 }]];
   }
   if (sql.includes("FROM grupos g") && sql.includes("g.id = ?") && sql.includes("g.activo = 1")) {
-    return [[{ id: 8, nombre: "Grupo", profesor_id: null, dia1: "M", dia2: null, hora_inicio: "18:00:00", duracion_min: 60 }]];
+    return [[{ id: 8, nombre: "Grupo", profesor_id: 51, dia1: "M", dia2: null, hora_inicio: "18:00:00", duracion_min: 60 }]];
   }
   if (sql.includes("FROM grupo_alumnos ga")) return [[{ id: 2, nombre: "Beto", apellidos: "B" }]];
   if (sql.includes("FROM sesiones_clase WHERE grupo_id")) {
@@ -83,12 +86,18 @@ async function query(sql, params = []) {
   }
   if (sql.includes("FROM recuperaciones_clase r")) {
     assert.match(sql, /g\.curso_id = \? AND g\.sede_id = \?/);
+    assert.match(sql, /AND g\.profesor_id = \?/);
+    assert.deepEqual(params, [26, 4, 51]);
     return [recovery ? [{ ...recovery, alumno_nombre: "Beto", alumno_apellidos: "B", grupo_origen: "Grupo" }] : []];
   }
   if (sql.includes("FROM sesiones_clase s") && sql.includes("WHERE s.id = ?")) {
-    return [Number(params[2]) === 12 ? [{ id: 12, fecha: "2026-09-29" }] : []];
+    // Un profesor solo puede asignar recuperaciones a sesiones de sus grupos: el SQL añade su ficha (51).
+    assert.match(sql, /AND g\.profesor_id = \?/);
+    assert.equal(params[2], 51);
+    return [Number(params[3]) === 12 ? [{ id: 12, fecha: "2026-09-29" }] : []];
   }
   if (sql.includes("FROM sesiones_clase s")) {
+    assert.match(sql, /AND g\.profesor_id = \?/);
     return [[{ id: 12, grupo_id: 8, fecha: "2026-09-29", grupo_nombre: "Grupo" }]];
   }
   throw new Error(`Consulta inesperada: ${sql}`);

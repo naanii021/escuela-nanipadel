@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { registerHooks } from "node:module";
 import test from "node:test";
+import { consultaGp } from "./helpers/grupo-profesores.js";
 
 const student = { id: 7, nombre: "Ana", apellidos: "Pérez", activo: 1 };
 const enrollment = { alumno_id: 7, curso_id: 3, sede_id: 2, estado: "grupo_asignado", fecha_baja: null };
@@ -15,6 +16,8 @@ const columns = {
 };
 
 async function query(sql, params = []) {
+  const gpRes = consultaGp(sql, params);
+  if (gpRes) return gpRes;
   if (sql.startsWith("SHOW COLUMNS FROM ")) {
     const table = sql.slice("SHOW COLUMNS FROM ".length);
     return [columns[table].map((Field) => ({ Field }))];

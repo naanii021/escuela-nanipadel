@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { apiGet, apiPost, apiPut } from "../../services/api";
 import CancelarClaseHoja, { textoAvisoFamilias } from "./CancelarClaseHoja";
-import { IcAviso, IcCheck, IcNota, IcX } from "./Iconos";
-import { claseMasProxima, diaDeFecha, diasDelGrupo, formatDias, formatFecha, formatHorario, hora, hoyISO, iniciales, minutosDe, momentoClase, motivoCorto, nivelLabel, nombreCompleto, nombreGrupo, nombrePista, plural } from "./panelUtils";
+import { IcAviso, IcCheck, IcNota, IcPersonas, IcX } from "./Iconos";
+import { AvisoCompanero, AvisoConflicto } from "./AvisoCompanero";
+import { claseMasProxima, esCompartido, nombrePilaDe, textoCompartida, diaDeFecha, diasDelGrupo, formatDias, formatFecha, formatHorario, hora, hoyISO, iniciales, minutosDe, momentoClase, motivoCorto, nivelLabel, nombreCompleto, nombreGrupo, nombrePista, plural } from "./panelUtils";
+
+const SIN_SESION = "1970-01-01T00:00:00.000Z";
 
 const ASISTENCIA = [
   { key: "presente", label: "Vino", Icon: IcCheck },
@@ -29,7 +32,7 @@ function resumenAsistencia(cuenta) {
   return partes.join(" · ");
 }
 
-export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = {}, cancelacionesHoy = {}, onAviso, onGuardada }) {
+export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = {}, cancelacionesHoy = {}, listasDeOtroHoy = {}, onAviso, onGuardada }) {
   const [grupos, setGrupos] = useState([]);
   const [gruposCargando, setGruposCargando] = useState(true);
   const [gruposError, setGruposError] = useState("");
@@ -56,6 +59,12 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
   const [cancelarError, setCancelarError] = useState("");
   const [reabriendo, setReabriendo] = useState(false);
   const [reabrirError, setReabrirError] = useState("");
+  // Clases compartidas: último cambio conocido en el servidor, el que cargué yo (base) y el conflicto 409 pendiente.
+  const [miProfesorId, setMiProfesorId] = useState(null);
+  const [ultimoCambio, setUltimoCambio] = useState(null);
+  const [baseCambio, setBaseCambio] = useState(null);
+  const [conflicto, setConflicto] = useState(null);
+  const [grupoServidor, setGrupoServidor] = useState(null);
   const flashTimer = useRef(null);
   const peticionAplicada = useRef(null);
   const tiraRef = useRef(null);
@@ -117,6 +126,9 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
   useEffect(() => {
     if (!grupo?.id || !hayClase) {
       setSesion(null);
+      setUltimoCambio(null);
+      setBaseCambio(null);
+      setConflicto(null);
       setHayAsistencia(false);
       setAlumnos([]);
       setBorrador({});
@@ -128,6 +140,7 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
     setCargaError("");
     setGuardarError("");
     setRecienGuardada(false);
+    setConflicto(null);
     apiGet(`/api/gestion/control/grupos/${grupo.id}/sesiones?fecha=${encodeURIComponent(fecha)}`)
       .then((data) => {
         if (cancelado) return;
@@ -135,6 +148,12 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
         setSesion(actual);
         setHayAsistencia(Boolean(data.asistencias?.length));
         setReabrirError("");
+        setConflicto(null);
+        setMiProfesorId(data.profesor_actual_id ?? null);
+        setUltimoCambio(actual?.ultimo_cambio || null);
+        // Sin sesión todavía: se manda una base antigua para que, si el compañero la crea, el servidor avise (409).
+        setBaseCambio(actual?.ultimo_cambio?.en || (actual ? null : SIN_SESION));
+        setGrupoServidor(data.grupo ? { gid: grupo.id, ...data.grupo } : null);
         setAlumnos(data.alumnos || []);
         setBorrador(Object.fromEntries((data.asistencias || []).map((item) => [item.alumno_id, item.estado])));
         // Hoy o antes: la clase se da por dada salvo que se cambie. Así la falta justificada crea su recuperación.
@@ -149,6 +168,27 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
   }, [grupo, fecha, hayClase, isAdmin, recargar]);
 
   useEffect(() => () => window.clearTimeout(flashTimer.current), []);
+
+  // Refresco suave: al volver a la pestaña se mira si el compañero ha guardado, sin tocar lo marcado aquí.
+  // Datos de profesores de la propia respuesta de la clase (sin pedir nada extra); si faltan, los del listado.
+  const grupoInfo = grupoServidor && grupoServidor.gid === grupo?.id && grupoServidor.profesores ? grupoServidor : grupo;
+  const compartida = esCompartido(grupoInfo);
+  useEffect(() => {
+    if (!grupo?.id || !hayClase || !compartida) return undefined;
+    let vivo = true;
+    const alVolver = () => {
+      if (document.visibilityState !== "visible") return;
+      apiGet(`/api/gestion/control/grupos/${grupo.id}/sesiones?fecha=${encodeURIComponent(fecha)}`)
+        .then((data) => {
+          if (!vivo) return;
+          setUltimoCambio(data.sesiones?.[0]?.ultimo_cambio || null);
+          if (data.profesor_actual_id != null) setMiProfesorId(data.profesor_actual_id);
+        })
+        .catch(() => {});
+    };
+    document.addEventListener("visibilitychange", alVolver);
+    return () => { vivo = false; document.removeEventListener("visibilitychange", alVolver); };
+  }, [grupo?.id, fecha, hayClase, compartida]);
 
   // La clase elegida queda a la vista dentro de la tira de clases de hoy.
   useEffect(() => {
@@ -178,9 +218,28 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
   const nombreProfesor = (id) => profesores.find((item) => String(item.id) === String(id))?.name || "";
   const profesorTexto = nombreProfesor(profesorSel) || grupo?.profesor || "sin profesor";
 
-  const guardar = async () => {
+  const yoId = miProfesorId ?? profesorActualId;
+  const hechoPorOtro = compartida && ultimoCambio && String(ultimoCambio.profesor_id) !== String(yoId ?? "");
+  // El compañero guardó después de que yo cargara la lista.
+  const cambioNuevo = Boolean(hechoPorOtro && (ultimoCambio.en || null) !== (baseCambio || null));
+
+  const manejarConflicto = (tipo, e, args) => {
+    const cambio = e.data?.ultimo_cambio || null;
+    setConflicto({ tipo, mensaje: e.message || "Otro profesor ha guardado cambios en esta clase.", cambio, args });
+    if (cambio) setUltimoCambio(cambio);
+  };
+
+  const verLoQueGuardo = () => {
+    setConflicto(null);
+    setCancelarAbierto(false);
+    setRecargar((n) => n + 1);
+  };
+
+  const guardar = async (baseForzada) => {
     if (!grupo || !hayClase || cargando || guardando) return;
+    const base = typeof baseForzada === "string" ? baseForzada : baseCambio;
     const body = {
+      base_cambio: base || null,
       fecha,
       estado: estadoClase,
       observaciones: notas,
@@ -195,6 +254,9 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
       const ruta = `/api/gestion/control/grupos/${grupo.id}/sesiones`;
       const data = sesion ? await apiPut(`${ruta}/${sesion.id}/asistencia`, body) : await apiPost(ruta, body);
       setSesion(data.sesion || null);
+      setConflicto(null);
+      setUltimoCambio(data.sesion?.ultimo_cambio || null);
+      setBaseCambio(data.sesion?.ultimo_cambio?.en || null);
       setHayAsistencia(true);
       if (data.alumnos) setAlumnos(data.alumnos);
       if (data.asistencias) setBorrador(Object.fromEntries(data.asistencias.map((item) => [item.alumno_id, item.estado])));
@@ -208,6 +270,7 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
       onAviso?.(`Lista guardada: ${resumenAsistencia(cuenta)}.${extra}`);
       onGuardada?.();
     } catch (e) {
+      if (e.status === 409 && e.data?.conflicto) { manejarConflicto("guardar", e); return; }
       setGuardarError(`${e.message || "No se ha podido guardar."} Tus marcas siguen aquí: pulsa otra vez para reintentar.`);
     } finally {
       setGuardando(false);
@@ -217,13 +280,18 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
   const cancelada = sesion?.estado === "cancelada";
   const cancelacion = cancelada ? sesion.cancelacion || { motivo: "otro", texto: "" } : null;
 
-  const cancelarClase = async ({ motivo, texto, recuperable, avisar_familias }) => {
+  const cancelarClase = async (datos, baseForzada) => {
     if (!grupo || cancelando) return;
+    const { motivo, texto, recuperable, avisar_familias } = datos;
+    const base = typeof baseForzada === "string" ? baseForzada : baseCambio;
     try {
       setCancelando(true);
       setCancelarError("");
-      const data = await apiPost(`/api/gestion/control/grupos/${grupo.id}/sesiones/cancelar`, { fecha, motivo, texto, recuperable, avisar_familias });
+      const data = await apiPost(`/api/gestion/control/grupos/${grupo.id}/sesiones/cancelar`, { fecha, motivo, texto, recuperable, avisar_familias, base_cambio: base || null });
       setSesion(data.sesion || null);
+      setConflicto(null);
+      setUltimoCambio(data.sesion?.ultimo_cambio || null);
+      setBaseCambio(data.sesion?.ultimo_cambio?.en || null);
       setCancelarAbierto(false);
       const creadas = Number(data.recuperaciones_creadas || 0);
       onAviso?.(creadas
@@ -231,28 +299,41 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
         : `Clase cancelada. ${textoAvisoFamilias(data.aviso)}`.trim());
       onGuardada?.();
     } catch (e) {
+      if (e.status === 409 && e.data?.conflicto) { setCancelarAbierto(false); manejarConflicto("cancelar", e, datos); return; }
       setCancelarError(`${e.message || "No se ha podido cancelar la clase."} No se ha cancelado nada: puedes volver a intentarlo.`);
     } finally {
       setCancelando(false);
     }
   };
 
-  const reabrirClase = async () => {
+  const reabrirClase = async (baseForzada) => {
     if (!grupo || reabriendo) return;
+    const base = typeof baseForzada === "string" ? baseForzada : baseCambio;
     try {
       setReabriendo(true);
       setReabrirError("");
-      const data = await apiPost(`/api/gestion/control/grupos/${grupo.id}/sesiones/reabrir`, { fecha });
+      const data = await apiPost(`/api/gestion/control/grupos/${grupo.id}/sesiones/reabrir`, { fecha, base_cambio: base || null });
       setSesion(data.sesion || null);
+      setConflicto(null);
+      setUltimoCambio(data.sesion?.ultimo_cambio || null);
+      setBaseCambio(data.sesion?.ultimo_cambio?.en || null);
       setEstadoClase(fecha <= hoyISO() ? "dada" : "programada");
       setNotas("");
       onAviso?.("Clase reabierta. Ya puedes pasar lista.");
       onGuardada?.();
     } catch (e) {
+      if (e.status === 409 && e.data?.conflicto) { manejarConflicto("reabrir", e); return; }
       setReabrirError(`${e.message || "No se ha podido reabrir la clase."} Puedes volver a intentarlo.`);
     } finally {
       setReabriendo(false);
     }
+  };
+
+  const forzarConflicto = () => {
+    const base = conflicto?.cambio?.en || ultimoCambio?.en || "";
+    if (conflicto?.tipo === "cancelar") cancelarClase(conflicto.args || { motivo: "otro", texto: "" }, base);
+    else if (conflicto?.tipo === "reabrir") reabrirClase(base);
+    else guardar(base);
   };
 
   const fechaTexto = capitalizar(formatFecha(fecha));
@@ -286,6 +367,7 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
                 const canceladaHoy = activa ? cancelada : Boolean(cancelacionesHoy[item.id]);
                 const motivoHoy = activa ? motivoCorto(cancelacion) : cancelacionesHoy[item.id];
                 const hecha = !canceladaHoy && (listasHoy[item.id] === "guardada" || (activa && hayAsistencia));
+                const otroHizo = hecha ? (activa ? (hechoPorOtro && ultimoCambio?.hay_asistencia ? nombrePilaDe(ultimoCambio.profesor) : "") : listasDeOtroHoy[item.id] || "") : "";
                 const momento = momentoClase(item);
                 return (
                   <button
@@ -294,6 +376,7 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
                     className="ppTodayCard"
                     data-momento={momento}
                     data-hecha={hecha ? "true" : "false"}
+                    data-otro={otroHizo ? "true" : undefined}
                     data-cancelada={canceladaHoy ? "true" : "false"}
                     aria-pressed={activa}
                     onClick={() => { setGrupoId(String(item.id)); setFecha(hoy); setCambiarAbierto(false); }}
@@ -301,7 +384,7 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
                     <span className="ppTodayCardTime">{hora(item.hora_inicio)}</span>
                     <span className="ppTodayCardName">{nombreGrupo(item)}</span>
                     <span className="ppTodayCardState">
-                      {canceladaHoy ? <span className="ppBadgeCancel">Cancelada · {motivoHoy}</span> : hecha ? <><IcCheck /> Lista pasada</> : momento === "ahora" ? "Ahora" : momento === "pasada" ? "Sin lista" : "Más tarde"}
+                      {canceladaHoy ? <span className="ppBadgeCancel">Cancelada · {motivoHoy}</span> : hecha ? <><IcCheck /> {otroHizo ? `${otroHizo} ya la pasó` : "Lista pasada"}</> : momento === "ahora" ? "Ahora" : momento === "pasada" ? "Sin lista" : "Más tarde"}
                     </span>
                   </button>
                 );
@@ -314,6 +397,7 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
               <strong>{nombreGrupo(grupo)}</strong>
               <span>{fechaTexto} · {formatHorario(grupo.hora_inicio, grupo.duracion_min)} · {nombrePista(grupo.pista_habitual)}</span>
               <span>Da la clase: {profesorTexto}</span>
+              {compartida && <span className="ppSharedBadge"><IcPersonas /> {textoCompartida(grupoInfo, yoId)}</span>}
             </div>
             <div className="ppClassBarActions">
               <button type="button" className="ppBtn ppBtnSmall" aria-expanded={cambiarAbierto} aria-controls="pp-cambiar-clase" onClick={() => setCambiarAbierto((v) => !v)}>
@@ -345,6 +429,13 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
             </div>
           )}
 
+          {muestraLista && hechoPorOtro && (
+            <AvisoCompanero cambio={ultimoCambio} motivo={ultimoCambio?.estado === "cancelada" ? motivoCorto(cancelacion) : ""} nuevo={cambioNuevo && !conflicto} onVer={verLoQueGuardo} />
+          )}
+          {muestraLista && conflicto && conflicto.tipo !== "guardar" && (
+            <AvisoConflicto conflicto={conflicto} ocupado={cancelando || reabriendo} onVer={verLoQueGuardo} onForzar={forzarConflicto} />
+          )}
+
           {!hayClase && (
             <p className="ppEmpty">
               {nombreGrupo(grupo)} no tiene clase el {formatFecha(fecha)}. Tiene clase los {formatDias(grupo.dia1, grupo.dia2).toLowerCase()}.
@@ -367,7 +458,7 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
                 {" "}Al reabrir se retiran las recuperaciones que aún no tengan fecha.
               </p>
               {reabrirError && <p className="ppInlineError" role="alert">{reabrirError}</p>}
-              <button type="button" className="ppBtn ppBtnPrimary" onClick={reabrirClase} disabled={reabriendo}>
+              <button type="button" className="ppBtn ppBtnPrimary" onClick={() => reabrirClase()} disabled={reabriendo}>
                 {reabriendo ? "Reabriendo..." : "Reabrir la clase"}
               </button>
             </div>
@@ -379,7 +470,7 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
             <>
               <p className="ppHint">
                 {hayAsistencia
-                  ? "Lista ya guardada: puedes corregirla."
+                  ? (hechoPorOtro ? "" : "Lista ya guardada: puedes corregirla.")
                   : "Todos aparecen como que vinieron. Toca solo a quien faltó."}
                 {" "}
                 {esFutura
@@ -461,8 +552,13 @@ export default function PasarLista({ isAdmin, profesores, peticion, listasHoy = 
                     <span>{plural(cuenta.justificada, "clase", "clases")} para recuperar</span>
                   )}
                 </p>
+                {conflicto?.tipo === "guardar" && (
+                  <div className="ppSaveError">
+                    <AvisoConflicto conflicto={conflicto} ocupado={guardando} onVer={verLoQueGuardo} onForzar={forzarConflicto} />
+                  </div>
+                )}
                 {guardarError && <p className="ppInlineError ppSaveError" role="alert">{guardarError}</p>}
-                <button type="button" className="ppBtn ppBtnPrimary ppSaveBtn" data-done={recienGuardada ? "true" : "false"} onClick={guardar} disabled={guardando}>
+                <button type="button" className="ppBtn ppBtnPrimary ppSaveBtn" data-done={recienGuardada ? "true" : "false"} onClick={() => guardar()} disabled={guardando}>
                   {guardando ? "Guardando..." : recienGuardada ? <><IcCheck /> Lista guardada</> : guardarError ? "Reintentar" : hayAsistencia ? "Guardar cambios" : "Guardar lista"}
                 </button>
               </div>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiGet } from "../../services/api";
-import { DIAS_SEMANA, diaHoy, diasDelGrupo, formatFecha, formatHorario, grupoActivo, minutosDe, motivoCorto, nivelClass, nivelLabel, nombreCompleto, nombreGrupo, nombrePista, plural, ultimaFechaDelDia } from "./panelUtils";
+import { IcPersonas } from "./Iconos";
+import { DIAS_SEMANA, diaHoy, diasDelGrupo, esCompartido, nombrePilaDe, formatFecha, formatHorario, grupoActivo, minutosDe, motivoCorto, nivelClass, nivelLabel, nombreCompleto, nombreGrupo, nombrePista, plural, ultimaFechaDelDia } from "./panelUtils";
 
 const DIAS_CON_CLASE = DIAS_SEMANA.filter((item) => item.key !== "D");
 
@@ -30,8 +31,14 @@ export default function HorarioDia({ grupos, refresco = 0, onPasarLista, onVerGr
 
   // Clases canceladas de ese día (id del grupo -> motivo corto). Una lectura por clase del día elegido.
   const [canceladas, setCanceladas] = useState({});
+  // Clases compartidas cuya lista ya pasó otro profesor (id del grupo -> nombre). Sale de la misma lectura, sin peticiones extra.
+  const [listaDeOtro, setListaDeOtro] = useState({});
   useEffect(() => {
-    if (!clases.length) { setCanceladas((previo) => (Object.keys(previo).length ? {} : previo)); return undefined; }
+    if (!clases.length) {
+      setCanceladas((previo) => (Object.keys(previo).length ? {} : previo));
+      setListaDeOtro((previo) => (Object.keys(previo).length ? {} : previo));
+      return undefined;
+    }
     let cancelado = false;
     Promise.allSettled(clases.map((grupo) => apiGet(`/api/gestion/control/grupos/${grupo.id}/sesiones?fecha=${fechaLista}`)))
       .then((resultados) => {
@@ -39,6 +46,15 @@ export default function HorarioDia({ grupos, refresco = 0, onPasarLista, onVerGr
         setCanceladas(Object.fromEntries(resultados
           .map((resultado, index) => [clases[index].id, resultado.status === "fulfilled" && resultado.value.sesiones?.[0]?.estado === "cancelada" ? motivoCorto(resultado.value.sesiones[0].cancelacion) : ""])
           .filter(([, motivo]) => motivo)));
+        setListaDeOtro(Object.fromEntries(resultados
+          .map((resultado, index) => {
+            const valor = resultado.status === "fulfilled" ? resultado.value : null;
+            const cambio = valor?.sesiones?.[0]?.ultimo_cambio;
+            const otro = esCompartido(clases[index]) && cambio?.hay_asistencia && cambio.estado !== "cancelada"
+              && String(cambio.profesor_id) !== String(valor.profesor_actual_id ?? "");
+            return [clases[index].id, otro ? nombrePilaDe(cambio.profesor) : ""];
+          })
+          .filter(([, nombre]) => nombre)));
       });
     return () => { cancelado = true; };
   }, [clases, fechaLista, refresco]);
@@ -77,10 +93,12 @@ export default function HorarioDia({ grupos, refresco = 0, onPasarLista, onVerGr
                 <div className="ppScheduleBody">
                   <strong>{nombreGrupo(grupo)}</strong>
                   {canceladas[grupo.id] && <span className="ppBadgeCancel">Cancelada · {canceladas[grupo.id]}</span>}
+                  {listaDeOtro[grupo.id] && !canceladas[grupo.id] && <span className="ppBadgeDone">{listaDeOtro[grupo.id]} ya la pasó</span>}
                   <span className="ppMetaLine">
                     {grupo.nivel && <span className={nivelClass(grupo.nivel)}>{nivelLabel(grupo.nivel)}</span>}
                     <span>{nombrePista(grupo.pista_habitual)}</span>
                     <span>{grupo.profesor || "Sin profesor"}</span>
+                    {esCompartido(grupo) && <span className="ppSharedBadge"><IcPersonas /> Compartida</span>}
                   </span>
                   <span className="ppScheduleStudents">
                     {alumnos.length ? `${plural(alumnos.length, "alumno")}: ${alumnos.map((alumno) => nombreCompleto(alumno).split(" ")[0]).join(", ")}` : "Sin alumnos este día"}

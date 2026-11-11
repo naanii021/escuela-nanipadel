@@ -7,6 +7,7 @@ import {
 } from "../routes/gestionControl.js";
 import { consumeTelegramLinkCode, getTelegramProfessor } from "./telegramLinkService.js";
 
+const SIN_CAMBIOS_VISTOS = "1970-01-01T00:00:00.000Z";
 const DAY_CODES = ["D", "L", "M", "X", "J", "V", "S"];
 const STATUS = { presente: "✅", falta: "❌", justificada: "🟠" };
 const HELP_TEXT = [
@@ -60,8 +61,26 @@ function actor(professor) {
   };
 }
 
+// Un grupo compartido lo ven y gestionan todos sus profesores (el principal y los de profesores_ids).
 function canUseGroup(professor, group) {
-  return isAdminProfessor(professor) || Number(group?.profesor_id) === Number(professor.id);
+  if (isAdminProfessor(professor)) return true;
+  const id = Number(professor.id);
+  return Number(group?.profesor_id) === id || (group?.profesores_ids || []).some((other) => Number(other) === id);
+}
+
+// Si otro profesor ya pasó lista de esta clase, se le avisa en llano antes de ofrecer los botones.
+function avisoListaDeCompanero(professor, session) {
+  const ultimo = session?.ultimo_cambio;
+  if (!ultimo?.hay_asistencia || !ultimo.profesor_id || Number(ultimo.profesor_id) === Number(professor.id)) return "";
+  const nombre = String(ultimo.profesor || "").split(/\s+/)[0] || "Un compañero";
+  const hora = ultimo.en
+    ? new Intl.DateTimeFormat("es-ES", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(ultimo.en))
+    : null;
+  const presentes = Number(ultimo.resumen?.presente) || 0;
+  const ausentes = (Number(ultimo.resumen?.falta) || 0) + (Number(ultimo.resumen?.justificada) || 0);
+  const partes = [`${presentes} ${presentes === 1 ? "vino" : "vinieron"}`];
+  if (ausentes) partes.push(`${ausentes} ${ausentes === 1 ? "faltó" : "faltaron"}`);
+  return `Ojo: ${nombre} ya pasó lista${hora ? ` a las ${hora}` : ""}: ${partes.join(", ")}. Si guardas, la cambiarás.`;
 }
 
 function callbackButton(text, callback_data) {
@@ -218,14 +237,24 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
     return { inline_keyboard: rows };
   }
 
+  // El servidor ya impide cargar un grupo ajeno (403 "no es tuyo"); aquí se convierte en el aviso amable del bot.
+  async function cargarSesion(professor, groupId, date) {
+    try {
+      return await loadControlSession(actor(professor), groupId, date, promiseDb());
+    } catch (error) {
+      if (error.status === 403 && /no es tuyo/.test(String(error.message))) return null;
+      throw error;
+    }
+  }
+
   function denyForeignGroup(chatId, messageId = null) {
     const text = "Ese grupo no es tuyo, así que no puedes pasar lista. Si lo estás sustituyendo, pídele a la administración que te lo asigne.";
     return messageId ? api.editMessage(chatId, messageId, text) : api.sendMessage(chatId, text);
   }
 
   async function beginAttendance(chatId, professor, groupId, date, messageId = null, notice = "") {
-    const data = await loadControlSession(actor(professor), groupId, date, promiseDb());
-    if (!canUseGroup(professor, data.grupo)) return denyForeignGroup(chatId, messageId);
+    const data = await cargarSesion(professor, groupId, date);
+    if (!data || !canUseGroup(professor, data.grupo)) return denyForeignGroup(chatId, messageId);
     if (data.sesiones[0]?.estado === "cancelada") {
       drafts.delete(`${chatId}:${groupId}:${date.replaceAll("-", "")}`);
       const text = groupText(data.grupo, null, data.sesiones[0]);
@@ -233,15 +262,19 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
     }
     const group = { ...data.grupo, id: Number(groupId) };
     const stored = Object.fromEntries(data.asistencias.map((item) => [item.alumno_id, item.estado]));
+    const aviso = avisoListaDeCompanero(professor, data.sesiones[0]);
     const draft = {
       group, date, compactDate: date.replaceAll("-", ""), students: data.alumnos,
+      // Sin sesión todavía se manda "no he visto nada" (1970): si un compañero guarda antes, no se pisa.
+      baseCambio: data.sesiones[0]?.ultimo_cambio?.en ?? SIN_CAMBIOS_VISTOS,
       states: Object.fromEntries(data.alumnos.map((student) => [student.id, stored[student.id] || "presente"])),
       messageId, touchedAt: nowMs(),
     };
     drafts.set(`${chatId}:${groupId}:${draft.compactDate}`, draft);
     const markup = draftKeyboard(draft);
-    if (messageId) return api.editMessage(chatId, messageId, draftMessage(draft, notice), markup);
-    const sent = await api.sendMessage(chatId, draftMessage(draft, notice), markup);
+    const avisos = [notice, aviso].filter(Boolean).join("\n\n");
+    if (messageId) return api.editMessage(chatId, messageId, draftMessage(draft, avisos), markup);
+    const sent = await api.sendMessage(chatId, draftMessage(draft, avisos), markup);
     draft.messageId = sent?.message_id ?? null;
     return sent;
   }
@@ -291,9 +324,9 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
       return api.answerCallback(callback.id, "Acción no válida");
     }
     if (action === "open" || action === "students") {
-      const data = await loadControlSession(actor(professor), groupId, date, promiseDb());
+      const data = await cargarSesion(professor, groupId, date);
       await api.answerCallback(callback.id);
-      if (!canUseGroup(professor, data.grupo)) return denyForeignGroup(chatId);
+      if (!data || !canUseGroup(professor, data.grupo)) return denyForeignGroup(chatId);
       const canceled = data.sesiones[0]?.estado === "cancelada";
       return api.sendMessage(chatId, groupText(data.grupo, data.alumnos, data.sesiones[0]),
         canceled ? undefined : { inline_keyboard: groupKeyboard(groupId, date) });
@@ -326,12 +359,24 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
         result = await saveControlSession({
           user: actor(professor), groupId, fecha: date,
           payload: {
-            estado: "dada", profesor_id: professor.id,
+            estado: "dada", profesor_id: professor.id, base_cambio: draft.baseCambio,
             asistencias: draft.students.map((student) => ({ alumno_id: student.id, estado: draft.states[student.id] })),
           },
         });
       } catch (error) {
         // La clase se canceló mientras se pasaba lista: se avisa en vez de dejar el botón sin respuesta.
+        if (error.status === 403) {
+          drafts.delete(key);
+          await api.answerCallback(callback.id, "No se ha guardado");
+          return denyForeignGroup(chatId, messageId || draft.messageId);
+        }
+        // Un compañero guardó la clase mientras se pasaba lista: no se pisa; se recarga la lista con lo suyo.
+        if (error.status === 409 && error.extra?.conflicto) {
+          drafts.delete(key);
+          await api.answerCallback(callback.id, "No se ha guardado");
+          return beginAttendance(chatId, professor, groupId, date, messageId || draft.messageId,
+            "⚠️ No se ha guardado: un compañero acaba de cambiar esta clase.");
+        }
         if (error.status !== 400) throw error;
         drafts.delete(key);
         await api.answerCallback(callback.id, "No se ha guardado");
