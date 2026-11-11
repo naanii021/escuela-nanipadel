@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { registerHooks } from "node:module";
 import test from "node:test";
+import { consultaGp, gp, resetGp } from "./helpers/grupo-profesores.js";
 
 let linkedChatId = "100";
 let linkedRole = "profesor";
@@ -26,6 +27,8 @@ const students = [
 ];
 
 async function query(sql, params = []) {
+  const gpRes = consultaGp(sql, params);
+  if (gpRes) return gpRes;
   if (sql.startsWith("UPDATE telegram_profesor_codigos SET usado_en = NOW() WHERE profesor_id")) return [{ affectedRows: 0 }];
   if (sql.startsWith("INSERT INTO telegram_profesor_codigos")) {
     pendingCodeHash = params[1];
@@ -128,6 +131,7 @@ registerHooks({
 
 const { createTelegramLinkCode } = await import("../services/telegramLinkService.js");
 const { createTelegramBot } = await import("../services/telegramBotService.js");
+const { resetGrupoProfesoresCache } = await import("../services/profesoresGrupo.js");
 
 function fakeApi() {
   const calls = [];
@@ -396,5 +400,115 @@ test("un profesor solo ve y pasa lista de sus grupos; el admin vinculado, de tod
   } finally {
     groups[1].profesor_id = 1;
     linkedRole = "profesor";
+  }
+});
+
+// Grupo compartido: el principal es Juanjo (3) y Dani (1, el profesor vinculado) está en grupo_profesores.
+function compartirGrupo1() {
+  resetGp();
+  resetGrupoProfesoresCache();
+  gp.tabla = true;
+  gp.profesores.set(1, [
+    { id: 3, nombre: "Juanjo", apellidos: "Alonso" },
+    { id: 1, nombre: "Dani", apellidos: "Iglesias" },
+  ]);
+  gp.miembros.set(1, new Set([1, 3]));
+  gp.nombres.set(3, { nombre: "Juanjo", apellidos: "Alonso" });
+  groups[0].profesor_id = 3;
+}
+
+function descompartirGrupo1() {
+  resetGp();
+  resetGrupoProfesoresCache();
+  groups[0].profesor_id = 1;
+}
+
+test("clase compartida: ambos profesores la ven, y se avisa si el compañero ya pasó lista", async () => {
+  freshAttendance();
+  compartirGrupo1();
+  try {
+    session = { id: 40, grupo_id: 1, profesor_id: 3, fecha: "2026-09-22", estado: "dada", observaciones: null, updated_at: new Date("2026-09-22T16:40:00Z") };
+    attendance.set(10, "presente");
+    attendance.set(11, "falta");
+    gp.agregado = () => [
+      { estado: "presente", total: 4, en: new Date("2026-09-22T16:40:00Z") },
+      { estado: "falta", total: 1, en: new Date("2026-09-22T16:40:00Z") },
+    ];
+    const api = fakeApi();
+    const bot = createTelegramBot({ api, database: globalThis.__telegramTestDb, now: () => new Date("2026-09-22T10:00:00Z") });
+    // /hoy: el grupo 1 sale aunque el principal no sea Dani.
+    await bot.handleUpdate({ message: { chat: { id: 100, type: "private" }, text: "/hoy" } });
+    assert.ok(api.calls.some((call) => /Grupo 1/.test(call.text || "")));
+
+    api.calls.length = 0;
+    await bot.handleUpdate(callback("c1", "attendance:1:2026-09-22"));
+    const lista = api.calls.find((call) => call.method === "editMessage");
+    assert.match(lista.text, /Ojo: Juanjo ya pasó lista a las 18:40: 4 vinieron, 1 faltó\. Si guardas, la cambiarás\./);
+    assert.ok(lista.reply_markup.inline_keyboard.flat().some((button) => button.text === "Guardar lista"));
+    assert.equal(bot.drafts.size, 1);
+  } finally {
+    descompartirGrupo1();
+  }
+});
+
+test("clase compartida: sin lista previa o con lista propia no hay aviso", async () => {
+  freshAttendance();
+  compartirGrupo1();
+  try {
+    const api = fakeApi();
+    const bot = createTelegramBot({ api, database: globalThis.__telegramTestDb, now: () => new Date("2026-09-22T10:00:00Z") });
+    await bot.handleUpdate(callback("d1", "attendance:1:2026-09-22"));
+    assert.doesNotMatch(api.calls.find((call) => call.method === "editMessage").text, /Ojo/);
+
+    // La lista la guardó el propio Dani: tampoco se avisa.
+    session = { id: 40, grupo_id: 1, profesor_id: 1, fecha: "2026-09-22", estado: "dada", observaciones: null, updated_at: new Date("2026-09-22T16:40:00Z") };
+    gp.agregado = () => [{ estado: "presente", total: 2, en: new Date("2026-09-22T16:40:00Z") }];
+    api.calls.length = 0;
+    await bot.handleUpdate(callback("d2", "attendance:1:2026-09-22"));
+    assert.doesNotMatch(api.calls.find((call) => call.method === "editMessage").text, /Ojo/);
+  } finally {
+    descompartirGrupo1();
+  }
+});
+
+test("clase compartida: si el compañero guarda mientras tanto, no se pisa y se recarga la lista", async () => {
+  freshAttendance();
+  compartirGrupo1();
+  try {
+    const api = fakeApi();
+    const bot = createTelegramBot({ api, database: globalThis.__telegramTestDb, now: () => new Date("2026-09-22T10:00:00Z") });
+    await bot.handleUpdate(callback("e1", "attendance:1:2026-09-22"));
+    assert.equal(bot.drafts.size, 1);
+
+    // Juanjo guarda después de que Dani abriera la lista.
+    session = { id: 40, grupo_id: 1, profesor_id: 3, fecha: "2026-09-22", estado: "dada", observaciones: null, updated_at: new Date("2026-09-22T17:10:00Z") };
+    attendance.set(10, "falta");
+    gp.agregado = () => [{ estado: "falta", total: 1, en: new Date("2026-09-22T17:10:00Z") }, { estado: "presente", total: 1, en: new Date("2026-09-22T17:10:00Z") }];
+    api.calls.length = 0;
+    await bot.handleUpdate(callback("e2", "save:1:20260922"));
+    assert.equal(attendance.get(10), "falta", "no se ha pisado la lista del compañero");
+    assert.ok(api.calls.some((call) => call.method === "answerCallback" && call.text === "No se ha guardado"));
+    const recarga = api.calls.find((call) => call.method === "editMessage");
+    assert.match(recarga.text, /No se ha guardado: un compañero acaba de cambiar esta clase/);
+    assert.match(recarga.text, /Ojo: Juanjo ya pasó lista a las 19:10/);
+    assert.equal(bot.drafts.size, 1, "queda un borrador nuevo con la lista actual");
+  } finally {
+    descompartirGrupo1();
+  }
+});
+
+test("clase compartida: un tercer profesor no la ve ni pasa lista", async () => {
+  freshAttendance();
+  compartirGrupo1();
+  gp.miembros.set(1, new Set([2, 3]));
+  gp.profesores.set(1, [{ id: 3, nombre: "Juanjo", apellidos: "Alonso" }, { id: 2, nombre: "Otro", apellidos: "" }]);
+  try {
+    const api = fakeApi();
+    const bot = createTelegramBot({ api, database: globalThis.__telegramTestDb, now: () => new Date("2026-09-22T10:00:00Z") });
+    await bot.handleUpdate(callback("f1", "attendance:1:2026-09-22"));
+    assert.match(api.calls.find((call) => call.method === "editMessage").text, /no es tuyo/);
+    assert.equal(bot.drafts.size, 0);
+  } finally {
+    descompartirGrupo1();
   }
 });
