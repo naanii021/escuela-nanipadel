@@ -3,6 +3,7 @@ import { registerHooks } from "node:module";
 import test from "node:test";
 
 let linkedChatId = "100";
+let linkedRole = "profesor";
 let pendingCodeHash = null;
 let codeUsed = false;
 let session = null;
@@ -17,7 +18,7 @@ const groups = Array.from({ length: 9 }, (_, index) => ({
   hora_inicio: `${String(9 + index).padStart(2, "0")}:00:00`,
   duracion_min: 60,
   pista_habitual: `Pista ${(index % 2) + 1}`,
-  profesor_id: null,
+  profesor_id: 1,
 }));
 const students = [
   { id: 10, nombre: "Ana", apellidos: "A", asiste_dia1: 1, asiste_dia2: 0 },
@@ -46,7 +47,7 @@ async function query(sql, params = []) {
   }
   if (sql.includes("FROM profesores") && sql.includes("telegram_chat_id = ?")) {
     return [String(params[0]) === linkedChatId
-      ? [{ id: 1, usuario_id: 1, nombre: "Dani", apellidos: "Profesor", telegram_chat_id: linkedChatId }] : []];
+      ? [{ id: 1, usuario_id: 1, nombre: "Dani", apellidos: "Profesor", telegram_chat_id: linkedChatId, usuario_rol: linkedRole }] : []];
   }
   if (sql.includes("FROM cursos_escolares c")) return [[{ curso_id: 26, sede_id: 4 }]];
   if (sql.includes("FROM grupos g") && sql.includes("g.curso_id = ?") && !sql.includes("g.id = ?")) return [groups];
@@ -156,11 +157,11 @@ test("vincula un profesor solo mediante código temporal de un solo uso", async 
   const bot = createTelegramBot({ api, database: globalThis.__telegramTestDb, now: () => new Date("2026-09-22T10:00:00Z") });
   await bot.handleUpdate({ message: { chat: { id: 200, type: "private" }, from: { username: "dani" }, text: `/start ${code}` } });
   assert.equal(linkedChatId, "200");
-  assert.match(api.calls.at(-1).text, /Telegram vinculado/);
+  assert.match(api.calls.at(-1).text, /Telegram queda vinculado/);
 
   await bot.handleUpdate({ message: { chat: { id: 201, type: "private" }, text: `/start ${code}` } });
   assert.notEqual(linkedChatId, "201");
-  assert.match(api.calls.at(-1).text, /no es válido/);
+  assert.match(api.calls.at(-1).text, /Ese código no vale/);
 });
 
 test("un chat no vinculado no recibe datos de alumnos", async () => {
@@ -168,7 +169,7 @@ test("un chat no vinculado no recibe datos de alumnos", async () => {
   const bot = createTelegramBot({ api, database: globalThis.__telegramTestDb });
   await bot.handleUpdate({ message: { chat: { id: 999, type: "private" }, text: "/hoy" } });
   assert.equal(api.calls.length, 1);
-  assert.match(api.calls[0].text, /no vinculado/i);
+  assert.match(api.calls[0].text, /todavía no está vinculado/i);
   assert.doesNotMatch(api.calls[0].text, /Ana|Beto/);
 });
 
@@ -189,7 +190,7 @@ test("/grupos muestra los nueve grupos activos y /recuperaciones las pendientes"
   const api = fakeApi();
   const bot = createTelegramBot({ api, database: globalThis.__telegramTestDb, now: () => new Date("2026-09-22T10:00:00Z") });
   await bot.handleUpdate({ message: { chat: { id: 100, type: "private" }, text: "/grupos" } });
-  assert.match(api.calls[0].text, /Grupos activos: 9/);
+  assert.match(api.calls[0].text, /Tus grupos: 9/);
   assert.equal(api.calls.filter((call) => call.reply_markup).length, 9);
 
   api.calls.length = 0;
@@ -332,8 +333,68 @@ test("una clase cancelada no ofrece pasar lista y avisa si se cancela con la lis
   api.calls.length = 0;
   await bot.handleUpdate(callback("c3", "open:1:2026-09-22"));
   const message = api.calls.find((call) => call.method === "sendMessage");
-  assert.match(message.text, /Clase cancelada · Lluvia/);
+  assert.match(message.text, /Clase cancelada: Lluvia/);
   assert.equal(message.reply_markup, undefined);
   await bot.handleUpdate(callback("c4", "attendance:1:2026-09-22"));
-  assert.match(api.calls.at(-1).text, /Clase cancelada · Lluvia/);
+  assert.match(api.calls.at(-1).text, /Clase cancelada: Lluvia/);
+});
+
+test("/ayuda y los textos desconocidos explican qué se puede hacer", async () => {
+  freshAttendance();
+  const api = fakeApi();
+  const bot = createTelegramBot({ api, database: globalThis.__telegramTestDb });
+  await bot.handleUpdate({ message: { chat: { id: 100, type: "private" }, text: "/ayuda" } });
+  assert.match(api.calls[0].text, /\/hoy.*\/grupos.*\/recuperaciones/s);
+  assert.match(api.calls[0].text, /Pasar lista/);
+  await bot.handleUpdate({ message: { chat: { id: 100, type: "private" }, text: "hola" } });
+  assert.match(api.calls[1].text, /\/ayuda/);
+});
+
+test("/hoy muestra la clase cancelada con su motivo y sin botón de pasar lista", async () => {
+  freshAttendance();
+  session = {
+    id: 12, grupo_id: 1, profesor_id: 1, fecha: "2026-09-22", hora_inicio: "09:00:00", hora_fin: "10:00:00",
+    estado: "cancelada", observaciones: "CANCELADA|lluvia|",
+  };
+  const api = fakeApi();
+  const bot = createTelegramBot({ api, database: globalThis.__telegramTestDb, now: () => new Date("2026-09-22T10:00:00Z") });
+  await bot.handleUpdate({ message: { chat: { id: 100, type: "private" }, text: "/hoy" } });
+  const canceled = api.calls.find((call) => /cancelada/i.test(call.text || ""));
+  assert.ok(canceled);
+  assert.match(canceled.text, /Grupo 1/);
+  assert.equal(canceled.reply_markup, undefined);
+  assert.equal(api.calls.filter((call) => call.reply_markup).length, 1);
+  session = null;
+});
+
+test("un profesor solo ve y pasa lista de sus grupos; el admin vinculado, de todos", async () => {
+  freshAttendance();
+  groups[1].profesor_id = 2;
+  try {
+    const api = fakeApi();
+    const bot = createTelegramBot({ api, database: globalThis.__telegramTestDb, now: () => new Date("2026-09-22T10:00:00Z") });
+    await bot.handleUpdate({ message: { chat: { id: 100, type: "private" }, text: "/hoy" } });
+    assert.match(api.calls[0].text, /Clases de hoy.*: 1/);
+    assert.ok(!api.calls.some((call) => /Grupo 2/.test(call.text || "")));
+
+    api.calls.length = 0;
+    await bot.handleUpdate(callback("x1", "attendance:2:2026-09-22"));
+    await bot.handleUpdate(callback("x2", "open:2:2026-09-22", 51));
+    await bot.handleUpdate(callback("x3", "save:2:20260922", 52));
+    assert.equal(bot.drafts.size, 0);
+    assert.equal(session, null);
+    assert.equal(attendance.size, 0);
+    assert.ok(api.calls.filter((call) => /no es tuyo/.test(call.text || "")).length >= 3);
+    assert.ok(!api.calls.some((call) => call.reply_markup));
+
+    linkedRole = "admin";
+    api.calls.length = 0;
+    await bot.handleUpdate({ message: { chat: { id: 100, type: "private" }, text: "/hoy" } });
+    assert.match(api.calls[0].text, /Clases de hoy.*: 2/);
+    await bot.handleUpdate(callback("x4", "attendance:2:2026-09-22"));
+    assert.equal(bot.drafts.size, 1);
+  } finally {
+    groups[1].profesor_id = 1;
+    linkedRole = "profesor";
+  }
 });
