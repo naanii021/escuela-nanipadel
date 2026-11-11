@@ -183,8 +183,9 @@ function buildCommandResponse(command, role) {
 }
 
 export default function ClubAssistant() {
-  // En Reservar pista el botón flotante tapaba celdas del cuadrante en el móvil; ahí la barra inferior ya tiene Contacto.
-  const enReservas = useLocation().pathname.startsWith("/reservas");
+  // En Reservar pista y en Login el botón flotante tapaba el cuadrante o el botón principal en el móvil; ahí la barra inferior ya tiene Contacto.
+  const ruta = useLocation().pathname;
+  const enReservas = ruta.startsWith("/reservas") || ruta.startsWith("/login");
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
