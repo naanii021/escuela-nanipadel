@@ -9,6 +9,17 @@ import { consumeTelegramLinkCode, getTelegramProfessor } from "./telegramLinkSer
 
 const DAY_CODES = ["D", "L", "M", "X", "J", "V", "S"];
 const STATUS = { presente: "✅", falta: "❌", justificada: "🟠" };
+const HELP_TEXT = [
+  "Esto puedes hacer:",
+  "",
+  "/hoy · tus clases de hoy y pasar lista",
+  "/grupos · todos tus grupos",
+  "/recuperaciones · alumnos que tienen que recuperar",
+  "/ayuda · ver este mensaje",
+  "",
+  "Para pasar lista: pulsa /hoy, elige la clase y toca «Pasar lista». Todos salen como presentes: cambia solo los que no han venido (P = presente, F = falta, J = falta justificada) y pulsa «Guardar lista».",
+].join("\n");
+const NOT_LINKED_TEXT = "Este chat todavía no está vinculado. Entra en la web de la escuela, abre «Panel», busca «Pasar lista por Telegram», genera el código y envíamelo así: /start CÓDIGO";
 export const DRAFT_TTL_MS = 60 * 60 * 1000;
 const DRAFT_NOTICES = {
   lost: "⚠️ La lista en curso se ha perdido (el bot se ha reiniciado). No se ha guardado nada: vuelve a pasar lista y pulsa Guardar.",
@@ -36,8 +47,21 @@ function nextGroupDate(group, startDate) {
   return startDate;
 }
 
+function isAdminProfessor(professor) {
+  return String(professor?.usuario_rol || "").toLowerCase() === "admin";
+}
+
+// El admin vinculado ve todos los grupos; el profesor, solo los suyos (se filtra en canUseGroup).
 function actor(professor) {
-  return { id: professor.usuario_id || professor.id, rol: "profesor", profesor_id: professor.id };
+  return {
+    id: professor.usuario_id || professor.id,
+    rol: isAdminProfessor(professor) ? "admin" : "profesor",
+    profesor_id: professor.id,
+  };
+}
+
+function canUseGroup(professor, group) {
+  return isAdminProfessor(professor) || Number(group?.profesor_id) === Number(professor.id);
 }
 
 function callbackButton(text, callback_data) {
@@ -46,23 +70,22 @@ function callbackButton(text, callback_data) {
 
 function groupKeyboard(groupId, date) {
   return [[
-    callbackButton("Abrir clase", `open:${groupId}:${date}`),
     callbackButton("Ver alumnos", `students:${groupId}:${date}`),
   ], [callbackButton("Pasar lista", `attendance:${groupId}:${date}`)]];
 }
 
 function canceledLine(session) {
   const c = session?.cancelacion;
-  return `🚫 Clase cancelada · ${c?.etiqueta || "Otro motivo"}${c?.texto ? ` (${c.texto})` : ""}`;
+  return `🚫 Clase cancelada: ${c?.etiqueta || "otro motivo"}${c?.texto ? ` (${c.texto})` : ""}`;
 }
 
 function groupText(group, students = null, session = null) {
   if (session?.estado === "cancelada") {
     const time = String(group.hora_inicio || "").slice(0, 5) || "Sin hora";
-    return `🔴 ${time} · ${group.nombre || group.codigo}\n${canceledLine(session)}\nNo hace falta pasar lista. Se reabre desde el panel web.`;
+    return `🔴 ${time} · ${group.nombre || group.codigo}\n${canceledLine(session)}\nNo hay que pasar lista. Si se da al final, se reabre desde el panel de la web.`;
   }
   const time = String(group.hora_inicio || "").slice(0, 5) || "Sin hora";
-  const court = group.pista_habitual || "Sin pista";
+  const court = group.pista_habitual || "sin pista";
   const pupils = students ? `\nAlumnos: ${students.map((item) => `${item.nombre} ${item.apellidos || ""}`.trim()).join(", ") || "ninguno"}` : "";
   return `🟢 ${time} · ${group.nombre || group.codigo}\n📍 ${court}${pupils}`;
 }
@@ -94,6 +117,10 @@ export class TelegramApi {
 
   answerCallback(id, text) {
     return this.call("answerCallbackQuery", { callback_query_id: id, ...(text ? { text } : {}) });
+  }
+
+  setCommands(commands) {
+    return this.call("setMyCommands", { commands });
   }
 
   getUpdates(offset, timeout = 25) {
@@ -131,7 +158,7 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
   async function requireLinked(chatId) {
     const professor = await linked(chatId);
     if (!professor) {
-      await api.sendMessage(chatId, "Chat no vinculado. Genera un código desde tu sesión de profesor y envía /start CODIGO.");
+      await api.sendMessage(chatId, NOT_LINKED_TEXT);
     }
     return professor;
   }
@@ -139,9 +166,12 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
   async function showGroups(chatId, professor, onlyToday = false) {
     const date = madridDate(now());
     const { grupos } = await listControlGroups(actor(professor), promiseDb());
-    const selected = onlyToday ? grupos.filter((group) => group.dia1 === dayCode(date) || group.dia2 === dayCode(date)) : grupos;
-    await api.sendMessage(chatId, onlyToday ? `Clases de hoy (${date}): ${selected.length}` : `Grupos activos: ${selected.length}`);
-    if (!selected.length) return api.sendMessage(chatId, "No hay clases para hoy.");
+    const own = grupos.filter((group) => canUseGroup(professor, group));
+    const selected = onlyToday ? own.filter((group) => group.dia1 === dayCode(date) || group.dia2 === dayCode(date)) : own;
+    if (!selected.length) {
+      return api.sendMessage(chatId, onlyToday ? "Hoy no tienes clases. 🎾" : "No tienes grupos asignados todavía. Pídele a la administración que te los asigne.");
+    }
+    await api.sendMessage(chatId, onlyToday ? `Clases de hoy (${date}): ${selected.length}` : `Tus grupos: ${selected.length}`);
     for (const group of selected) {
       const classDate = onlyToday ? date : nextGroupDate(group, date);
       const data = await loadControlSession(actor(professor), group.id, classDate, promiseDb());
@@ -154,13 +184,16 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
 
   async function showRecoveries(chatId, professor) {
     const { recuperaciones } = await listControlRecoveries(actor(professor), promiseDb());
+    const { grupos } = await listControlGroups(actor(professor), promiseDb());
+    const ownGroupIds = new Set(grupos.filter((group) => canUseGroup(professor, group)).map((group) => Number(group.id)));
     const pending = recuperaciones.filter((item) => item.estado === "pendiente" || item.estado === "asignada");
-    if (!pending.length) return api.sendMessage(chatId, "No hay recuperaciones pendientes o asignadas.");
-    const lines = pending.map((item) => {
+    const own = isAdminProfessor(professor) ? pending : pending.filter((item) => ownGroupIds.has(Number(item.grupo_id)));
+    if (!own.length) return api.sendMessage(chatId, "No hay recuperaciones pendientes. 👍");
+    const lines = own.map((item) => {
       const assigned = item.fecha_recuperacion ? ` → ${item.fecha_recuperacion}` : "";
       return `• ${item.alumno_nombre || "Alumno"} ${item.alumno_apellidos || ""} · ${item.grupo_origen} · ${item.fecha_original} · ${item.estado}${assigned}`;
     });
-    return api.sendMessage(chatId, `Recuperaciones:\n${lines.join("\n")}`);
+    return api.sendMessage(chatId, `Recuperaciones pendientes:\n${lines.join("\n")}`);
   }
 
   function draftMessage(draft, notice = "") {
@@ -168,7 +201,7 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
       const state = draft.states[student.id] || "presente";
       return `${STATUS[state]} ${student.nombre} ${student.apellidos || ""}`.trim();
     });
-    return `${notice ? `${notice}\n\n` : ""}Pasar lista · ${draft.group.nombre} · ${draft.date}\n${lines.join("\n")}`;
+    return `${notice ? `${notice}\n\n` : ""}Lista · ${draft.group.nombre} · ${draft.date}\nToca la letra de quien NO haya venido normal. P = presente, F = falta, J = justificada.\n\n${lines.join("\n")}`;
   }
 
   function draftKeyboard(draft) {
@@ -185,8 +218,14 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
     return { inline_keyboard: rows };
   }
 
+  function denyForeignGroup(chatId, messageId = null) {
+    const text = "Ese grupo no es tuyo, así que no puedes pasar lista. Si lo estás sustituyendo, pídele a la administración que te lo asigne.";
+    return messageId ? api.editMessage(chatId, messageId, text) : api.sendMessage(chatId, text);
+  }
+
   async function beginAttendance(chatId, professor, groupId, date, messageId = null, notice = "") {
     const data = await loadControlSession(actor(professor), groupId, date, promiseDb());
+    if (!canUseGroup(professor, data.grupo)) return denyForeignGroup(chatId, messageId);
     if (data.sesiones[0]?.estado === "cancelada") {
       drafts.delete(`${chatId}:${groupId}:${date.replaceAll("-", "")}`);
       const text = groupText(data.grupo, null, data.sesiones[0]);
@@ -217,20 +256,23 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
         const professor = await consumeTelegramLinkCode({
           code: argument, chatId, username: message.from?.username,
         }, promiseDb());
-        if (professor) return api.sendMessage(chatId, `Telegram vinculado a ${professor.nombre || "tu perfil"}. Usa /hoy, /grupos o /recuperaciones.`);
-        return api.sendMessage(chatId, "El código no es válido, ha caducado o ya fue utilizado.");
+        if (professor) return api.sendMessage(chatId, `¡Listo, ${professor.nombre || "profe"}! Telegram queda vinculado.\n\nEscribe /hoy para ver tus clases y pasar lista. Si te pierdes, escribe /ayuda.`);
+        return api.sendMessage(chatId, "Ese código no vale: ha caducado (dura 10 minutos) o ya se usó. Genera uno nuevo en el panel de la web y envíamelo otra vez.");
       }
       const professor = await linked(chatId);
       return api.sendMessage(chatId, professor
-        ? "Bot de profesores activo. Usa /hoy, /grupos o /recuperaciones."
-        : "Genera un código desde tu sesión autenticada de profesor y envía /start CODIGO.");
+        ? `Hola, ${professor.nombre || "profe"}. Escribe /hoy para pasar lista o /ayuda para ver qué puedo hacer.`
+        : NOT_LINKED_TEXT);
+    }
+    if (command === "/ayuda" || command === "/help") {
+      return api.sendMessage(chatId, (await linked(chatId)) ? HELP_TEXT : NOT_LINKED_TEXT);
     }
     const professor = await requireLinked(chatId);
     if (!professor) return;
     if (command === "/hoy") return showGroups(chatId, professor, true);
     if (command === "/grupos") return showGroups(chatId, professor, false);
     if (command === "/recuperaciones") return showRecoveries(chatId, professor);
-    return api.sendMessage(chatId, "Comandos: /hoy, /grupos, /recuperaciones");
+    return api.sendMessage(chatId, HELP_TEXT);
   }
 
   async function handleCallback(callback) {
@@ -238,7 +280,7 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
     const messageId = callback.message?.message_id;
     if (!chatId) return;
     const professor = await requireLinked(chatId);
-    if (!professor) return api.answerCallback(callback.id, "Chat no vinculado");
+    if (!professor) return api.answerCallback(callback.id, "Chat sin vincular");
     const parts = String(callback.data || "").split(":");
     const action = parts[0];
     const groupId = Number(parts[1]);
@@ -251,6 +293,7 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
     if (action === "open" || action === "students") {
       const data = await loadControlSession(actor(professor), groupId, date, promiseDb());
       await api.answerCallback(callback.id);
+      if (!canUseGroup(professor, data.grupo)) return denyForeignGroup(chatId);
       const canceled = data.sesiones[0]?.estado === "cancelada";
       return api.sendMessage(chatId, groupText(data.grupo, data.alumnos, data.sesiones[0]),
         canceled ? undefined : { inline_keyboard: groupKeyboard(groupId, date) });
@@ -298,7 +341,7 @@ export function createTelegramBot({ api, database = db, now = () => new Date(), 
       const counts = result.asistencias.reduce((acc, item) => ({ ...acc, [item.estado]: (acc[item.estado] || 0) + 1 }), {});
       await api.answerCallback(callback.id, "Asistencia guardada");
       return api.editMessage(chatId, messageId || draft.messageId,
-        `✅ Clase guardada como dada.\nPresentes: ${counts.presente || 0} · Faltas: ${counts.falta || 0} · Justificadas: ${counts.justificada || 0}`);
+        `✅ Lista guardada. La clase queda como dada.\nPresentes: ${counts.presente || 0} · Faltas: ${counts.falta || 0} · Justificadas: ${counts.justificada || 0}`);
     }
   }
 
@@ -336,5 +379,12 @@ export async function runTelegramPolling({ api, bot, onError = console.error }) 
     stop() { stopped = true; },
   };
 }
+
+export const BOT_COMMANDS = [
+  { command: "hoy", description: "Mis clases de hoy y pasar lista" },
+  { command: "grupos", description: "Mis grupos" },
+  { command: "recuperaciones", description: "Recuperaciones pendientes" },
+  { command: "ayuda", description: "Cómo funciona" },
+];
 
 export { madridDate };

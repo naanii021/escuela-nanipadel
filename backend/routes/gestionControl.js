@@ -268,9 +268,15 @@ router.get("/grupos", async (req, res) => {
 router.post("/telegram/link-code", async (req, res) => {
   try {
     const role = String(req.user?.rol || "").toLowerCase();
-    if (role !== "profesor" && role !== "profe") fail(403, "Solo un profesor puede vincular su Telegram");
+    if (role !== "admin" && role !== "profesor" && role !== "profe") fail(403, "Solo el profesorado puede vincular su Telegram");
     const connection = db.promise();
-    const professorId = await requireStaffProfessor(connection, req.user);
+    // El admin que además es profesor puede vincular si su cuenta está enlazada a una ficha activa.
+    const professorId = await getProfessorId(connection, req.user);
+    if (!professorId) {
+      fail(403, role === "admin"
+        ? "Tu cuenta de administración no está enlazada a ninguna ficha de profesor activa, así que no puedes pasar lista por Telegram."
+        : "Tu cuenta no está vinculada a un profesor activo. Pide a la administración que lo revise.");
+    }
     const code = await createTelegramLinkCode(professorId, connection);
     const username = String(process.env.TELEGRAM_BOT_USERNAME || "").replace(/^@/, "");
     res.json({
@@ -279,6 +285,7 @@ router.post("/telegram/link-code", async (req, res) => {
       expires_in_minutes: 10,
       command: `/start ${code}`,
       link: username ? `https://t.me/${username}?start=${code}` : null,
+      bot_username: username || null,
     });
   } catch (error) {
     sendError(res, error);

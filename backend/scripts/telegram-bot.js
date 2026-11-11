@@ -1,5 +1,5 @@
 import "../config/env.js";
-import { createTelegramBot, runTelegramPolling, TelegramApi } from "../services/telegramBotService.js";
+import { BOT_COMMANDS, createTelegramBot, runTelegramPolling, TelegramApi } from "../services/telegramBotService.js";
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {
@@ -9,6 +9,8 @@ if (!token) {
 
 const api = new TelegramApi(token);
 const bot = createTelegramBot({ api });
+// El menú de comandos del chat es opcional: si falla, el bot sigue funcionando.
+await api.setCommands(BOT_COMMANDS).catch((error) => console.error("No se pudo publicar el menú de comandos:", error.message));
 const polling = await runTelegramPolling({ api, bot });
 
 const stop = () => {
