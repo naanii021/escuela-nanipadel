@@ -1,6 +1,7 @@
 import express from "express";
 import { db } from "../db/connection.js";
 import { createTelegramLinkCode } from "../services/telegramLinkService.js";
+import { avisarCancelacion, estadoAvisos, leerConfigAvisos } from "../services/avisoCancelacionService.js";
 
 const router = express.Router();
 const SEDE = "Seminario Diocesano";
@@ -557,6 +558,7 @@ export function cancelControlSession({ user, groupId, fecha, motivo, texto = "",
     const observaciones = formatCancelacion(motivo, motivo === "otro" ? texto : "");
     const quiereRecuperar = recuperable !== false && recuperable !== "false" && recuperable !== 0;
     let sesion = await getSession(connection, group.id, normalizedDate, true);
+    const yaEstabaCancelada = sesion?.estado === "cancelada";
     if (!sesion) {
       const [inserted] = await connection.query(
         `INSERT INTO sesiones_clase
@@ -574,7 +576,11 @@ export function cancelControlSession({ user, groupId, fecha, motivo, texto = "",
     }
     sesion = await getSession(connection, group.id, normalizedDate);
     const creadas = await syncCancelRecoveries(connection, sesion, alumnos, quiereRecuperar);
-    return { sesion: withCancelacion(sesion), alumnos, dia: day, recuperaciones_creadas: creadas };
+    return {
+      sesion: withCancelacion(sesion), alumnos, dia: day, recuperaciones_creadas: creadas,
+      // Datos internos para el aviso por WhatsApp; la ruta los quita de la respuesta.
+      aviso_interno: { grupo: { id: group.id, nombre: group.nombre, hora_inicio: group.hora_inicio }, yaEstabaCancelada, quiereRecuperar },
+    };
   });
 }
 
@@ -617,10 +623,65 @@ async function saveRequest(req, res, sessionId = null) {
   }
 }
 
+const quiereAvisar = (valor) => valor === true || valor === "true" || valor === 1;
+
+function hoyEnMadrid() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid" }).format(new Date());
+}
+
+// Aviso opcional a las familias tras cancelar. La cancelación ya está guardada: nada de aquí
+// puede hacerla fallar, así que cualquier error se devuelve como estado "error".
+async function avisoTrasCancelar({ resultado, fecha, motivo, texto }) {
+  const { grupo, yaEstabaCancelada, quiereRecuperar } = resultado.aviso_interno;
+  if (yaEstabaCancelada) {
+    return { estado: "omitido", enviados: 0, fallidos: 0, sinTelefono: 0, omitidos: 0, mensaje: "La clase ya estaba cancelada: no se ha vuelto a avisar a las familias." };
+  }
+  if (String(fecha) < hoyEnMadrid()) {
+    return { estado: "omitido", enviados: 0, fallidos: 0, sinTelefono: 0, omitidos: 0, mensaje: "La clase ya pasó: no se avisa a las familias." };
+  }
+  return avisarCancelacion({
+    query: (sql, params) => db.promise().query(sql, params),
+    grupo,
+    fecha: String(fecha),
+    alumnos: resultado.alumnos,
+    cancelacion: { motivo, texto: motivo === "otro" ? texto : "" },
+    recuperable: quiereRecuperar,
+  });
+}
+
 router.post("/grupos/:grupoId/sesiones/cancelar", async (req, res) => {
   try {
-    const { fecha, motivo, texto, recuperable } = req.body || {};
-    res.json({ ok: true, ...(await cancelControlSession({ user: req.user, groupId: req.params.grupoId, fecha, motivo, texto, recuperable })) });
+    const { fecha, motivo, texto, recuperable, avisar_familias: avisarFamilias } = req.body || {};
+    const { aviso_interno: interno, ...publico } = await cancelControlSession({ user: req.user, groupId: req.params.grupoId, fecha, motivo, texto, recuperable });
+    const respuesta = { ok: true, ...publico };
+    if (quiereAvisar(avisarFamilias)) {
+      try {
+        respuesta.aviso = await avisoTrasCancelar({ resultado: { ...publico, aviso_interno: interno }, fecha, motivo, texto });
+      } catch (error) {
+        console.warn("Aviso de clase cancelada:", error.message);
+        respuesta.aviso = { estado: "error", enviados: 0, fallidos: 0, sinTelefono: 0, omitidos: 0, mensaje: "No se pudo avisar a las familias: avísalas por otro medio." };
+      }
+    }
+    res.json(respuesta);
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+// Estado de los avisos por WhatsApp para la casilla de la hoja de cancelar:
+// GET /api/gestion/control/avisos-whatsapp?grupo_id=8&fecha=2026-11-05
+// -> { activo, motivo, mensaje, modo_prueba, destinatarios, sin_telefono }
+// Con los avisos apagados responde sin consultar alumnos ni teléfonos.
+router.get("/avisos-whatsapp", async (req, res) => {
+  try {
+    if (!leerConfigAvisos().activo) return res.json({ ok: true, ...(await estadoAvisos({ query: null })) });
+    const connection = db.promise();
+    const fecha = String(req.query.fecha || "");
+    const day = validDate(fecha);
+    const { group, context } = await getGroup(connection, req.user, req.query.grupo_id);
+    if (day !== group.dia1 && day !== group.dia2) fail(400, "El grupo no tiene clase en ese dia");
+    const alumnos = await getRoster(connection, group, context, day);
+    res.json({ ok: true, ...(await estadoAvisos({ query: (sql, params) => connection.query(sql, params), alumnos })) });
   } catch (error) {
     sendError(res, error);
   }
